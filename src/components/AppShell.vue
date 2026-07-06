@@ -1,0 +1,62 @@
+<script setup>
+import { useAuthStore } from '@/stores/auth'
+import Icon from './Icon.vue'
+
+const auth = useAuthStore()
+
+const navItems = [
+  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/account', label: 'Organisation profile', icon: 'building' }
+]
+
+function logout() {
+  auth.logout()
+}
+</script>
+
+<template>
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-teal-900 text-white flex flex-col sticky top-0 h-screen shrink-0">
+      <div class="flex items-center gap-2.5 p-5 border-b border-white/10">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center font-bold text-xs">NEP</div>
+        <div class="leading-none">
+          <b class="font-lexend text-sm font-semibold block">NEP Member</b>
+          <span class="text-[10px] text-white/55">Portal</span>
+        </div>
+      </div>
+      
+      <nav class="flex-1 overflow-y-auto p-3.5 space-y-0.5">
+        <div class="text-[10px] uppercase tracking-wider text-white/40 px-2.5 mb-1.5">Main</div>
+        <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" class="flex items-center gap-2.5 p-2 rounded-lg text-white/78 text-sm font-medium hover:bg-white/7 hover:text-white" active-class="bg-white/14 text-white">
+          <Icon :name="item.icon" />
+          {{ item.label }}
+        </RouterLink>
+      </nav>
+
+      <div class="p-4 border-t border-white/10 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold shrink-0">JD</div>
+        <div class="overflow-hidden leading-tight">
+          <b class="text-xs block truncate w-24">John Doe</b>
+          <span class="text-[10px] text-white/50">Coordinator</span>
+        </div>
+        <button @click="logout" class="ml-auto text-white/50 hover:text-white">
+          <Icon name="logout" />
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 min-w-0 flex flex-col">
+      <header class="h-16 bg-white border-b border-gray-200 flex items-center px-6 gap-4 sticky top-0 z-10">
+        <nav class="text-sm text-gray-500">
+          <slot name="header" />
+        </nav>
+      </header>
+      
+      <div class="p-8 max-w-6xl w-full mx-auto">
+        <slot />
+      </div>
+    </main>
+  </div>
+</template>
