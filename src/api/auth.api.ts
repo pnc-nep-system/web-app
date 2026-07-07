@@ -6,5 +6,8 @@ export const authApi = {
   },
   logout() {
     return api.post('/logout');
-  }
+  },
+  getUser() {
+    return api.get('/user');
+  },
 };

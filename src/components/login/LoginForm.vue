@@ -65,13 +65,9 @@ async function submit() {
   const success = await authStore.login(email.value, password.value)
   
   if (success) {
-    // Reset counter and redirect to the correct dashboard based on user role
+    // All roles use the same dynamic dashboard — title/UI adapts by role
     failedAttempts.value = 0
-    const role = localStorage.getItem('userRole')
-    
-    if (role === 'admin') router.push('/admin/dashboard')
-    else if (role === 'manager') router.push('/manager/dashboard')
-    else router.push('/dashboard')
+    router.push('/dashboard')
   } else {
     // 3. Handle Failure Cases
     failedAttempts.value++

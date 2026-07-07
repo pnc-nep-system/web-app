@@ -2,11 +2,11 @@
   <AppShell>
     <!-- Breadcrumb slot -->
     <template #header>
-      <span class="text-gray-400">NEP</span>
+      <span class="text-gray-400">{{ breadcrumbRoot }}</span>
       <span class="mx-1.5 text-gray-300">›</span>
       <span class="text-gray-700 font-medium">Dashboard</span>
 
-      <!-- Top-right New Entry button -->
+      <!-- Top-right New Entry button (members & coordinators) -->
       <div class="ml-auto">
         <RouterLink
           to="/entries/new"
@@ -16,12 +16,20 @@
         </RouterLink>
       </div>
     </template>
-
-
-
   </AppShell>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import AppShell from '@/components/AppShell.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+
+const breadcrumbRoot = computed(() => {
+  const role = auth.userRole
+  if (role === 'admin') return 'NEP Admin'
+  if (role === 'coordinator' || role === 'manager') return 'NEP Coordinator'
+  return 'NEP'
+})
 </script>

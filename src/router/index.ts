@@ -40,14 +40,12 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('authToken')
-  
+
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
   } else if (to.name === 'login' && isAuthenticated) {
-    const role = localStorage.getItem('userRole')
-    if (role === 'admin') next({ name: 'admin-dashboard' })
-    else if (role === 'manager') next({ name: 'manager-dashboard' })
-    else next({ name: 'dashboard' })
+    // All roles use the same dashboard; title changes based on role
+    next({ name: 'dashboard' })
   } else {
     next()
   }

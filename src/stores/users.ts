@@ -4,11 +4,12 @@ import { ref } from 'vue'
 // Temporary mock for users
 export const useUsersStore = defineStore('users', () => {
   const items = ref([
-    { id: 'u1', name: 'Riverkids Cambodia', email: 'programmes@riverkids.org', password: 'demo1234', role: 'manager', status: 'active' },
-    { id: 'u2', name: 'ChildWell Cambodia', email: 'programmes@childwell.org', password: 'demo1234', role: 'manager', status: 'active' },
-    { id: 'u3', name: 'New Hope Learning', email: 'programmes@newhope.org', password: 'demo1234', role: 'manager', status: 'active' },
-    { id: 'u4', name: 'Admin', email: 'admin@riverkids.org', password: 'demo1234', role: 'admin', status: 'active' },
-    { id: 'u5', name: 'User', email: 'test@example.com', password: 'password123', role: 'user', status: 'active' }
+    { id: 'u1', name: 'Riverkids Cambodia', email: 'programmes@riverkids.org', password: 'demo1234', role: 'member_org', status: 'active' },
+    { id: 'u2', name: 'ChildWell Cambodia', email: 'programmes@childwell.org', password: 'demo1234', role: 'member_org', status: 'active' },
+    { id: 'u3', name: 'New Hope Learning', email: 'programmes@newhope.org', password: 'demo1234', role: 'member_org', status: 'active' },
+    { id: 'u4', name: 'Admin', email: 'admin@riverkids.org', password: 'demo1234', role: 'nep_admin', status: 'active' },
+    { id: 'u5', name: 'User', email: 'test@example.com', password: 'password123', role: 'member_org', status: 'active' },
+    { id: 'u6', name: 'Coordinator', email: 'coordinator@example.com', password: 'password123', role: 'nep_coordinator', status: 'active' }
   ])
 
   function byEmail(email: string) {
