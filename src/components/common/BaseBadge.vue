@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 const props = defineProps({
   tone: { type: String, default: 'gray' }, // teal | amber | green | red | indigo | gray
   dot: { type: Boolean, default: false }

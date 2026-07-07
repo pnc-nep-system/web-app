@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 defineProps({
   padded: { type: Boolean, default: true }
 })

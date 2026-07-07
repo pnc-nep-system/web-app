@@ -1,6 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
-import Icon from './Icon.vue'
+import BaseIcon from '@/components/common/BaseIcon.vue'
 
 const props = defineProps({
   icon: { type: String, default: 'dashboard' },
@@ -26,7 +26,7 @@ const iconClass = computed(() => toneClasses[props.iconTone] || toneClasses.teal
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
     <div class="flex justify-between items-start mb-3">
       <div class="p-2 rounded-lg flex items-center justify-center" :class="iconClass">
-        <Icon :name="icon" :size="17" />
+        <BaseIcon :name="icon" :size="17" />
       </div>
       <span v-if="trend" class="text-xs font-semibold px-2 py-0.5 rounded-full" :class="trendTone === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'">{{ trend }}</span>
     </div>

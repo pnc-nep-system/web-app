@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import LoginVisual from '@/components/login/LoginVisual.vue'
 import LoginForm from '@/components/login/LoginForm.vue'
 </script>

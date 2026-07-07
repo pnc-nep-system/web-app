@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ inheritAttrs: false })
 defineProps({
   variant: { type: String, default: 'primary' },
