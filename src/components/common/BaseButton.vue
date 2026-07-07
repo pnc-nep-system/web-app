@@ -4,7 +4,7 @@ defineProps({
   variant: { type: String, default: 'primary' },
   size: { type: String, default: 'md' },
   disabled: { type: Boolean, default: false },
-  type: { type: String, default: 'button' }
+  type: { type: String as () => 'button' | 'submit' | 'reset', default: 'button' }
 })
 </script>
 
