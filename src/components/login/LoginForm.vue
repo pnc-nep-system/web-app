@@ -15,7 +15,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="w-full lg:w-[500px] bg-white flex flex-col justify-center p-8 lg:p-14 flex-shrink-0">
+  <div class="w-full lg:w-[650px] bg-white flex flex-col justify-center p-8 lg:p-14 flex-shrink-0">
     <h2 class="text-xl font-semibold mb-2">Organisation sign in</h2>
     <p class="text-sm text-gray-500 mb-6.5">Accounts are organisational, not individual — staff turnover never costs you access.</p>
 
