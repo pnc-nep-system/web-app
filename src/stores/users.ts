@@ -4,8 +4,9 @@ import { ref, computed } from 'vue'
 // Temporary mock for users
 export const useUsersStore = defineStore('users', () => {
   const items = ref([
-    { id: 'u1', name: 'Coordinator', email: 'coordinator@nep-cambodia.org', password: 'demo1234', role: 'coordinator', status: 'active' },
-    { id: 'u2', name: 'Admin', email: 'admin@nep-cambodia.org', password: 'demo1234', role: 'admin', status: 'active' }
+    { id: 'u1', name: 'Coordinator', email: 'programmes@riverkids.org', password: 'demo1234', role: 'manager', status: 'active' },
+    { id: 'u2', name: 'Admin', email: 'admin@riverkids.org', password: 'demo1234', role: 'admin', status: 'active' },
+    { id: 'u3', name: 'User', email: 'test@example.com', password: 'password123', role: 'user', status: 'active' }
   ])
 
   function byEmail(email: string) {
