@@ -48,7 +48,7 @@ function logout() {
 
     <!-- Main Content -->
     <main class="flex-1 min-w-0 flex flex-col">
-      <header class="h-16 bg-white border-b border-gray-200 flex items-center px-6 sticky top-0 z-10">
+      <header class="h-16 bg-white border-b border-gray-200 flex items-center px-6 gap-4 sticky top-0 z-10">
         <div class="flex items-center gap-1 text-sm text-gray-500 w-full">
           <slot name="header" />
         </div>

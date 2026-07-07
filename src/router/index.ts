@@ -10,8 +10,7 @@ const router = createRouter({
       component: () => import('@/views/auth/LoginView.vue'),
       meta: { requiresAuth: false }
     },
-    // Adding placeholder routes for dashboards since they don't seem to exist in router yet.
-    // They will be loaded here when implemented.
+
     {
       path: '/dashboard',
       name: 'dashboard',
@@ -28,6 +27,12 @@ const router = createRouter({
       path: '/manager/dashboard',
       name: 'manager-dashboard',
       component: () => import('@/views/staff/DashboardView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/entries/new',
+      name: 'entry-new',
+      component: () => import('@/views/member/NewEntryView.vue'),
       meta: { requiresAuth: true }
     }
   ],
