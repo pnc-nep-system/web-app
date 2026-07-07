@@ -1,14 +1,18 @@
 <script setup>
+defineOptions({ inheritAttrs: false })
 defineProps({
-  variant: { type: String, default: 'primary' }, // primary | secondary | ghost | danger | danger-ghost
-  size: { type: String, default: 'md' }, // md | sm
-  disabled: { type: Boolean, default: false }
+  variant: { type: String, default: 'primary' },
+  size: { type: String, default: 'md' },
+  disabled: { type: Boolean, default: false },
+  type: { type: String, default: 'button' }
 })
 </script>
 
 <template>
-  <button 
-    class="btn" 
+  <button
+    v-bind="$attrs"
+    :type="type"
+    class="btn"
     :class="[`btn-${variant}`, size === 'sm' ? 'btn-sm' : '']"
     :disabled="disabled"
   >

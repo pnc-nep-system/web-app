@@ -1,4 +1,5 @@
 <script setup>
+defineOptions({ inheritAttrs: false })
 defineProps({
   modelValue: [String, Number],
   type: { type: String, default: 'text' },
@@ -9,6 +10,7 @@ defineEmits(['update:modelValue'])
 
 <template>
   <input
+    v-bind="$attrs"
     :type="type"
     :value="modelValue"
     :class="{ 'has-error': error }"

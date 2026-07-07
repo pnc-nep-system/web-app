@@ -1,15 +1,26 @@
 <script setup>
 import { ref } from 'vue'
-import FormField from '@/components/FormField.vue'
-import Input from '@/components/Input.vue'
-import Button from '@/components/Button.vue'
-import Icon from '@/components/Icon.vue'
+import BaseFormField from '@/components/common/BaseFormField.vue'
+import BaseInput from '@/components/common/BaseInput.vue'
+import BaseButton from '@/components/common/BaseButton.vue'
+import BaseIcon from '@/components/common/BaseIcon.vue'
 
 const email = ref('')
 const password = ref('')
+const emailError = ref('')
+const passwordError = ref('')
 const showPassword = ref(false)
 
+const validateEmail = (email) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
 async function submit() {
+  emailError.value = validateEmail(email.value) ? '' : 'Please enter a valid email address.'
+  passwordError.value = password.value.length >= 8 ? '' : 'Password must be at least 8 characters long.'
+
+  if (emailError.value || passwordError.value) return
+
   console.log('Submit', email.value, password.value)
 }
 </script>
@@ -20,19 +31,19 @@ async function submit() {
     <p class="text-sm text-gray-500 mb-6.5">Accounts are organisational, not individual — staff turnover never costs you access.</p>
 
     <form @submit.prevent="submit" class="space-y-4">
-      <FormField label="Organisation email">
-        <Input type="email" v-model="email" required autocomplete="username" placeholder="programmes@riverkids.org" />
-      </FormField>
-      <FormField label="Password">
+      <BaseFormField label="Organisation email" :error="emailError">
+        <BaseInput type="email" v-model="email" required autocomplete="username" placeholder="programmes@riverkids.org" :error="!!emailError" />
+      </BaseFormField>
+      <BaseFormField label="Password" :error="passwordError">
         <div class="relative">
-          <Input :type="showPassword ? 'text' : 'password'" v-model="password" required autocomplete="current-password" placeholder="••••••••" class="w-full pr-10" />
+          <BaseInput :type="showPassword ? 'text' : 'password'" v-model="password" required autocomplete="current-password" placeholder="••••••••" class="w-full pr-10" :error="!!passwordError" />
           <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-            <Icon name="eye" size="20" />
+            <BaseIcon name="eye" size="20" />
           </button>
         </div>
-      </FormField>
+      </BaseFormField>
 
-      <Button type="submit" class="w-full justify-center">Sign in</Button>
+      <BaseButton type="submit" class="w-full justify-center">Sign in</BaseButton>
     </form>
 
     <div class="mt-6 bg-amber-50 border border-amber-100 rounded-lg p-4 text-xs text-amber-700">
