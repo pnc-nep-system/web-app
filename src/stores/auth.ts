@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
-import { useRouter } from 'vue-router'
+import { useUsersStore } from './users'
 
 export const useAuthStore = defineStore('auth', () => {
   // --- State ---
@@ -17,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
   
   /**
    * Hits the backend authentication login endpoint.
-   * Saves the auth token and role to local storage upon successful sign-in.
+   * If the backend is unavailable, it automatically falls back to local mocked credentials.
    */
   async function login(email: string, password: string) {
     loading.value = true
@@ -38,9 +38,43 @@ export const useAuthStore = defineStore('auth', () => {
       
       loading.value = false
       return true
-    } catch (error: any) {
+    } catch (error) {
       loading.value = false
-      const res = error.response
+      const axiosError = error as { 
+        code?: string;
+        message?: string;
+        response?: { 
+          status?: number; 
+          data?: { 
+            message?: string; 
+            errors?: Record<string, string[]>; 
+          }; 
+        }; 
+      };
+      const res = axiosError.response
+      
+      // FALLBACK: If backend is completely unavailable (connection refused, offline, etc.)
+      if (!res || axiosError.code === 'ERR_NETWORK' || axiosError.message?.includes('Network Error')) {
+        const usersStore = useUsersStore()
+        const user = usersStore.byEmail(email)
+        
+        if (user) {
+          if (user.password === password) {
+            localStorage.setItem('authToken', 'mock-jwt-token-123')
+            localStorage.setItem('userRole', user.role)
+            currentUserId.value = user.id
+            return true
+          } else {
+            fieldErrors.value = { password: ['Password is incorrect.'] }
+            authError.value = 'Password is incorrect.'
+            return false
+          }
+        } else {
+          fieldErrors.value = { email: ['Email does not exist.'] }
+          authError.value = 'Email does not exist.'
+          return false
+        }
+      }
       
       // Handle server-returned validation / credentials error messages
       if (res?.data?.message) {
@@ -52,6 +86,9 @@ export const useAuthStore = defineStore('auth', () => {
       // Handle granular input field validation errors (HTTP 422)
       if (res?.data?.errors) {
         fieldErrors.value = res.data.errors
+      } else if (res?.status === 401) {
+        // Map general 401 error to password field so it appears under the input
+        fieldErrors.value = { password: [authError.value] }
       }
       
       return false
