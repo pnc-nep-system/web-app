@@ -8,8 +8,49 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/auth/LoginView.vue'),
+      meta: { requiresAuth: false }
     },
+
+    {
+      path: '/dashboard',
+      name: 'dashboard',
+      component: () => import('@/views/member/DashboardView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin/dashboard',
+      name: 'admin-dashboard',
+      component: () => import('@/views/staff/DashboardView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/manager/dashboard',
+      name: 'manager-dashboard',
+      component: () => import('@/views/staff/DashboardView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/entries/new',
+      name: 'entry-new',
+      component: () => import('@/views/member/NewEntryView.vue'),
+      meta: { requiresAuth: true }
+    }
   ],
+})
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('authToken')
+  
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    next({ name: 'login' })
+  } else if (to.name === 'login' && isAuthenticated) {
+    const role = localStorage.getItem('userRole')
+    if (role === 'admin') next({ name: 'admin-dashboard' })
+    else if (role === 'manager') next({ name: 'manager-dashboard' })
+    else next({ name: 'dashboard' })
+  } else {
+    next()
+  }
 })
 
 export default router

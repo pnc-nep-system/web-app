@@ -1,6 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
-import Icon from './Icon.vue'
+import BaseIcon from '@/components/common/BaseIcon.vue'
 
 const auth = useAuthStore()
 
@@ -29,7 +29,7 @@ function logout() {
       <nav class="flex-1 overflow-y-auto p-3.5 space-y-0.5">
         <div class="text-[10px] uppercase tracking-wider text-white/40 px-2.5 mb-1.5">Main</div>
         <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" class="flex items-center gap-2.5 p-2 rounded-lg text-white/78 text-sm font-medium hover:bg-white/7 hover:text-white" active-class="bg-white/14 text-white">
-          <Icon :name="item.icon" />
+          <BaseIcon :name="item.icon" />
           {{ item.label }}
         </RouterLink>
       </nav>
@@ -41,7 +41,7 @@ function logout() {
           <span class="text-[10px] text-white/50">Coordinator</span>
         </div>
         <button @click="logout" class="ml-auto text-white/50 hover:text-white">
-          <Icon name="logout" />
+          <BaseIcon name="logout" />
         </button>
       </div>
     </aside>
@@ -49,9 +49,9 @@ function logout() {
     <!-- Main Content -->
     <main class="flex-1 min-w-0 flex flex-col">
       <header class="h-16 bg-white border-b border-gray-200 flex items-center px-6 gap-4 sticky top-0 z-10">
-        <nav class="text-sm text-gray-500">
+        <div class="flex items-center gap-1 text-sm text-gray-500 w-full">
           <slot name="header" />
-        </nav>
+        </div>
       </header>
       
       <div class="p-8 max-w-6xl w-full mx-auto">

@@ -48,31 +48,28 @@ watch(
 
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="border-b border-gray-100 bg-gray-50/50 px-6 py-5">
-      <h2 class="text-lg font-semibold text-gray-900">Section 1: Programme Identity</h2>
-      <p class="mt-1 text-sm text-gray-500">Provide the core identity details for the new programme.</p>
-    </div>
 
     <div class="p-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-        <!-- Programme Name -->
+
+        <!-- Programme Name (full width) -->
         <div class="md:col-span-2">
           <label for="name" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Programme Name <span class="text-red-500">*</span>
+            Programme name
           </label>
           <input
             id="name"
             v-model="formData.name"
             type="text"
-            placeholder="e.g. Clean Water Initiative"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors sm:text-sm"
+            placeholder="Full name as used by your organisation"
+            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
         </div>
 
         <!-- Start Year -->
         <div>
           <label for="startYear" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Start Year
+            Start year
           </label>
           <input
             id="startYear"
@@ -81,34 +78,34 @@ watch(
             min="1900"
             max="2100"
             placeholder="YYYY"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors sm:text-sm"
+            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
         </div>
 
-        <!-- End Year & Ongoing Checkbox -->
+        <!-- End Year with Ongoing checkbox -->
         <div>
           <label for="endYear" class="block text-sm font-medium text-gray-700 mb-1.5">
-            End Year
+            End year
           </label>
-          <input
-            id="endYear"
-            v-model.number="formData.endYear"
-            type="number"
-            min="1900"
-            max="2100"
-            placeholder="YYYY"
-            :disabled="isEndYearDisabled"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors sm:text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-          />
-          <div class="mt-2.5 flex items-center">
+          <div class="flex items-center gap-3">
             <input
-              id="ongoing"
-              v-model="formData.isOngoing"
-              type="checkbox"
-              class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors cursor-pointer"
+              id="endYear"
+              v-model.number="formData.endYear"
+              type="number"
+              min="1900"
+              max="2100"
+              placeholder="YYYY"
+              :disabled="isEndYearDisabled"
+              class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
             />
-            <label for="ongoing" class="ml-2.5 block text-sm text-gray-600 select-none cursor-pointer">
-              Ongoing (no set end year)
+            <label for="ongoing" class="flex items-center gap-2 shrink-0 cursor-pointer text-sm text-gray-600 select-none">
+              <input
+                id="ongoing"
+                v-model="formData.isOngoing"
+                type="checkbox"
+                class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded transition-colors cursor-pointer accent-teal-700"
+              />
+              Ongoing
             </label>
           </div>
         </div>
@@ -116,31 +113,31 @@ watch(
         <!-- FTE Staff -->
         <div>
           <label for="fteStaff" class="block text-sm font-medium text-gray-700 mb-1.5">
-            FTE Staff
+            Number of staff (FTE)
           </label>
           <input
             id="fteStaff"
             v-model.number="formData.fteStaff"
             type="number"
             min="0"
-            step="0.1"
-            placeholder="e.g. 5.5"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors sm:text-sm"
+            step="0.5"
+            placeholder="e.g. 12"
+            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
         </div>
 
-        <!-- Budget Band -->
+        <!-- Budget Band (Annual) -->
         <div>
           <label for="budgetBand" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Budget Band
+            Annual budget band
           </label>
           <select
             id="budgetBand"
             v-model="formData.budgetBand"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors sm:text-sm"
+            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
             :class="!formData.budgetBand ? 'text-gray-400' : 'text-gray-900'"
           >
-            <option :value="null" disabled>Select a budget band</option>
+            <option :value="null" disabled>Select a band</option>
             <option v-for="band in BUDGET_BANDS" :key="band" :value="band" class="text-gray-900">
               {{ band }}
             </option>
@@ -150,33 +147,41 @@ watch(
         <!-- Direct Beneficiaries -->
         <div>
           <label for="directBeneficiaries" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Direct Beneficiaries
+            Direct beneficiaries per year
           </label>
           <input
             id="directBeneficiaries"
             v-model.number="formData.directBeneficiaries"
             type="number"
             min="0"
-            placeholder="e.g. 1500"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors sm:text-sm"
+            placeholder="Approximate number"
+            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
+          <p class="mt-1.5 text-xs text-amber-600">
+            Individuals who <em>directly</em> receive services from this programme.
+          </p>
         </div>
 
         <!-- Indirect Beneficiaries -->
         <div>
           <label for="indirectBeneficiaries" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Indirect Beneficiaries
+            Indirect beneficiaries per year
           </label>
           <input
             id="indirectBeneficiaries"
             v-model.number="formData.indirectBeneficiaries"
             type="number"
             min="0"
-            placeholder="e.g. 5000"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors sm:text-sm"
+            placeholder="Approximate number"
+            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
+          <p class="mt-1.5 text-xs text-gray-400">
+            Use your organisation's own definition.
+          </p>
         </div>
+
       </div>
     </div>
   </div>
 </template>
+
