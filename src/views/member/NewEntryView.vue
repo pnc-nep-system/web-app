@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
+import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
+import ProgrammeKeywordsView from '@/components/programme/ProgrammeKeywordsView.vue'
 import type { ProgrammeIdentity } from '@/types/programme'
 import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
@@ -15,14 +17,13 @@ const toast = useToast()
 // --- Step Definition ---
 const steps = [
   { number: 1, title: '1 · Programme identity', subtitle: 'Name, dates, scale' },
-  { number: 2, title: '2 · Activities',          subtitle: 'Taxonomy B1–B9' },
+  { number: 2, title: '2 · Activities', subtitle: 'Taxonomy B1–B9' },
   { number: 3, title: '3 · Geographic coverage', subtitle: 'Provinces & districts' },
   { number: 4, title: '4 · Government agreements', subtitle: 'Counterparts & status' },
-  { number: 5, title: '5 · Keywords',            subtitle: 'Up to 5 tags' },
+  { number: 5, title: '5 · Keywords', subtitle: 'Up to 5 tags' },
 ]
 
 const currentStep = ref(1)
-const isSaved = ref(false)
 const isSaving = ref(false)
 const errors = ref<Record<string, string[]>>({})
 
@@ -40,6 +41,28 @@ const section1Data = ref<ProgrammeIdentity>({
   method: '',
   verifiedDate: '',
 })
+
+const section1Valid = ref(false)
+const identityFormRef = ref<InstanceType<typeof ProgrammeIdentityForm> | null>(null)
+const activitiesFormRef = ref<InstanceType<typeof ActivitiesForm> | null>(null)
+
+// Dynamic page title — shows programme name once entered
+const pageTitle = computed(() => section1Data.value.name.trim() || 'New programme entry')
+
+// Progress bar width for sidebar
+const progressPercent = computed(() => (currentStep.value / steps.length) * 100)
+
+// Save status display
+const saveStatus = ref<'unsaved' | 'saving' | 'saved'>('unsaved')
+
+const saveLabel = computed(() => {
+  if (isSaving.value) return 'Saving…'
+  if (saveStatus.value === 'saved') return 'Saved'
+  return 'Not yet saved'
+})
+
+// --- Section 5 Data (Keywords) ---
+const keywordsData = ref<string[]>([])
 
 // Count how many fields in section 1 have been filled
 const section1Progress = computed(() => {
@@ -67,7 +90,7 @@ onMounted(async () => {
     try {
       const response = await memberApi.getProgrammeEntry(entryId as string)
       const entry = response.data.data
-      
+
       section1Data.value = {
         id: entry.id,
         name: entry.programme_name || '',
@@ -75,15 +98,15 @@ onMounted(async () => {
         endYear: entry.end_year || null,
         isOngoing: !!entry.ongoing,
         fteStaff: entry.fte_staff ? parseFloat(entry.fte_staff) : null,
-        budgetBand: (entry.budget_band_id 
-          ? BUDGET_BANDS[entry.budget_band_id - 1] 
+        budgetBand: (entry.budget_band_id
+          ? BUDGET_BANDS[entry.budget_band_id - 1]
           : null) || null,
         directBeneficiaries: entry.direct_beneficiaries || null,
         indirectBeneficiaries: entry.indirect_beneficiaries || null,
         method: entry.method || '',
         verifiedDate: entry.verified_date || '',
       }
-      isSaved.value = true
+      saveStatus.value = 'saved'
     } catch (err: any) {
       toast.error('Failed to load the programme entry data.')
     }
@@ -105,7 +128,7 @@ async function saveEntry(exitAfterSave: boolean) {
 
   try {
     const isEditMode = !!section1Data.value.id
-    
+
     // Map data to API schema keys
     const payload = {
       programme_name: section1Data.value.name,
@@ -113,8 +136,8 @@ async function saveEntry(exitAfterSave: boolean) {
       end_year: section1Data.value.isOngoing ? null : section1Data.value.endYear,
       ongoing: section1Data.value.isOngoing,
       fte_staff: section1Data.value.fteStaff,
-      budget_band_id: section1Data.value.budgetBand 
-        ? BUDGET_BANDS.indexOf(section1Data.value.budgetBand) + 1 
+      budget_band_id: section1Data.value.budgetBand
+        ? BUDGET_BANDS.indexOf(section1Data.value.budgetBand) + 1
         : null,
       direct_beneficiaries: section1Data.value.directBeneficiaries,
       indirect_beneficiaries: section1Data.value.indirectBeneficiaries,
@@ -131,19 +154,16 @@ async function saveEntry(exitAfterSave: boolean) {
 
     // Success response handling
     toast.success(response.data.message || 'Saved successfully!')
-    isSaved.value = true
-    
+    saveStatus.value = 'saved'
+
     const savedId = response.data.data.id
     section1Data.value.id = savedId
-    
+
     // Update route query parameters so reloading does not lose state
     await router.replace({ query: { ...route.query, id: String(savedId) } })
 
     if (exitAfterSave) {
       router.push('/dashboard')
-    } else {
-      // In a full implementation, we would proceed to Section 2
-      alert('Section 2 (Activities) is not yet implemented.')
     }
   } catch (err: any) {
     if (err.response && err.response.status === 422) {
@@ -157,12 +177,75 @@ async function saveEntry(exitAfterSave: boolean) {
   }
 }
 
+// Completed steps set
+const completedSteps = ref<Set<number>>(new Set())
+
+// Bottom button labels
+const nextStepLabel = computed(() => {
+  const next = steps[currentStep.value]
+  return next ? `Continue: ${next.title.replace(/^\d+ · /, '')} →` : 'Finish →'
+})
+
+const backStepLabel = computed(() => {
+  const prev = steps[currentStep.value - 2]
+  return prev ? `← Back: ${prev.title.replace(/^\d+ · /, '')}` : ''
+})
+
+// Dynamic section progress based on the current step
+const sectionProgress = computed(() => {
+  if (currentStep.value === 1) {
+    return { current: section1Progress.value, total: totalSection1Fields }
+  }
+  if (currentStep.value === 5) {
+    return { current: keywordsData.value.length, total: 5 }
+  }
+  return { current: 0, total: 0 }
+})
+
+const continueButtonText = computed(() => {
+  if (currentStep.value === 1) return 'Continue: Activities'
+  if (currentStep.value === 2) return 'Continue: Geographic coverage'
+  if (currentStep.value === 3) return 'Continue: Government agreements'
+  if (currentStep.value === 4) return 'Continue: Keywords'
+  return 'Finish & save'
+})
+
 function saveAndExit() {
   saveEntry(true)
 }
 
+function goBack() {
+  if (currentStep.value > 1) {
+    completedSteps.value.delete(currentStep.value - 1)
+    currentStep.value--
+  }
+}
+
 function continueToNext() {
-  saveEntry(false)
+  // Run client-side validation on the current step
+  if (currentStep.value === 1) {
+    const isValid = identityFormRef.value?.validate?.()
+    if (!isValid) return
+  }
+  if (currentStep.value === 2) {
+    const isValid = activitiesFormRef.value?.validate?.()
+    if (!isValid) return
+  }
+
+  // Save to API when leaving Step 1
+  if (currentStep.value === 1) {
+    saveEntry(false)
+  }
+
+  completedSteps.value.add(currentStep.value)
+
+  if (currentStep.value < steps.length) {
+    currentStep.value++
+    return
+  }
+
+  // Final step — save & exit
+  saveAndExit()
 }
 </script>
 
@@ -188,11 +271,11 @@ function continueToNext() {
     <!-- Page Header -->
     <div class="flex items-start justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">New programme entry</h1>
+        <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle }}</h1>
         <p class="text-sm text-gray-500 mt-0.5">
           Section {{ currentStep }} of {{ steps.length }} ·
-          <span :class="isSaved ? 'text-green-600' : 'text-gray-400'">
-            {{ isSaved ? 'Saved' : 'Not yet saved' }}
+          <span :class="saveStatus === 'saved' ? 'text-green-600' : 'text-gray-400'">
+            {{ saveLabel }}
           </span>
         </p>
       </div>
@@ -210,36 +293,54 @@ function continueToNext() {
           :disabled="isSaving"
           class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50"
         >
-          {{ isSaving ? 'Saving...' : 'Continue' }} <span class="text-base">→</span>
+          {{ currentStep === 5 ? 'Finish & save' : 'Continue' }} <span class="text-base">→</span>
         </button>
       </div>
     </div>
 
     <!-- Two-column layout: Step Sidebar + Form -->
     <div class="flex gap-6 items-start">
-
       <!-- Step Sidebar -->
-      <aside class="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+      <aside
+        class="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
+      >
         <ul class="divide-y divide-gray-100">
           <li
             v-for="step in steps"
             :key="step.number"
-            class="flex items-start gap-3 px-4 py-3.5 transition-colors"
+            class="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer select-none"
             :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'"
+            @click="currentStep = step.number"
           >
-            <!-- Step number bubble -->
+            <!-- Step bubble: checkmark if done, number otherwise -->
             <span
               class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-              :class="step.number === currentStep
-                ? 'bg-teal-800 text-white'
-                : 'bg-gray-100 text-gray-500'"
+              :class="
+                completedSteps.has(step.number)
+                  ? 'bg-green-600 text-white'
+                  : step.number === currentStep
+                    ? 'bg-teal-800 text-white'
+                    : 'bg-gray-100 text-gray-500'
+              "
             >
-              {{ step.number }}
+              <svg
+                v-if="completedSteps.has(step.number)"
+                class="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <template v-else>{{ step.number }}</template>
             </span>
 
             <div>
-              <p class="text-sm font-semibold"
-                :class="step.number === currentStep ? 'text-teal-900' : 'text-gray-600'">
+              <p
+                class="text-sm font-semibold"
+                :class="step.number === currentStep ? 'text-teal-900' : 'text-gray-600'"
+              >
                 {{ step.title }}
               </p>
               <p class="text-xs text-gray-400 mt-0.5">{{ step.subtitle }}</p>
@@ -248,32 +349,80 @@ function continueToNext() {
         </ul>
 
         <!-- Section Progress -->
-        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
-          <span>Section progress</span>
-          <span class="font-semibold text-gray-700">{{ section1Progress }} of {{ totalSection1Fields }}</span>
+        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <span>Section progress</span>
+            <span class="font-semibold text-gray-700">{{ currentStep }} of {{ steps.length }}</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              class="bg-teal-600 h-1.5 rounded-full transition-all duration-500"
+              :style="{ width: progressPercent + '%' }"
+            />
+          </div>
         </div>
       </aside>
 
-      <!-- Section 1 Form -->
+      <!-- Form Content Container -->
       <div class="flex-1 min-w-0">
+        <!-- Step 1: Programme Identity -->
         <ProgrammeIdentityForm
+          v-if="currentStep === 1"
+          ref="identityFormRef"
           v-model="section1Data"
+          v-model:valid="section1Valid"
           :errors="errors"
           @clear-error="clearError"
         />
 
-        <!-- Bottom Continue Button -->
-        <div class="mt-6 flex justify-end">
+        <!-- Step 2: Activities -->
+        <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesFormRef" />
+
+        <!-- Step 3 Placeholder -->
+        <div
+          v-else-if="currentStep === 3"
+          class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none"
+        >
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 3: Geographic coverage</h3>
+          <p class="text-sm text-gray-500">
+            Geographic coverage form is currently in development. Use the sidebar to navigate.
+          </p>
+        </div>
+
+        <!-- Step 4 Placeholder -->
+        <div
+          v-else-if="currentStep === 4"
+          class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none"
+        >
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 4: Government agreements</h3>
+          <p class="text-sm text-gray-500">
+            Government agreements form is currently in development. Use the sidebar to navigate.
+          </p>
+        </div>
+
+        <!-- Step 5: Keywords Form -->
+        <ProgrammeKeywordsView v-else-if="currentStep === 5" v-model="keywordsData" />
+
+        <!-- Bottom Navigation -->
+        <div class="mt-6 flex items-center justify-end gap-2">
+          <button
+            v-if="currentStep > 1"
+            type="button"
+            @click="goBack"
+            class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            {{ backStepLabel }}
+          </button>
+
           <button
             @click="continueToNext"
             :disabled="isSaving"
-            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50"
+            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer select-none"
           >
-            {{ isSaving ? 'Saving...' : 'Continue: Activities' }} <span class="text-base">→</span>
+            {{ currentStep === 5 ? 'Finish & save' : nextStepLabel }}
           </button>
         </div>
       </div>
     </div>
   </AppShell>
 </template>
-
