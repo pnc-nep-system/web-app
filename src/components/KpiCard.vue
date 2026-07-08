@@ -8,7 +8,7 @@ const props = defineProps({
   value: { type: [String, Number], required: true },
   label: { type: String, required: true },
   trend: { type: String, default: '' },
-  trendTone: { type: String, default: 'up' } // up | flag
+  trendTone: { type: String, default: 'up' }, // up | flag
 })
 
 const toneClasses = {
@@ -16,7 +16,7 @@ const toneClasses = {
   amber: 'bg-amber-100 text-amber-700',
   green: 'bg-green-100 text-green-700',
   red: 'bg-red-100 text-red-600',
-  indigo: 'bg-indigo-100 text-indigo-600'
+  indigo: 'bg-indigo-100 text-indigo-600',
 }
 
 const iconClass = computed(() => toneClasses[props.iconTone] || toneClasses.teal)
@@ -28,7 +28,12 @@ const iconClass = computed(() => toneClasses[props.iconTone] || toneClasses.teal
       <div class="p-2 rounded-lg flex items-center justify-center" :class="iconClass">
         <BaseIcon :name="icon" :size="17" />
       </div>
-      <span v-if="trend" class="text-xs font-semibold px-2 py-0.5 rounded-full" :class="trendTone === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'">{{ trend }}</span>
+      <span
+        v-if="trend"
+        class="text-xs font-semibold px-2 py-0.5 rounded-full"
+        :class="trendTone === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
+        >{{ trend }}</span
+      >
     </div>
     <div class="text-2xl font-bold text-gray-900">{{ value }}</div>
     <div class="text-sm text-gray-500">{{ label }}</div>

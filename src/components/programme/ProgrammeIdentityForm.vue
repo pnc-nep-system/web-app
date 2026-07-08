@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { BUDGET_BANDS } from '@/constants/programme';
-import type { ProgrammeIdentity } from '@/types/programme';
+import { ref, computed, watch } from 'vue'
+import { BUDGET_BANDS } from '@/constants/programme'
+import type { ProgrammeIdentity } from '@/types/programme'
 
 const props = defineProps<{
-  modelValue?: ProgrammeIdentity;
-}>();
+  modelValue?: ProgrammeIdentity
+}>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: ProgrammeIdentity): void;
-}>();
+  (e: 'update:modelValue', value: ProgrammeIdentity): void
+}>()
 
 // Initialize form state with prop data or defaults
 const formData = ref<ProgrammeIdentity>({
@@ -21,37 +21,35 @@ const formData = ref<ProgrammeIdentity>({
   budgetBand: props.modelValue?.budgetBand ?? null,
   directBeneficiaries: props.modelValue?.directBeneficiaries ?? null,
   indirectBeneficiaries: props.modelValue?.indirectBeneficiaries ?? null,
-});
+})
 
 // Computed property to determine if End Year should be disabled
-const isEndYearDisabled = computed(() => formData.value.isOngoing);
+const isEndYearDisabled = computed(() => formData.value.isOngoing)
 
 // Watcher to clear End Year if Ongoing is checked
 watch(
   () => formData.value.isOngoing,
   (isOngoing) => {
     if (isOngoing) {
-      formData.value.endYear = null;
+      formData.value.endYear = null
     }
-  }
-);
+  },
+)
 
 // Watcher to emit updates back to the parent component
 watch(
   formData,
   (newValue) => {
-    emit('update:modelValue', newValue);
+    emit('update:modelValue', newValue)
   },
-  { deep: true }
-);
+  { deep: true },
+)
 </script>
 
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-
     <div class="p-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-
         <!-- Programme Name (full width) -->
         <div class="md:col-span-2">
           <label for="name" class="block text-sm font-medium text-gray-700 mb-1.5">
@@ -98,7 +96,10 @@ watch(
               :disabled="isEndYearDisabled"
               class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
             />
-            <label for="ongoing" class="flex items-center gap-2 shrink-0 cursor-pointer text-sm text-gray-600 select-none">
+            <label
+              for="ongoing"
+              class="flex items-center gap-2 shrink-0 cursor-pointer text-sm text-gray-600 select-none"
+            >
               <input
                 id="ongoing"
                 v-model="formData.isOngoing"
@@ -175,13 +176,9 @@ watch(
             placeholder="Approximate number"
             class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
-          <p class="mt-1.5 text-xs text-gray-400">
-            Use your organisation's own definition.
-          </p>
+          <p class="mt-1.5 text-xs text-gray-400">Use your organisation's own definition.</p>
         </div>
-
       </div>
     </div>
   </div>
 </template>
-

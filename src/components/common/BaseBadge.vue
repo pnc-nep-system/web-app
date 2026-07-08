@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const props = defineProps({
   tone: { type: String, default: 'gray' }, // teal | amber | green | red | indigo | gray
-  dot: { type: Boolean, default: false }
+  dot: { type: Boolean, default: false },
 })
 
 const DOT_COLOR = {
@@ -10,7 +10,7 @@ const DOT_COLOR = {
   green: 'var(--green-700)',
   red: 'var(--red-600)',
   indigo: 'var(--indigo-600)',
-  gray: 'var(--ink-500)'
+  gray: 'var(--ink-500)',
 }
 const dotColor = DOT_COLOR[props.tone] || DOT_COLOR.gray
 </script>

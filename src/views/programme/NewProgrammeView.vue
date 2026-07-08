@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue';
-import type { ProgrammeIdentity } from '@/types/programme';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
+import type { ProgrammeIdentity } from '@/types/programme'
 
-const router = useRouter();
+const router = useRouter()
 
 // Centralize the state for Section 1 (Identity)
 // In a full multi-step form, we might use a Pinia store to persist state between steps
@@ -17,31 +17,31 @@ const identityData = ref<ProgrammeIdentity>({
   budgetBand: null,
   directBeneficiaries: null,
   indirectBeneficiaries: null,
-});
+})
 
 const handleNext = () => {
   // Logic to validate Section 1 and proceed to Section 2
   // We can safely pass this data to a global store or API once validated
-  console.log('Proceeding to Section 2 with data:', identityData.value);
+  console.log('Proceeding to Section 2 with data:', identityData.value)
   // Example for future steps:
   // store.setIdentityData(identityData.value);
   // router.push('/member/programmes/new/section-2');
-};
+}
 
 const handleCancel = () => {
-  router.push('/member/programmes');
-};
+  router.push('/member/programmes')
+}
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-      
       <!-- Page Header -->
       <div class="mb-8">
         <h1 class="text-2xl font-bold text-gray-900">Create New Programme</h1>
         <p class="mt-2 text-sm text-gray-600">
-          Enter the details of your new programme. This information helps us track impact and allocate resources effectively.
+          Enter the details of your new programme. This information helps us track impact and
+          allocate resources effectively.
         </p>
       </div>
 
@@ -65,7 +65,6 @@ const handleCancel = () => {
           Next Step
         </button>
       </div>
-
     </div>
   </div>
 </template>

@@ -3,7 +3,7 @@ defineOptions({ inheritAttrs: false })
 defineProps({
   modelValue: [String, Number],
   type: { type: String, default: 'text' },
-  error: { type: Boolean, default: false }
+  error: { type: Boolean, default: false },
 })
 defineEmits(['update:modelValue'])
 </script>
