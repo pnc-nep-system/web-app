@@ -3,7 +3,7 @@ export const BUDGET_BANDS = [
   '$10,000–$50,000',
   '$50,001–$100,000',
   '$100,001–$500,000',
-  'Above $500,000'
-] as const;
+  'Above $500,000',
+] as const
 
-export type BudgetBand = typeof BUDGET_BANDS[number];
+export type BudgetBand = (typeof BUDGET_BANDS)[number]

@@ -4,7 +4,7 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 defineProps({
   icon: { type: String, default: 'search' },
   title: { type: String, required: true },
-  message: { type: String, default: '' }
+  message: { type: String, default: '' },
 })
 </script>
 

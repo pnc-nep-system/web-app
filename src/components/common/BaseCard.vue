@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps({
-  padded: { type: Boolean, default: true }
+  padded: { type: Boolean, default: true },
 })
 </script>
 

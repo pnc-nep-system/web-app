@@ -25,6 +25,6 @@ export function useToast() {
     success: (msg: string, d?: number) => push(msg, 'success', d),
     error: (msg: string, d?: number) => push(msg, 'error', d),
     info: (msg: string, d?: number) => push(msg, 'default', d),
-    dismiss
+    dismiss,
   }
 }

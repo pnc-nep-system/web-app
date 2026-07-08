@@ -47,20 +47,24 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       loading.value = false
       const axiosError = error as {
-        code?: string;
-        message?: string;
+        code?: string
+        message?: string
         response?: {
-          status?: number;
+          status?: number
           data?: {
-            message?: string;
-            errors?: Record<string, string[]>;
-          };
-        };
-      };
+            message?: string
+            errors?: Record<string, string[]>
+          }
+        }
+      }
       const res = axiosError.response
 
       // FALLBACK: If backend is completely unavailable (connection refused, offline, etc.)
-      if (!res || axiosError.code === 'ERR_NETWORK' || axiosError.message?.includes('Network Error')) {
+      if (
+        !res ||
+        axiosError.code === 'ERR_NETWORK' ||
+        axiosError.message?.includes('Network Error')
+      ) {
         const usersStore = useUsersStore()
         const user = usersStore.byEmail(email)
 
@@ -114,5 +118,15 @@ export const useAuthStore = defineStore('auth', () => {
     window.location.href = '/login'
   }
 
-  return { currentUserId, currentUser, authError, fieldErrors, loading, isAuthenticated, userRole, login, logout }
+  return {
+    currentUserId,
+    currentUser,
+    authError,
+    fieldErrors,
+    loading,
+    isAuthenticated,
+    userRole,
+    login,
+    logout,
+  }
 })

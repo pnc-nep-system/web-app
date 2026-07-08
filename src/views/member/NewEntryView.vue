@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch, useTemplateRef } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
 import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
+import ProgrammeKeywordsView from '@/components/programme/ProgrammeKeywordsView.vue'
 import type { ProgrammeIdentity } from '@/types/programme'
 
 const router = useRouter()
@@ -11,10 +12,10 @@ const router = useRouter()
 // --- Step Definition ---
 const steps = [
   { number: 1, title: '1 · Programme identity', subtitle: 'Name, dates, scale' },
-  { number: 2, title: '2 · Activities',          subtitle: 'Taxonomy B1–B9' },
+  { number: 2, title: '2 · Activities', subtitle: 'Taxonomy B1–B9' },
   { number: 3, title: '3 · Geographic coverage', subtitle: 'Provinces & districts' },
   { number: 4, title: '4 · Government agreements', subtitle: 'Counterparts & status' },
-  { number: 5, title: '5 · Keywords',            subtitle: 'Up to 5 tags' },
+  { number: 5, title: '5 · Keywords', subtitle: 'Up to 5 tags' },
 ]
 
 const currentStep = ref(1)
@@ -34,8 +35,8 @@ const section1Data = ref<ProgrammeIdentity>({
 })
 
 const section1Valid = ref(false)
-const identityFormRef = useTemplateRef<InstanceType<typeof ProgrammeIdentityForm>>('identityForm')
-const activitiesFormRef = useTemplateRef<InstanceType<typeof ActivitiesForm>>('activitiesForm')
+const identityFormRef = ref<InstanceType<typeof ProgrammeIdentityForm> | null>(null)
+const activitiesFormRef = ref<InstanceType<typeof ActivitiesForm> | null>(null)
 
 // Dynamic page title — shows programme name once entered
 const pageTitle = computed(() => section1Data.value.name.trim() || 'New programme entry')
@@ -44,14 +45,18 @@ const pageTitle = computed(() => section1Data.value.name.trim() || 'New programm
 const progressPercent = computed(() => (currentStep.value / steps.length) * 100)
 
 // Auto-save: debounce 1.5 s after any form change
-watch(section1Data, () => {
-  saveStatus.value = 'saving'
-  if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => {
-    // Persist data here (e.g. API call or localStorage)
-    saveStatus.value = 'saved'
-  }, 1500)
-}, { deep: true })
+watch(
+  section1Data,
+  () => {
+    saveStatus.value = 'saving'
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      // Persist data here (e.g. API call or localStorage)
+      saveStatus.value = 'saved'
+    }, 1500)
+  },
+  { deep: true },
+)
 
 const saveLabel = computed(() => {
   if (saveStatus.value === 'saving') return 'Saving…'
@@ -59,18 +64,57 @@ const saveLabel = computed(() => {
   return 'Not yet saved'
 })
 
+// --- Section 5 Data (Keywords) ---
+const keywordsData = ref<string[]>([])
+
+// Count how many fields in section 1 have been filled
+const section1Progress = computed(() => {
+  const d = section1Data.value
+  const fields = [
+    !!d.name,
+    !!d.startYear,
+    d.isOngoing || !!d.endYear,
+    !!d.fteStaff,
+    !!d.budgetBand,
+    !!d.directBeneficiaries,
+    !!d.indirectBeneficiaries,
+  ]
+  return fields.filter(Boolean).length
+})
+
+const totalSection1Fields = 7
+
 // Completed steps set
 const completedSteps = ref<Set<number>>(new Set())
 
 // Bottom button labels
 const nextStepLabel = computed(() => {
-  const next = steps[currentStep.value] // steps is 0-indexed by position, currentStep 1-indexed
+  const next = steps[currentStep.value]
   return next ? `Continue: ${next.title.replace(/^\d+ · /, '')} →` : 'Finish →'
 })
 
 const backStepLabel = computed(() => {
-  const prev = steps[currentStep.value - 2] // previous step
+  const prev = steps[currentStep.value - 2]
   return prev ? `← Back: ${prev.title.replace(/^\d+ · /, '')}` : ''
+})
+
+// Dynamic section progress based on the current step
+const sectionProgress = computed(() => {
+  if (currentStep.value === 1) {
+    return { current: section1Progress.value, total: totalSection1Fields }
+  }
+  if (currentStep.value === 5) {
+    return { current: keywordsData.value.length, total: 5 }
+  }
+  return { current: 0, total: 0 }
+})
+
+const continueButtonText = computed(() => {
+  if (currentStep.value === 1) return 'Continue: Activities'
+  if (currentStep.value === 2) return 'Continue: Geographic coverage'
+  if (currentStep.value === 3) return 'Continue: Government agreements'
+  if (currentStep.value === 4) return 'Continue: Keywords'
+  return 'Finish & save'
 })
 
 function saveAndExit() {
@@ -86,17 +130,22 @@ function goBack() {
 
 function continueToNext() {
   if (currentStep.value === 1) {
-    const isValid = identityFormRef.value?.validate()
+    const isValid = identityFormRef.value?.validate?.()
     if (!isValid) return
   }
   if (currentStep.value === 2) {
-    const isValid = activitiesFormRef.value?.validate()
+    const isValid = activitiesFormRef.value?.validate?.()
     if (!isValid) return
   }
+
   completedSteps.value.add(currentStep.value)
+
   if (currentStep.value < steps.length) {
     currentStep.value++
+    return
   }
+
+  saveAndExit()
 }
 </script>
 
@@ -142,41 +191,54 @@ function continueToNext() {
           @click="continueToNext"
           class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors"
         >
-          Continue <span class="text-base">→</span>
+          {{ currentStep === 5 ? 'Finish & save' : 'Continue' }} <span class="text-base">→</span>
         </button>
       </div>
     </div>
 
     <!-- Two-column layout: Step Sidebar + Form -->
     <div class="flex gap-6 items-start">
-
       <!-- Step Sidebar -->
-      <aside class="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
+      <aside
+        class="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
+      >
         <ul class="divide-y divide-gray-100">
           <li
             v-for="step in steps"
             :key="step.number"
-            class="flex items-start gap-3 px-4 py-3.5 transition-colors"
+            class="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer select-none"
             :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'"
+            @click="currentStep = step.number"
           >
             <!-- Step bubble: checkmark if done, number otherwise -->
             <span
               class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-              :class="completedSteps.has(step.number)
-                ? 'bg-green-600 text-white'
-                : step.number === currentStep
-                  ? 'bg-teal-800 text-white'
-                  : 'bg-gray-100 text-gray-500'"
+              :class="
+                completedSteps.has(step.number)
+                  ? 'bg-green-600 text-white'
+                  : step.number === currentStep
+                    ? 'bg-teal-800 text-white'
+                    : 'bg-gray-100 text-gray-500'
+              "
             >
-              <svg v-if="completedSteps.has(step.number)" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+              <svg
+                v-if="completedSteps.has(step.number)"
+                class="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3"
+              >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               <template v-else>{{ step.number }}</template>
             </span>
 
             <div>
-              <p class="text-sm font-semibold"
-                :class="step.number === currentStep ? 'text-teal-900' : 'text-gray-600'">
+              <p
+                class="text-sm font-semibold"
+                :class="step.number === currentStep ? 'text-teal-900' : 'text-gray-600'"
+              >
                 {{ step.title }}
               </p>
               <p class="text-xs text-gray-400 mt-0.5">{{ step.subtitle }}</p>
@@ -199,27 +261,46 @@ function continueToNext() {
         </div>
       </aside>
 
-      <!-- Section form (switches per step) -->
+      <!-- Form Content Container -->
       <div class="flex-1 min-w-0">
         <!-- Step 1: Programme Identity -->
         <ProgrammeIdentityForm
           v-if="currentStep === 1"
-          ref="identityForm"
+          ref="identityFormRef"
           v-model="section1Data"
           v-model:valid="section1Valid"
         />
 
         <!-- Step 2: Activities -->
-        <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesForm" />
+        <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesFormRef" />
 
-        <!-- Steps 3-5: placeholder -->
-        <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-400 text-sm">
-          Section {{ currentStep }} is coming soon.
+        <!-- Step 3 Placeholder -->
+        <div
+          v-else-if="currentStep === 3"
+          class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none"
+        >
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 3: Geographic coverage</h3>
+          <p class="text-sm text-gray-500">
+            Geographic coverage form is currently in development. Use the sidebar to navigate.
+          </p>
         </div>
+
+        <!-- Step 4 Placeholder -->
+        <div
+          v-else-if="currentStep === 4"
+          class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none"
+        >
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 4: Government agreements</h3>
+          <p class="text-sm text-gray-500">
+            Government agreements form is currently in development. Use the sidebar to navigate.
+          </p>
+        </div>
+
+        <!-- Step 5: Keywords Form -->
+        <ProgrammeKeywordsView v-else-if="currentStep === 5" v-model="keywordsData" />
 
         <!-- Bottom Navigation -->
         <div class="mt-6 flex items-center justify-end gap-2">
-          <!-- Back button (hidden on step 1) -->
           <button
             v-if="currentStep > 1"
             type="button"
@@ -229,15 +310,15 @@ function continueToNext() {
             {{ backStepLabel }}
           </button>
 
-          <!-- Continue button -->
           <button
             @click="continueToNext"
-            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors"
+            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors cursor-pointer select-none"
           >
-            {{ nextStepLabel }}
+            {{ currentStep === 5 ? 'Finish & save' : nextStepLabel }}
           </button>
         </div>
       </div>
     </div>
   </AppShell>
 </template>
+

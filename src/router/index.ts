@@ -8,33 +8,33 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('@/views/auth/LoginView.vue'),
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: false },
     },
 
     {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('@/views/member/DashboardView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true },
     },
     {
       path: '/admin/dashboard',
       name: 'admin-dashboard',
       component: () => import('@/views/staff/DashboardView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true },
     },
     {
       path: '/manager/dashboard',
       name: 'manager-dashboard',
       component: () => import('@/views/staff/DashboardView.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true },
     },
     {
       path: '/entries/new',
       name: 'entry-new',
       component: () => import('@/views/member/NewEntryView.vue'),
-      meta: { requiresAuth: true }
-    }
+      meta: { requiresAuth: true },
+    },
   ],
 })
 

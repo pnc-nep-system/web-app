@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, useTemplateRef } from 'vue'
-
+import { ref, computed, watch, type Ref } from 'vue'
 import { useRouter, onBeforeRouteLeave } from 'vue-router'
-
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
 import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
@@ -15,7 +13,6 @@ const toast = useToast()
 // Once the user completes the first activity, lock the wizard.
 // (Requirement: user cannot access other activities/steps; must stay on first activity.)
 const isLocked = ref(false)
-
 
 // --- Step Definition ---
 const steps = [
@@ -41,8 +38,10 @@ const section1Data = ref<ProgrammeIdentity>({
 })
 
 const section1Valid = ref(false)
-const identityFormRef = useTemplateRef<InstanceType<typeof ProgrammeIdentityForm>>('identityForm')
-const activitiesFormRef = useTemplateRef<InstanceType<typeof ActivitiesForm>>('activitiesForm')
+
+// Template refs (validate() exposed by child components)
+const identityFormRef = ref<InstanceType<typeof ProgrammeIdentityForm> | null>(null)
+const activitiesFormRef = ref<InstanceType<typeof ActivitiesForm> | null>(null)
 
 // --- Dynamic page title ---
 const pageTitle = computed(() => section1Data.value.name.trim() || 'New programme entry')
@@ -57,7 +56,6 @@ onBeforeRouteLeave(() => {
   return false
 })
 
-
 // --- Navigation labels ---
 const progressPercent = computed(() => (currentStep.value / steps.length) * 100)
 const nextStepLabel = computed(() => {
@@ -71,13 +69,11 @@ const backStepLabel = computed(() => {
 
 function saveAndExit() {
   if (isLocked.value) {
-    // Requirement: after completing first activity, user must stay.
     toast.error('Complete the form first (activity is locked).')
     return
   }
   router.push('/dashboard')
 }
-
 
 function goBack() {
   if (isLocked.value) return
@@ -92,7 +88,7 @@ function continueToNext() {
 
   // Step 1 validation
   if (currentStep.value === 1) {
-    const isValid = identityFormRef.value?.validate()
+    const isValid = identityFormRef.value?.validate?.()
     if (!isValid) return
   }
 
@@ -100,7 +96,7 @@ function continueToNext() {
   if (currentStep.value === 2) {
     const isValid = activitiesFormRef.value?.validate?.()
     if (!isValid) {
-      toast.error('Imcomplete is not yet')
+      toast.error('Incomplete is not yet')
       return
     }
 
@@ -112,11 +108,11 @@ function continueToNext() {
   }
 
   completedSteps.value.add(currentStep.value)
+
   if (currentStep.value < steps.length) {
     currentStep.value++
   }
 }
-
 </script>
 
 <template>
@@ -126,7 +122,7 @@ function continueToNext() {
       <span class="mx-1.5 text-gray-300">›</span>
       <span class="text-gray-700 font-medium">New programme entry</span>
 
-        <div class="ml-auto">
+      <div class="ml-auto">
         <button
           :disabled="isLocked"
           @click="() => {
@@ -138,7 +134,6 @@ function continueToNext() {
           <span class="text-lg leading-none">+</span> New programme entry
         </button>
       </div>
-
     </template>
 
     <div class="flex items-start justify-between mb-6">
@@ -162,7 +157,6 @@ function continueToNext() {
         >
           Continue <span class="text-base">→</span>
         </button>
-
       </div>
     </div>
 
@@ -172,17 +166,19 @@ function continueToNext() {
           <li
             v-for="step in steps"
             :key="step.number"
-            class="flex items-start gap-3 px-4 py-3.5 transition-colors"
+            class="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer select-none"
             :class="step.number === currentStep ? 'bg-teal-50' : (!isLocked ? 'hover:bg-gray-50' : '')"
+            @click="() => (isLocked ? null : (currentStep = step.number))"
           >
-
             <span
               class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-              :class="completedSteps.has(step.number)
-                ? 'bg-green-600 text-white'
-                : step.number === currentStep
-                  ? 'bg-teal-800 text-white'
-                  : 'bg-gray-100 text-gray-500'"
+              :class="
+                completedSteps.has(step.number)
+                  ? 'bg-green-600 text-white'
+                  : step.number === currentStep
+                    ? 'bg-teal-800 text-white'
+                    : 'bg-gray-100 text-gray-500'
+              "
             >
               <svg
                 v-if="completedSteps.has(step.number)"
@@ -220,12 +216,12 @@ function continueToNext() {
       <div class="flex-1 min-w-0">
         <ProgrammeIdentityForm
           v-if="currentStep === 1"
-          ref="identityForm"
+          ref="identityFormRef"
           v-model="section1Data"
           v-model:valid="section1Valid"
         />
 
-        <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesForm" />
+        <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesFormRef" />
 
         <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-400 text-sm">
           Section {{ currentStep }} is coming soon.
@@ -245,12 +241,11 @@ function continueToNext() {
             type="button"
             v-if="!isLocked"
             @click="continueToNext"
-            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors"
+            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors cursor-pointer select-none"
           >
             {{ nextStepLabel }}
           </button>
         </div>
-
       </div>
     </div>
   </AppShell>
