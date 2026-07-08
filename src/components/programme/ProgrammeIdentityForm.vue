@@ -32,6 +32,17 @@ const YEAR_MIN = 1900;
 const YEAR_MAX = 2100;
 
 function validate(): boolean {
+  // Mark every field as touched so errors are visible on submit
+  touched.value = {
+    name: true,
+    startYear: true,
+    endYear: true,
+    fteStaff: true,
+    budgetBand: true,
+    directBeneficiaries: true,
+    indirectBeneficiaries: true,
+  };
+
   const e: Record<string, string> = {};
   const d = formData.value;
 

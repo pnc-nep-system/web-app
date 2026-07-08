@@ -35,6 +35,7 @@ const section1Data = ref<ProgrammeIdentity>({
 
 const section1Valid = ref(false)
 const identityFormRef = useTemplateRef<InstanceType<typeof ProgrammeIdentityForm>>('identityForm')
+const activitiesFormRef = useTemplateRef<InstanceType<typeof ActivitiesForm>>('activitiesForm')
 
 // Dynamic page title — shows programme name once entered
 const pageTitle = computed(() => section1Data.value.name.trim() || 'New programme entry')
@@ -86,6 +87,10 @@ function goBack() {
 function continueToNext() {
   if (currentStep.value === 1) {
     const isValid = identityFormRef.value?.validate()
+    if (!isValid) return
+  }
+  if (currentStep.value === 2) {
+    const isValid = activitiesFormRef.value?.validate()
     if (!isValid) return
   }
   completedSteps.value.add(currentStep.value)
@@ -205,7 +210,7 @@ function continueToNext() {
         />
 
         <!-- Step 2: Activities -->
-        <ActivitiesForm v-else-if="currentStep === 2" />
+        <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesForm" />
 
         <!-- Steps 3-5: placeholder -->
         <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-400 text-sm">

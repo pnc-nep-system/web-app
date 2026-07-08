@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+const emit = defineEmits<{
+  (e: 'update:valid', isValid: boolean): void
+}>()
+
 // ── Activity taxonomy B1–B9 ───────────────────────────────────────────────────
 const categories = [
   {
@@ -128,6 +132,17 @@ function suggestActivities() {
   // Placeholder — future AI integration
 }
 
+const showError = ref(false)
+
+function validate(): boolean {
+  const isValid = selected.value.size > 0
+  showError.value = !isValid
+  emit('update:valid', isValid)
+  return isValid
+}
+
+defineExpose({ validate })
+
 // Count how many items are selected per category (for badge)
 function categoryCount(code: string): number {
   const cat = categories.find(c => c.code === code)
@@ -138,6 +153,17 @@ function categoryCount(code: string): number {
 
 <template>
   <div class="space-y-4">
+
+    <!-- Validation error banner -->
+    <div
+      v-if="showError"
+      class="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+    >
+      <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+      </svg>
+      Please select at least one activity before continuing.
+    </div>
 
     <!-- AI-assisted completion panel -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
