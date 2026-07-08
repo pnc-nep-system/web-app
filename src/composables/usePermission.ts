@@ -5,7 +5,7 @@
 import { computed } from 'vue'
 import { useAuth } from './useAuth'
 
-type Role = 'admin' | 'coordinator' | 'member' | string
+type Role = 'nep_admin' | 'nep_coordinator' | 'member_org' | string
 
 /**
  * Composable for role-based permission checks.
@@ -13,9 +13,9 @@ type Role = 'admin' | 'coordinator' | 'member' | string
 export function usePermission() {
   const { userRole, isAuthenticated } = useAuth()
 
-  const isAdmin = computed(() => userRole.value === 'admin')
-  const isCoordinator = computed(() => userRole.value === 'coordinator')
-  const isMember = computed(() => userRole.value === 'member')
+  const isAdmin = computed(() => userRole.value === 'nep_admin')
+  const isCoordinator = computed(() => userRole.value === 'nep_coordinator')
+  const isMember = computed(() => userRole.value === 'member_org')
 
   /**
    * Returns true if the current user's role matches any of the provided roles.

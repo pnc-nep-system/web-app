@@ -22,14 +22,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AppShell from '@/components/AppShell.vue'
-import { useAuthStore } from '@/stores/auth'
+import { useAuth } from '@/composables/useAuth'
 
-const auth = useAuthStore()
+const { userRole } = useAuth()
 
 const breadcrumbRoot = computed(() => {
-  const role = auth.userRole
-  if (role === 'admin') return 'NEP Admin'
-  if (role === 'coordinator' || role === 'manager') return 'NEP Coordinator'
+  const role = userRole.value
+  if (role === 'nep_admin') return 'NEP Admin'
+  if (role === 'nep_coordinator') return 'NEP Coordinator'
   return 'NEP'
 })
 </script>
