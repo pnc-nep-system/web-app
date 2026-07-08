@@ -1,4 +1,9 @@
 import type { BudgetBand } from '@/constants/programme'
+export interface Activity {
+  code: string
+  primary: boolean
+}
+
 
 export interface ProgrammeIdentity {
   id?: number | null
@@ -10,7 +15,7 @@ export interface ProgrammeIdentity {
   budgetBand: BudgetBand | null
   directBeneficiaries: number | null
   indirectBeneficiaries: number | null
-  method?: string | null
-  verifiedDate?: string | null
+  activities?: Activity[]
+  provinces?: string[]
 }
 

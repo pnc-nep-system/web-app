@@ -63,6 +63,8 @@ const saveLabel = computed(() => {
 
 // --- Section 5 Data (Keywords) ---
 const keywordsData = ref<string[]>([])
+const section2Data = ref(null)
+
 
 // Count how many fields in section 1 have been filled
 const section1Progress = computed(() => {
@@ -83,8 +85,9 @@ const section1Progress = computed(() => {
 
 const totalSection1Fields = 9
 
-// Load saved data if an ID is present in query parameters
 onMounted(async () => {
+
+  // Load saved data if an ID is present in query parameters
   const entryId = route.query.id
   if (entryId) {
     try {
@@ -106,9 +109,28 @@ onMounted(async () => {
         method: entry.method || '',
         verifiedDate: entry.verified_date || '',
       }
+      section2Data.value = {
+        selected: entry.activities?.map((a: any) => a.code) || [],
+        primary: entry.activities?.filter((a: any) => a.primary).map((a: any) => a.code) || [],
+        aiText: '',
+      }
       saveStatus.value = 'saved'
     } catch (err: any) {
       toast.error('Failed to load the programme entry data.')
+    }
+  } else {
+    // Load draft from session storage
+    const savedDraft = sessionStorage.getItem('new_programme_entry_draft')
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft)
+        currentStep.value = draft.currentStep || 1
+        section1Data.value = draft.section1Data
+        section2Data.value = draft.section2Data
+        toast.success('Resumed from saved draft.')
+      } catch {
+        console.error('Failed to parse draft data')
+      }
     }
   }
 })
@@ -122,14 +144,31 @@ function clearError(field: string) {
 
 // Unified API Save function
 async function saveEntry(exitAfterSave: boolean) {
+  // Run client-side validation on the current step
+  if (currentStep.value === 1) {
+    const isValid = identityFormRef.value?.validate?.()
+    if (!isValid) {
+      toast.error('Please fix the errors in the form before saving.')
+      return
+    }
+  }
+  if (currentStep.value === 2) {
+    const isValid = activitiesFormRef.value?.validate?.()
+    if (!isValid) {
+      toast.error('Please fix the errors in the form before saving.')
+      return
+    }
+  }
+
   if (isSaving.value) return
   isSaving.value = true
   errors.value = {}
-
   try {
     const isEditMode = !!section1Data.value.id
 
     // Map data to API schema keys
+    const activitiesData = activitiesFormRef.value?.getData?.()
+
     const payload = {
       programme_name: section1Data.value.name,
       start_year: section1Data.value.startYear,
@@ -143,7 +182,10 @@ async function saveEntry(exitAfterSave: boolean) {
       indirect_beneficiaries: section1Data.value.indirectBeneficiaries,
       method: section1Data.value.method || null,
       verified_date: section1Data.value.verifiedDate || null,
+      activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
     }
+    console.log('API Payload:', payload)
+
 
     let response
     if (isEditMode) {
@@ -153,6 +195,8 @@ async function saveEntry(exitAfterSave: boolean) {
     }
 
     // Success response handling
+    sessionStorage.removeItem('new_programme_entry_draft')
+
     toast.success(response.data.message || 'Saved successfully!')
     saveStatus.value = 'saved'
 
@@ -167,8 +211,14 @@ async function saveEntry(exitAfterSave: boolean) {
     }
   } catch (err: any) {
     if (err.response && err.response.status === 422) {
-      errors.value = err.response.data.errors
-      toast.error('Please correct the validation errors below.')
+      console.error('API Validation Error:', err.response.data.errors)
+      if (exitAfterSave) {
+        console.log('Suppresing validation error toast on exit.')
+        router.push('/dashboard') // Proceed to exit anyway, even if save failed
+      } else {
+        errors.value = err.response.data.errors
+        toast.error('Please correct the validation errors below.')
+      }
     } else {
       toast.error(err.response?.data?.message || 'An unexpected error occurred while saving.')
     }
@@ -190,9 +240,17 @@ const backStepLabel = computed(() => {
   const prev = steps[currentStep.value - 2]
   return prev ? `← Back: ${prev.title.replace(/^\d+ · /, '')}` : ''
 })
-
-// Dynamic section progress based on the current step
-const sectionProgress = computed(() => {
+function saveDraftAndExit() {
+  const draft = {
+    currentStep: currentStep.value,
+    section1Data: section1Data.value,
+    section2Data: activitiesFormRef.value?.getData?.(),
+  }
+  sessionStorage.setItem('new_programme_entry_draft', JSON.stringify(draft))
+  toast.success('Progress saved to session.')
+  router.push('/dashboard')
+}
+const currentSectionProgress = computed(() => {
   if (currentStep.value === 1) {
     return { current: section1Progress.value, total: totalSection1Fields }
   }
@@ -245,6 +303,16 @@ function continueToNext() {
   }
 
   // Final step — save & exit
+  if (completedSteps.value.size < steps.length) {
+    toast.error('You need to complete the form')
+    return
+  }
+
+  if (!(auth.currentUser as any)?.is_profile_complete) {
+    toast.error('You haven\'t complete Organisation profile yet')
+    return
+  }
+
   saveAndExit()
 }
 </script>

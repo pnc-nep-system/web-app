@@ -1,5 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+
+const props = defineProps<{
+  modelValue?: { selected: string[]; primary: string[]; aiText: string }
+}>()
+
+watch(() => props.modelValue, (val) => {
+  if (val) {
+    selected.value = new Set(val.selected)
+    primary.value = new Set(val.primary)
+    aiText.value = val.aiText
+  }
+}, { immediate: true })
+
 
 const emit = defineEmits<{
   (e: 'update:valid', isValid: boolean): void
@@ -141,7 +154,15 @@ function validate(): boolean {
   return isValid
 }
 
-defineExpose({ validate })
+defineExpose({ validate, getData })
+function getData() {
+  return {
+    selected: Array.from(selected.value),
+    primary: Array.from(primary.value),
+    aiText: aiText.value,
+  }
+}
+
 
 // Count how many items are selected per category (for badge)
 function categoryCount(code: string): number {

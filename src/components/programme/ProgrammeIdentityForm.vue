@@ -25,8 +25,6 @@ const formData = ref<ProgrammeIdentity>({
   budgetBand: props.modelValue?.budgetBand ?? null,
   directBeneficiaries: props.modelValue?.directBeneficiaries ?? null,
   indirectBeneficiaries: props.modelValue?.indirectBeneficiaries ?? null,
-  method: props.modelValue?.method ?? '',
-  verifiedDate: props.modelValue?.verifiedDate ?? '',
 })
 
 // Watch props.modelValue to sync changes down to formData (e.g. when loading from API)
@@ -43,8 +41,6 @@ watch(
       if (newValue.budgetBand !== formData.value.budgetBand) formData.value.budgetBand = newValue.budgetBand
       if (newValue.directBeneficiaries !== formData.value.directBeneficiaries) formData.value.directBeneficiaries = newValue.directBeneficiaries
       if (newValue.indirectBeneficiaries !== formData.value.indirectBeneficiaries) formData.value.indirectBeneficiaries = newValue.indirectBeneficiaries
-      if (newValue.method !== formData.value.method) formData.value.method = newValue.method || ''
-      if (newValue.verifiedDate !== formData.value.verifiedDate) formData.value.verifiedDate = newValue.verifiedDate || ''
     }
   },
   { deep: true }
@@ -136,7 +132,11 @@ function validate(): boolean {
 }
 
 // Expose validate() so parent views can trigger it via template ref
-defineExpose({ validate })
+function getData() {
+  return formData.value
+}
+
+defineExpose({ validate, getData })
 
 // ── Per-field blur handler ────────────────────────────────────────────────────
 function touch(field: string) {
@@ -165,8 +165,6 @@ function fieldToServerKey(field: string): string {
     budgetBand: 'budget_band_id',
     directBeneficiaries: 'direct_beneficiaries',
     indirectBeneficiaries: 'indirect_beneficiaries',
-    method: 'method',
-    verifiedDate: 'verified_date',
   }
   return map[field] || field
 }
@@ -236,11 +234,12 @@ watch(() => formData.value.isOngoing, () => {
   emit('clear-error', 'end_year')
 })
 watch(() => formData.value.fteStaff, () => emit('clear-error', 'fte_staff'))
-watch(() => formData.value.budgetBand, () => emit('clear-error', 'budget_band_id'))
+watch(() => formData.value.budgetBand, () => {
+  emit('clear-error', 'budget_band_id')
+  delete clientErrors.value.budgetBand
+})
 watch(() => formData.value.directBeneficiaries, () => emit('clear-error', 'direct_beneficiaries'))
 watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'indirect_beneficiaries'))
-watch(() => formData.value.method, () => emit('clear-error', 'method'))
-watch(() => formData.value.verifiedDate, () => emit('clear-error', 'verified_date'))
 </script>
 
 
@@ -485,55 +484,6 @@ watch(() => formData.value.verifiedDate, () => emit('clear-error', 'verified_dat
             {{ fieldError('indirectBeneficiaries') }}
           </p>
           <p v-else class="mt-1.5 text-xs text-gray-400">Use your organisation's own definition.</p>
-        </div>
-
-        <!-- Verified Date -->
-        <div>
-          <label for="verifiedDate" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Verified date
-          </label>
-          <input
-            id="verifiedDate"
-            v-model="formData.verifiedDate"
-            type="date"
-            :class="inputClass('verifiedDate')"
-            @blur="touch('verifiedDate')"
-          />
-          <p v-if="fieldError('verifiedDate')" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-            <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fill-rule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            {{ fieldError('verifiedDate') }}
-          </p>
-        </div>
-
-        <!-- Methodology (full width) -->
-        <div class="md:col-span-2">
-          <label for="method" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Methodology / Method
-          </label>
-          <textarea
-            id="method"
-            v-model="formData.method"
-            rows="3"
-            placeholder="Describe the methodologies and peer mentoring approaches used in this programme..."
-            :class="inputClass('method')"
-            @blur="touch('method')"
-          />
-          <p v-if="fieldError('method')" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-            <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fill-rule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                clip-rule="evenodd"
-              />
-            </svg>
-            {{ fieldError('method') }}
-          </p>
         </div>
 
       </div>

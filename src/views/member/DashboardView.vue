@@ -1,12 +1,10 @@
 <template>
   <AppShell>
-    <!-- Breadcrumb slot -->
     <template #header>
-      <span class="text-gray-400">{{ breadcrumbRoot }}</span>
+      <span class="text-gray-400">NEP</span>
       <span class="mx-1.5 text-gray-300">›</span>
       <span class="text-gray-700 font-medium">Dashboard</span>
 
-      <!-- Top-right New Entry button (members & coordinators) -->
       <div class="ml-auto">
         <RouterLink
           to="/entries/new"
@@ -16,20 +14,28 @@
         </RouterLink>
       </div>
     </template>
+
+   
   </AppShell>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import AppShell from '@/components/AppShell.vue'
-import { useAuth } from '@/composables/useAuth'
+import KpiCard from '@/components/KpiCard.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useEntriesStore } from '@/stores/entries.store'
 
-const { userRole } = useAuth()
+const auth = useAuthStore()
+const entries = useEntriesStore()
 
-const breadcrumbRoot = computed(() => {
-  const role = userRole.value
-  if (role === 'nep_admin') return 'NEP Admin'
-  if (role === 'nep_coordinator') return 'NEP Coordinator'
-  return 'NEP'
+onMounted(() => {
+  entries.fetchEntries()
 })
+
+const orgName = computed(() => (auth.currentUser?.name as string) || 'Organisation')
+
+const verifiedCount = computed(() => entries.items.filter(e => e.verifiedDate).length)
+const unverifiedCount = computed(() => entries.items.length - verifiedCount.value)
+const oldestReviewMonths = computed(() => 0) 
 </script>
