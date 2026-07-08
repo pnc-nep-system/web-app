@@ -1,10 +1,10 @@
 # TODO
 
-## Plan approved/working on: Activity step validation + prevent navigation
+## Programme wizard lock after completing Activity 1
+- [x] Identify where step navigation/validation happens (in `src/views/programme/NewProgrammeView.vue`).
+- [ ] Update `src/views/programme/NewProgrammeView.vue` to introduce an `isLocked` flag.
+- [ ] Treat “Activity 1” as the first activity section the user completes (likely step 2: Activities B1–B9). Once locked: disable step navigation + prevent router navigation away.
+- [ ] Block leaving the wizard (route leave / back) once locked.
+- [ ] Verify behavior end-to-end.
 
-- [x] Add validation gating for step 2 so Continue does not navigate when ActivitiesForm is incomplete; show existing inline error.
-- [ ] Add a toast/message “Imcomplete is not yet” when user tries to continue without completing required inputs.
-- [ ] Ensure once completed, navigation to next activity is allowed (no false blocking).
-- [ ] Update routing/navigation in the step flow page (NewEntry/NewProgramme multi-step view) to actually push to step 2/next activity.
-- [ ] Run lint/build (npm run build) to ensure no TypeScript/template errors.
 

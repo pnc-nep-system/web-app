@@ -271,7 +271,8 @@ watch(
             v-model.number="formData.fteStaff"
             type="number"
             min="0"
-            step="0.5"
+            step="1"
+
             placeholder="e.g. 12"
             :class="inputClass('fteStaff')"
             @keydown="preventNegativeKey"

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, useTemplateRef } from 'vue'
-import { useRouter } from 'vue-router'
+
+import { useRouter, onBeforeRouteLeave } from 'vue-router'
+
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
 import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
@@ -9,6 +11,11 @@ import { useToast } from '@/utils/toast'
 
 const router = useRouter()
 const toast = useToast()
+
+// Once the user completes the first activity, lock the wizard.
+// (Requirement: user cannot access other activities/steps; must stay on first activity.)
+const isLocked = ref(false)
+
 
 // --- Step Definition ---
 const steps = [
@@ -43,6 +50,14 @@ const pageTitle = computed(() => section1Data.value.name.trim() || 'New programm
 // --- Completed steps set ---
 const completedSteps = ref<Set<number>>(new Set())
 
+// Prevent leaving this wizard once locked (browser back / route changes)
+onBeforeRouteLeave(() => {
+  if (!isLocked.value) return true
+  toast.error('Finish the first activity before leaving.')
+  return false
+})
+
+
 // --- Navigation labels ---
 const progressPercent = computed(() => (currentStep.value / steps.length) * 100)
 const nextStepLabel = computed(() => {
@@ -55,10 +70,17 @@ const backStepLabel = computed(() => {
 })
 
 function saveAndExit() {
+  if (isLocked.value) {
+    // Requirement: after completing first activity, user must stay.
+    toast.error('Complete the form first (activity is locked).')
+    return
+  }
   router.push('/dashboard')
 }
 
+
 function goBack() {
+  if (isLocked.value) return
   if (currentStep.value > 1) {
     completedSteps.value.delete(currentStep.value - 1)
     currentStep.value--
@@ -66,6 +88,8 @@ function goBack() {
 }
 
 function continueToNext() {
+  if (isLocked.value) return
+
   // Step 1 validation
   if (currentStep.value === 1) {
     const isValid = identityFormRef.value?.validate()
@@ -76,10 +100,15 @@ function continueToNext() {
   if (currentStep.value === 2) {
     const isValid = activitiesFormRef.value?.validate?.()
     if (!isValid) {
-      // Required behaviour: block navigation + show message.
       toast.error('Imcomplete is not yet')
       return
     }
+
+    // Requirement: after completing Activity 1 (first activity section => step 2)
+    completedSteps.value.add(currentStep.value)
+    isLocked.value = true
+    toast.success('Activity completed. Please stay on this step.')
+    return
   }
 
   completedSteps.value.add(currentStep.value)
@@ -87,6 +116,7 @@ function continueToNext() {
     currentStep.value++
   }
 }
+
 </script>
 
 <template>
@@ -96,14 +126,19 @@ function continueToNext() {
       <span class="mx-1.5 text-gray-300">›</span>
       <span class="text-gray-700 font-medium">New programme entry</span>
 
-      <div class="ml-auto">
+        <div class="ml-auto">
         <button
-          @click="() => router.push('/entries/new')"
-          class="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          :disabled="isLocked"
+          @click="() => {
+            if (isLocked) return
+            router.push('/entries/new')
+          }"
+          class="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <span class="text-lg leading-none">+</span> New programme entry
         </button>
       </div>
+
     </template>
 
     <div class="flex items-start justify-between mb-6">
@@ -114,17 +149,20 @@ function continueToNext() {
 
       <div class="flex items-center gap-2">
         <button
+          :disabled="isLocked"
           @click="saveAndExit"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           Save &amp; exit
         </button>
         <button
+          :disabled="isLocked"
           @click="continueToNext"
-          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors"
+          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           Continue <span class="text-base">→</span>
         </button>
+
       </div>
     </div>
 
@@ -135,8 +173,9 @@ function continueToNext() {
             v-for="step in steps"
             :key="step.number"
             class="flex items-start gap-3 px-4 py-3.5 transition-colors"
-            :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'"
+            :class="step.number === currentStep ? 'bg-teal-50' : (!isLocked ? 'hover:bg-gray-50' : '')"
           >
+
             <span
               class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
               :class="completedSteps.has(step.number)
@@ -194,7 +233,7 @@ function continueToNext() {
 
         <div class="mt-6 flex items-center justify-end gap-2">
           <button
-            v-if="currentStep > 1"
+            v-if="currentStep > 1 && !isLocked"
             type="button"
             @click="goBack"
             class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -204,12 +243,14 @@ function continueToNext() {
 
           <button
             type="button"
+            v-if="!isLocked"
             @click="continueToNext"
             class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors"
           >
             {{ nextStepLabel }}
           </button>
         </div>
+
       </div>
     </div>
   </AppShell>
