@@ -5,14 +5,17 @@ import type { ProgrammeIdentity } from '@/types/programme';
 
 const props = defineProps<{
   modelValue?: ProgrammeIdentity;
+  errors?: Record<string, string[]>;
 }>();
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: ProgrammeIdentity): void;
+  (e: 'clear-error', field: string): void;
 }>();
 
 // Initialize form state with prop data or defaults
 const formData = ref<ProgrammeIdentity>({
+  id: props.modelValue?.id ?? null,
   name: props.modelValue?.name ?? '',
   startYear: props.modelValue?.startYear ?? null,
   endYear: props.modelValue?.endYear ?? null,
@@ -21,7 +24,30 @@ const formData = ref<ProgrammeIdentity>({
   budgetBand: props.modelValue?.budgetBand ?? null,
   directBeneficiaries: props.modelValue?.directBeneficiaries ?? null,
   indirectBeneficiaries: props.modelValue?.indirectBeneficiaries ?? null,
+  method: props.modelValue?.method ?? '',
+  verifiedDate: props.modelValue?.verifiedDate ?? '',
 });
+
+// Watch props.modelValue to sync changes down to formData
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue) {
+      if (newValue.id !== formData.value.id) formData.value.id = newValue.id;
+      if (newValue.name !== formData.value.name) formData.value.name = newValue.name;
+      if (newValue.startYear !== formData.value.startYear) formData.value.startYear = newValue.startYear;
+      if (newValue.endYear !== formData.value.endYear) formData.value.endYear = newValue.endYear;
+      if (newValue.isOngoing !== formData.value.isOngoing) formData.value.isOngoing = newValue.isOngoing;
+      if (newValue.fteStaff !== formData.value.fteStaff) formData.value.fteStaff = newValue.fteStaff;
+      if (newValue.budgetBand !== formData.value.budgetBand) formData.value.budgetBand = newValue.budgetBand;
+      if (newValue.directBeneficiaries !== formData.value.directBeneficiaries) formData.value.directBeneficiaries = newValue.directBeneficiaries;
+      if (newValue.indirectBeneficiaries !== formData.value.indirectBeneficiaries) formData.value.indirectBeneficiaries = newValue.indirectBeneficiaries;
+      if (newValue.method !== formData.value.method) formData.value.method = newValue.method || '';
+      if (newValue.verifiedDate !== formData.value.verifiedDate) formData.value.verifiedDate = newValue.verifiedDate || '';
+    }
+  },
+  { deep: true }
+);
 
 // Computed property to determine if End Year should be disabled
 const isEndYearDisabled = computed(() => formData.value.isOngoing);
@@ -44,7 +70,23 @@ watch(
   },
   { deep: true }
 );
+
+// Watch individual fields to clear errors when edited
+watch(() => formData.value.name, () => emit('clear-error', 'programme_name'));
+watch(() => formData.value.startYear, () => emit('clear-error', 'start_year'));
+watch(() => formData.value.endYear, () => emit('clear-error', 'end_year'));
+watch(() => formData.value.isOngoing, () => {
+  emit('clear-error', 'ongoing');
+  emit('clear-error', 'end_year');
+});
+watch(() => formData.value.fteStaff, () => emit('clear-error', 'fte_staff'));
+watch(() => formData.value.budgetBand, () => emit('clear-error', 'budget_band_id'));
+watch(() => formData.value.directBeneficiaries, () => emit('clear-error', 'direct_beneficiaries'));
+watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'indirect_beneficiaries'));
+watch(() => formData.value.method, () => emit('clear-error', 'method'));
+watch(() => formData.value.verifiedDate, () => emit('clear-error', 'verified_date'));
 </script>
+
 
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -62,8 +104,14 @@ watch(
             v-model="formData.name"
             type="text"
             placeholder="Full name as used by your organisation"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
+            class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm"
+            :class="errors?.programme_name
+              ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500'"
           />
+          <p v-if="errors?.programme_name" class="mt-1.5 text-xs text-red-600">
+            {{ errors.programme_name[0] }}
+          </p>
         </div>
 
         <!-- Start Year -->
@@ -78,8 +126,14 @@ watch(
             min="1900"
             max="2100"
             placeholder="YYYY"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
+            class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm"
+            :class="errors?.start_year
+              ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500'"
           />
+          <p v-if="errors?.start_year" class="mt-1.5 text-xs text-red-600">
+            {{ errors.start_year[0] }}
+          </p>
         </div>
 
         <!-- End Year with Ongoing checkbox -->
@@ -88,16 +142,21 @@ watch(
             End year
           </label>
           <div class="flex items-center gap-3">
-            <input
-              id="endYear"
-              v-model.number="formData.endYear"
-              type="number"
-              min="1900"
-              max="2100"
-              placeholder="YYYY"
-              :disabled="isEndYearDisabled"
-              class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-            />
+            <div class="flex-1">
+              <input
+                id="endYear"
+                v-model.number="formData.endYear"
+                type="number"
+                min="1900"
+                max="2100"
+                placeholder="YYYY"
+                :disabled="isEndYearDisabled"
+                class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                :class="errors?.end_year
+                  ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                  : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500'"
+              />
+            </div>
             <label for="ongoing" class="flex items-center gap-2 shrink-0 cursor-pointer text-sm text-gray-600 select-none">
               <input
                 id="ongoing"
@@ -108,6 +167,9 @@ watch(
               Ongoing
             </label>
           </div>
+          <p v-if="errors?.end_year" class="mt-1.5 text-xs text-red-600">
+            {{ errors.end_year[0] }}
+          </p>
         </div>
 
         <!-- FTE Staff -->
@@ -122,8 +184,14 @@ watch(
             min="0"
             step="0.5"
             placeholder="e.g. 12"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
+            class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm"
+            :class="errors?.fte_staff
+              ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500'"
           />
+          <p v-if="errors?.fte_staff" class="mt-1.5 text-xs text-red-600">
+            {{ errors.fte_staff[0] }}
+          </p>
         </div>
 
         <!-- Budget Band (Annual) -->
@@ -134,14 +202,22 @@ watch(
           <select
             id="budgetBand"
             v-model="formData.budgetBand"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
-            :class="!formData.budgetBand ? 'text-gray-400' : 'text-gray-900'"
+            class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm"
+            :class="[
+              errors?.budget_band_id
+                ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+                : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500',
+              !formData.budgetBand ? 'text-gray-400' : 'text-gray-900'
+            ]"
           >
             <option :value="null" disabled>Select a band</option>
             <option v-for="band in BUDGET_BANDS" :key="band" :value="band" class="text-gray-900">
               {{ band }}
             </option>
           </select>
+          <p v-if="errors?.budget_band_id" class="mt-1.5 text-xs text-red-600">
+            {{ errors.budget_band_id[0] }}
+          </p>
         </div>
 
         <!-- Direct Beneficiaries -->
@@ -155,9 +231,15 @@ watch(
             type="number"
             min="0"
             placeholder="Approximate number"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
+            class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm"
+            :class="errors?.direct_beneficiaries
+              ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500'"
           />
-          <p class="mt-1.5 text-xs text-amber-600">
+          <p v-if="errors?.direct_beneficiaries" class="mt-1.5 text-xs text-red-600">
+            {{ errors.direct_beneficiaries[0] }}
+          </p>
+          <p v-else class="mt-1.5 text-xs text-amber-600">
             Individuals who <em>directly</em> receive services from this programme.
           </p>
         </div>
@@ -173,10 +255,55 @@ watch(
             type="number"
             min="0"
             placeholder="Approximate number"
-            class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
+            class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm"
+            :class="errors?.indirect_beneficiaries
+              ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500'"
           />
-          <p class="mt-1.5 text-xs text-gray-400">
+          <p v-if="errors?.indirect_beneficiaries" class="mt-1.5 text-xs text-red-600">
+            {{ errors.indirect_beneficiaries[0] }}
+          </p>
+          <p v-else class="mt-1.5 text-xs text-gray-400">
             Use your organisation's own definition.
+          </p>
+        </div>
+
+        <!-- Verified Date -->
+        <div>
+          <label for="verifiedDate" class="block text-sm font-medium text-gray-700 mb-1.5">
+            Verified date
+          </label>
+          <input
+            id="verifiedDate"
+            v-model="formData.verifiedDate"
+            type="date"
+            class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm"
+            :class="errors?.verified_date
+              ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500'"
+          />
+          <p v-if="errors?.verified_date" class="mt-1.5 text-xs text-red-600">
+            {{ errors.verified_date[0] }}
+          </p>
+        </div>
+
+        <!-- Methodology (full width) -->
+        <div class="md:col-span-2">
+          <label for="method" class="block text-sm font-medium text-gray-700 mb-1.5">
+            Methodology / Method
+          </label>
+          <textarea
+            id="method"
+            v-model="formData.method"
+            rows="3"
+            placeholder="Describe the methodologies and peer mentoring approaches used in this programme..."
+            class="block w-full px-4 py-2.5 bg-white border rounded-lg shadow-sm focus:outline-none transition-colors sm:text-sm"
+            :class="errors?.method
+              ? 'border-red-300 focus:ring-2 focus:ring-red-500 focus:border-red-500'
+              : 'border-gray-300 focus:ring-2 focus:ring-teal-500 focus:border-teal-500'"
+          />
+          <p v-if="errors?.method" class="mt-1.5 text-xs text-red-600">
+            {{ errors.method[0] }}
           </p>
         </div>
 

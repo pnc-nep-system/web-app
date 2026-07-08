@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
 import type { ProgrammeIdentity } from '@/types/programme'
+import { memberApi } from '@/api/member.api'
+import { useToast } from '@/utils/toast'
+import { BUDGET_BANDS } from '@/constants/programme'
 
 const router = useRouter()
+const route = useRoute()
+const toast = useToast()
 
 // --- Step Definition ---
 const steps = [
@@ -18,9 +23,12 @@ const steps = [
 
 const currentStep = ref(1)
 const isSaved = ref(false)
+const isSaving = ref(false)
+const errors = ref<Record<string, string[]>>({})
 
 // --- Section 1 Form Data ---
 const section1Data = ref<ProgrammeIdentity>({
+  id: null,
   name: '',
   startYear: new Date().getFullYear(),
   endYear: null,
@@ -29,6 +37,8 @@ const section1Data = ref<ProgrammeIdentity>({
   budgetBand: null,
   directBeneficiaries: null,
   indirectBeneficiaries: null,
+  method: '',
+  verifiedDate: '',
 })
 
 // Count how many fields in section 1 have been filled
@@ -42,20 +52,117 @@ const section1Progress = computed(() => {
     !!d.budgetBand,
     !!d.directBeneficiaries,
     !!d.indirectBeneficiaries,
+    !!d.method,
+    !!d.verifiedDate,
   ]
   return fields.filter(Boolean).length
 })
 
-const totalSection1Fields = 7
+const totalSection1Fields = 9
+
+// Load saved data if an ID is present in query parameters
+onMounted(async () => {
+  const entryId = route.query.id
+  if (entryId) {
+    try {
+      const response = await memberApi.getProgrammeEntry(entryId as string)
+      const entry = response.data.data
+      
+      section1Data.value = {
+        id: entry.id,
+        name: entry.programme_name || '',
+        startYear: entry.start_year || null,
+        endYear: entry.end_year || null,
+        isOngoing: !!entry.ongoing,
+        fteStaff: entry.fte_staff ? parseFloat(entry.fte_staff) : null,
+        budgetBand: (entry.budget_band_id 
+          ? BUDGET_BANDS[entry.budget_band_id - 1] 
+          : null) || null,
+        directBeneficiaries: entry.direct_beneficiaries || null,
+        indirectBeneficiaries: entry.indirect_beneficiaries || null,
+        method: entry.method || '',
+        verifiedDate: entry.verified_date || '',
+      }
+      isSaved.value = true
+    } catch (err: any) {
+      toast.error('Failed to load the programme entry data.')
+    }
+  }
+})
+
+// Handle clearing validation errors from child component edits
+function clearError(field: string) {
+  if (errors.value[field]) {
+    delete errors.value[field]
+  }
+}
+
+// Unified API Save function
+async function saveEntry(exitAfterSave: boolean) {
+  if (isSaving.value) return
+  isSaving.value = true
+  errors.value = {}
+
+  try {
+    const isEditMode = !!section1Data.value.id
+    
+    // Map data to API schema keys
+    const payload = {
+      programme_name: section1Data.value.name,
+      start_year: section1Data.value.startYear,
+      end_year: section1Data.value.isOngoing ? null : section1Data.value.endYear,
+      ongoing: section1Data.value.isOngoing,
+      fte_staff: section1Data.value.fteStaff,
+      budget_band_id: section1Data.value.budgetBand 
+        ? BUDGET_BANDS.indexOf(section1Data.value.budgetBand) + 1 
+        : null,
+      direct_beneficiaries: section1Data.value.directBeneficiaries,
+      indirect_beneficiaries: section1Data.value.indirectBeneficiaries,
+      method: section1Data.value.method || null,
+      verified_date: section1Data.value.verifiedDate || null,
+    }
+
+    let response
+    if (isEditMode) {
+      response = await memberApi.updateProgrammeEntry(section1Data.value.id!, payload)
+    } else {
+      response = await memberApi.createProgrammeEntry(payload)
+    }
+
+    // Success response handling
+    toast.success(response.data.message || 'Saved successfully!')
+    isSaved.value = true
+    
+    const savedId = response.data.data.id
+    section1Data.value.id = savedId
+    
+    // Update route query parameters so reloading does not lose state
+    await router.replace({ query: { ...route.query, id: String(savedId) } })
+
+    if (exitAfterSave) {
+      router.push('/dashboard')
+    } else {
+      // In a full implementation, we would proceed to Section 2
+      alert('Section 2 (Activities) is not yet implemented.')
+    }
+  } catch (err: any) {
+    if (err.response && err.response.status === 422) {
+      errors.value = err.response.data.errors
+      toast.error('Please correct the validation errors below.')
+    } else {
+      toast.error(err.response?.data?.message || 'An unexpected error occurred while saving.')
+    }
+  } finally {
+    isSaving.value = false
+  }
+}
 
 function saveAndExit() {
-  isSaved.value = true
-  router.push('/dashboard')
+  saveEntry(true)
 }
 
 function continueToNext() {
-  // For now, only Section 1 is built — show a placeholder alert
-  alert('Section 2 (Activities) is not yet implemented.')
+  saveEntry(false)
 }
 </script>
 
@@ -93,15 +200,17 @@ function continueToNext() {
       <div class="flex items-center gap-2">
         <button
           @click="saveAndExit"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          :disabled="isSaving"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
         >
-          Save &amp; exit
+          {{ isSaving ? 'Saving...' : 'Save & exit' }}
         </button>
         <button
           @click="continueToNext"
-          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors"
+          :disabled="isSaving"
+          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50"
         >
-          Continue <span class="text-base">→</span>
+          {{ isSaving ? 'Saving...' : 'Continue' }} <span class="text-base">→</span>
         </button>
       </div>
     </div>
@@ -147,18 +256,24 @@ function continueToNext() {
 
       <!-- Section 1 Form -->
       <div class="flex-1 min-w-0">
-        <ProgrammeIdentityForm v-model="section1Data" />
+        <ProgrammeIdentityForm
+          v-model="section1Data"
+          :errors="errors"
+          @clear-error="clearError"
+        />
 
         <!-- Bottom Continue Button -->
         <div class="mt-6 flex justify-end">
           <button
             @click="continueToNext"
-            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors"
+            :disabled="isSaving"
+            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50"
           >
-            Continue: Activities <span class="text-base">→</span>
+            {{ isSaving ? 'Saving...' : 'Continue: Activities' }} <span class="text-base">→</span>
           </button>
         </div>
       </div>
     </div>
   </AppShell>
 </template>
+
