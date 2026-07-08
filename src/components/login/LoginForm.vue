@@ -19,14 +19,14 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 // Helper regex to validate email format before hitting the API
-const validateEmail = (email) => {
+const validateEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 /**
  * Quick-fills the login form with demo credentials
  */
-const fillDemo = (company) => {
+const fillDemo = (company: string) => {
   if (company === 'riverkids') {
     email.value = 'programmes@riverkids.org'
   } else if (company === 'childwell') {
@@ -76,12 +76,8 @@ async function submit() {
     password.value = ''
 
     // Map backend field errors to UI fields
-    if (authStore.fieldErrors.email) {
-      emailError.value = authStore.fieldErrors.email[0]
-    }
-    if (authStore.fieldErrors.password) {
-      passwordError.value = authStore.fieldErrors.password[0]
-    }
+    emailError.value = authStore.fieldErrors.email?.[0] ?? ''
+    passwordError.value = authStore.fieldErrors.password?.[0] ?? ''
   }
 }
 </script>

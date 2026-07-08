@@ -14,6 +14,6 @@ defineEmits(['update:modelValue'])
     :type="type"
     :value="modelValue"
     :class="{ 'has-error': error }"
-    @input="$emit('update:modelValue', $event.target.value)"
+    @input="$emit('update:modelValue', ($event.target as HTMLInputElement).value)"
   />
 </template>

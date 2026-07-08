@@ -1,9 +1,4 @@
 <script setup lang="ts">
-defineProps({
-  name: { type: String, required: true },
-  size: { type: [Number, String], default: 16 },
-})
-
 const PATHS = {
   dashboard: '<path d="M3 12l9-9 9 9M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/>',
   map: '<polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>',
@@ -37,7 +32,12 @@ const PATHS = {
   trend: '<path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-3-3L3 17.5"/>',
   lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
   eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
-}
+} as const
+
+const props = defineProps({
+  name: { type: String, required: true },
+  size: { type: [Number, String], default: 16 },
+})
 </script>
 
 <template>
@@ -50,6 +50,6 @@ const PATHS = {
     stroke-width="2"
     stroke-linecap="round"
     stroke-linejoin="round"
-    v-html="PATHS[name] || ''"
+    v-html="PATHS[props.name as keyof typeof PATHS] ?? ''"
   />
 </template>

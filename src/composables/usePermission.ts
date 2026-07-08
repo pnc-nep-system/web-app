@@ -1,3 +1,7 @@
+// TODO: This composable is scaffolded for role-based permission checks but is not yet
+// imported or used anywhere in the application. Wire it up when fine-grained
+// UI-level permission guards are needed (e.g., hiding buttons based on role).
+// Planned consumers: action menus, form submit guards, admin-only sections.
 import { computed } from 'vue'
 import { useAuth } from './useAuth'
 

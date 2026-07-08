@@ -1,9 +1,4 @@
 <script setup lang="ts">
-const props = defineProps({
-  tone: { type: String, default: 'gray' }, // teal | amber | green | red | indigo | gray
-  dot: { type: Boolean, default: false },
-})
-
 const DOT_COLOR = {
   teal: 'var(--teal-700)',
   amber: 'var(--amber-700)',
@@ -11,8 +6,16 @@ const DOT_COLOR = {
   red: 'var(--red-600)',
   indigo: 'var(--indigo-600)',
   gray: 'var(--ink-500)',
-}
-const dotColor = DOT_COLOR[props.tone] || DOT_COLOR.gray
+} as const
+
+type Tone = keyof typeof DOT_COLOR
+
+const props = defineProps({
+  tone: { type: String as () => Tone, default: 'gray' as Tone },
+  dot: { type: Boolean, default: false },
+})
+
+const dotColor = DOT_COLOR[props.tone] ?? DOT_COLOR.gray
 </script>
 
 <template>

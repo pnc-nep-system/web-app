@@ -2,24 +2,26 @@
 import { computed } from 'vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 
-const props = defineProps({
-  icon: { type: String, default: 'dashboard' },
-  iconTone: { type: String, default: 'teal' }, // teal | amber | green | red | indigo
-  value: { type: [String, Number], required: true },
-  label: { type: String, required: true },
-  trend: { type: String, default: '' },
-  trendTone: { type: String, default: 'up' }, // up | flag
-})
-
 const toneClasses = {
   teal: 'bg-teal-100 text-teal-800',
   amber: 'bg-amber-100 text-amber-700',
   green: 'bg-green-100 text-green-700',
   red: 'bg-red-100 text-red-600',
   indigo: 'bg-indigo-100 text-indigo-600',
-}
+} as const
 
-const iconClass = computed(() => toneClasses[props.iconTone] || toneClasses.teal)
+type IconTone = keyof typeof toneClasses
+
+const props = defineProps({
+  icon: { type: String, default: 'dashboard' },
+  iconTone: { type: String as () => IconTone, default: 'teal' as IconTone },
+  value: { type: [String, Number], required: true },
+  label: { type: String, required: true },
+  trend: { type: String, default: '' },
+  trendTone: { type: String as () => 'up' | 'flag', default: 'up' as const },
+})
+
+const iconClass = computed(() => toneClasses[props.iconTone] ?? toneClasses.teal)
 </script>
 
 <template>
