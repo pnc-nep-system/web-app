@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, useTemplateRef } from 'vue';
 import { useRouter } from 'vue-router';
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue';
 import type { ProgrammeIdentity } from '@/types/programme';
@@ -7,7 +7,6 @@ import type { ProgrammeIdentity } from '@/types/programme';
 const router = useRouter();
 
 // Centralize the state for Section 1 (Identity)
-// In a full multi-step form, we might use a Pinia store to persist state between steps
 const identityData = ref<ProgrammeIdentity>({
   name: '',
   startYear: null,
@@ -19,11 +18,15 @@ const identityData = ref<ProgrammeIdentity>({
   indirectBeneficiaries: null,
 });
 
+const identityValid = ref(false);
+const identityFormRef = useTemplateRef<InstanceType<typeof ProgrammeIdentityForm>>('identityForm');
+
 const handleNext = () => {
-  // Logic to validate Section 1 and proceed to Section 2
-  // We can safely pass this data to a global store or API once validated
+  // Trigger full validation (marks all fields as touched and shows errors)
+  const isValid = identityFormRef.value?.validate();
+  if (!isValid) return;
+
   console.log('Proceeding to Section 2 with data:', identityData.value);
-  // Example for future steps:
   // store.setIdentityData(identityData.value);
   // router.push('/member/programmes/new/section-2');
 };
@@ -46,7 +49,11 @@ const handleCancel = () => {
       </div>
 
       <!-- Section 1 Form Component -->
-      <ProgrammeIdentityForm v-model="identityData" />
+      <ProgrammeIdentityForm
+        ref="identityForm"
+        v-model="identityData"
+        v-model:valid="identityValid"
+      />
 
       <!-- Form Navigation Actions -->
       <div class="mt-8 flex justify-end items-center space-x-4">

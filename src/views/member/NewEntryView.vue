@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
@@ -31,6 +31,12 @@ const section1Data = ref<ProgrammeIdentity>({
   indirectBeneficiaries: null,
 })
 
+// Tracks whether the form is currently valid
+const section1Valid = ref(false)
+
+// Template ref to the form component so we can trigger validation on submit
+const identityFormRef = useTemplateRef<InstanceType<typeof ProgrammeIdentityForm>>('identityForm')
+
 // Count how many fields in section 1 have been filled
 const section1Progress = computed(() => {
   const d = section1Data.value
@@ -54,6 +60,10 @@ function saveAndExit() {
 }
 
 function continueToNext() {
+  // Trigger full validation and mark all fields as touched
+  const isValid = identityFormRef.value?.validate()
+  if (!isValid) return
+
   // For now, only Section 1 is built — show a placeholder alert
   alert('Section 2 (Activities) is not yet implemented.')
 }
@@ -147,7 +157,11 @@ function continueToNext() {
 
       <!-- Section 1 Form -->
       <div class="flex-1 min-w-0">
-        <ProgrammeIdentityForm v-model="section1Data" />
+        <ProgrammeIdentityForm
+          ref="identityForm"
+          v-model="section1Data"
+          v-model:valid="section1Valid"
+        />
 
         <!-- Bottom Continue Button -->
         <div class="mt-6 flex justify-end">
