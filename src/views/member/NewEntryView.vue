@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, useTemplateRef } from 'vue'
+import { ref, computed, watch, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
+import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
 import type { ProgrammeIdentity } from '@/types/programme'
 
 const router = useRouter()
@@ -17,7 +18,8 @@ const steps = [
 ]
 
 const currentStep = ref(1)
-const isSaved = ref(false)
+const saveStatus = ref<'unsaved' | 'saving' | 'saved'>('unsaved')
+let saveTimer: ReturnType<typeof setTimeout> | null = null
 
 // --- Section 1 Form Data ---
 const section1Data = ref<ProgrammeIdentity>({
@@ -31,41 +33,65 @@ const section1Data = ref<ProgrammeIdentity>({
   indirectBeneficiaries: null,
 })
 
-// Tracks whether the form is currently valid
 const section1Valid = ref(false)
-
-// Template ref to the form component so we can trigger validation on submit
 const identityFormRef = useTemplateRef<InstanceType<typeof ProgrammeIdentityForm>>('identityForm')
 
-// Count how many fields in section 1 have been filled
-const section1Progress = computed(() => {
-  const d = section1Data.value
-  const fields = [
-    !!d.name,
-    !!d.startYear,
-    d.isOngoing || !!d.endYear,
-    !!d.fteStaff,
-    !!d.budgetBand,
-    !!d.directBeneficiaries,
-    !!d.indirectBeneficiaries,
-  ]
-  return fields.filter(Boolean).length
+// Dynamic page title — shows programme name once entered
+const pageTitle = computed(() => section1Data.value.name.trim() || 'New programme entry')
+
+// Progress bar width for sidebar
+const progressPercent = computed(() => (currentStep.value / steps.length) * 100)
+
+// Auto-save: debounce 1.5 s after any form change
+watch(section1Data, () => {
+  saveStatus.value = 'saving'
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    // Persist data here (e.g. API call or localStorage)
+    saveStatus.value = 'saved'
+  }, 1500)
+}, { deep: true })
+
+const saveLabel = computed(() => {
+  if (saveStatus.value === 'saving') return 'Saving…'
+  if (saveStatus.value === 'saved') return 'Autosaved just now'
+  return 'Not yet saved'
 })
 
-const totalSection1Fields = 7
+// Completed steps set
+const completedSteps = ref<Set<number>>(new Set())
+
+// Bottom button labels
+const nextStepLabel = computed(() => {
+  const next = steps[currentStep.value] // steps is 0-indexed by position, currentStep 1-indexed
+  return next ? `Continue: ${next.title.replace(/^\d+ · /, '')} →` : 'Finish →'
+})
+
+const backStepLabel = computed(() => {
+  const prev = steps[currentStep.value - 2] // previous step
+  return prev ? `← Back: ${prev.title.replace(/^\d+ · /, '')}` : ''
+})
 
 function saveAndExit() {
-  isSaved.value = true
   router.push('/dashboard')
 }
 
-function continueToNext() {
-  // Trigger full validation and mark all fields as touched
-  const isValid = identityFormRef.value?.validate()
-  if (!isValid) return
+function goBack() {
+  if (currentStep.value > 1) {
+    completedSteps.value.delete(currentStep.value - 1)
+    currentStep.value--
+  }
+}
 
-  // For now, only Section 1 is built — show a placeholder alert
-  alert('Section 2 (Activities) is not yet implemented.')
+function continueToNext() {
+  if (currentStep.value === 1) {
+    const isValid = identityFormRef.value?.validate()
+    if (!isValid) return
+  }
+  completedSteps.value.add(currentStep.value)
+  if (currentStep.value < steps.length) {
+    currentStep.value++
+  }
 }
 </script>
 
@@ -91,11 +117,11 @@ function continueToNext() {
     <!-- Page Header -->
     <div class="flex items-start justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">New programme entry</h1>
+        <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle }}</h1>
         <p class="text-sm text-gray-500 mt-0.5">
           Section {{ currentStep }} of {{ steps.length }} ·
-          <span :class="isSaved ? 'text-green-600' : 'text-gray-400'">
-            {{ isSaved ? 'Saved' : 'Not yet saved' }}
+          <span :class="saveStatus === 'saved' ? 'text-green-600' : 'text-gray-400'">
+            {{ saveLabel }}
           </span>
         </p>
       </div>
@@ -128,14 +154,19 @@ function continueToNext() {
             class="flex items-start gap-3 px-4 py-3.5 transition-colors"
             :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'"
           >
-            <!-- Step number bubble -->
+            <!-- Step bubble: checkmark if done, number otherwise -->
             <span
               class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-              :class="step.number === currentStep
-                ? 'bg-teal-800 text-white'
-                : 'bg-gray-100 text-gray-500'"
+              :class="completedSteps.has(step.number)
+                ? 'bg-green-600 text-white'
+                : step.number === currentStep
+                  ? 'bg-teal-800 text-white'
+                  : 'bg-gray-100 text-gray-500'"
             >
-              {{ step.number }}
+              <svg v-if="completedSteps.has(step.number)" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <template v-else>{{ step.number }}</template>
             </span>
 
             <div>
@@ -149,27 +180,56 @@ function continueToNext() {
         </ul>
 
         <!-- Section Progress -->
-        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
-          <span>Section progress</span>
-          <span class="font-semibold text-gray-700">{{ section1Progress }} of {{ totalSection1Fields }}</span>
+        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+            <span>Section progress</span>
+            <span class="font-semibold text-gray-700">{{ currentStep }} of {{ steps.length }}</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-1.5">
+            <div
+              class="bg-teal-600 h-1.5 rounded-full transition-all duration-500"
+              :style="{ width: progressPercent + '%' }"
+            />
+          </div>
         </div>
       </aside>
 
-      <!-- Section 1 Form -->
+      <!-- Section form (switches per step) -->
       <div class="flex-1 min-w-0">
+        <!-- Step 1: Programme Identity -->
         <ProgrammeIdentityForm
+          v-if="currentStep === 1"
           ref="identityForm"
           v-model="section1Data"
           v-model:valid="section1Valid"
         />
 
-        <!-- Bottom Continue Button -->
-        <div class="mt-6 flex justify-end">
+        <!-- Step 2: Activities -->
+        <ActivitiesForm v-else-if="currentStep === 2" />
+
+        <!-- Steps 3-5: placeholder -->
+        <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center text-gray-400 text-sm">
+          Section {{ currentStep }} is coming soon.
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="mt-6 flex items-center justify-end gap-2">
+          <!-- Back button (hidden on step 1) -->
+          <button
+            v-if="currentStep > 1"
+            type="button"
+            @click="goBack"
+            class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            {{ backStepLabel }}
+          </button>
+
+          <!-- Continue button -->
           <button
             @click="continueToNext"
             class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors"
           >
-            Continue: Activities <span class="text-base">→</span>
+            {{ nextStepLabel }}
           </button>
         </div>
       </div>

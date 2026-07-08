@@ -104,6 +104,29 @@ function fieldError(field: string): string {
   return touched.value[field] ? (errors.value[field] ?? '') : '';
 }
 
+// Prevent minus sign, 'e' and 'E' on non-negative number inputs
+function preventNegativeKey(e: KeyboardEvent) {
+  if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+    e.preventDefault();
+  }
+}
+
+// Clamp pasted/programmatic negatives to 0 (number fields)
+function clampNonNegative(field: 'fteStaff' | 'directBeneficiaries' | 'indirectBeneficiaries') {
+  const val = formData.value[field];
+  if (val !== null && val < 0) {
+    (formData.value[field] as number) = 0;
+  }
+}
+
+// Clamp year fields — disallow values below YEAR_MIN
+function clampYear(field: 'startYear' | 'endYear') {
+  const val = formData.value[field];
+  if (val !== null && val < YEAR_MIN) {
+    (formData.value[field] as number) = YEAR_MIN;
+  }
+}
+
 // ── Computed helpers ──────────────────────────────────────────────────────────
 const isEndYearDisabled = computed(() => formData.value.isOngoing);
 
@@ -177,6 +200,8 @@ watch(
             max="2100"
             placeholder="YYYY"
             :class="inputClass('startYear')"
+            @keydown="preventNegativeKey"
+            @input="clampYear('startYear')"
             @blur="touch('startYear')"
           />
           <p v-if="fieldError('startYear')" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
@@ -204,6 +229,8 @@ watch(
                   inputClass('endYear'),
                   isEndYearDisabled ? 'disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed' : ''
                 ]"
+                @keydown="preventNegativeKey"
+                @input="clampYear('endYear')"
                 @blur="touch('endYear')"
               />
               <p v-if="!isEndYearDisabled && fieldError('endYear')" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
@@ -236,6 +263,8 @@ watch(
             step="0.5"
             placeholder="e.g. 12"
             :class="inputClass('fteStaff')"
+            @keydown="preventNegativeKey"
+            @input="clampNonNegative('fteStaff')"
             @blur="touch('fteStaff')"
           />
           <p v-if="fieldError('fteStaff')" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
@@ -279,6 +308,8 @@ watch(
             min="0"
             placeholder="Approximate number"
             :class="inputClass('directBeneficiaries')"
+            @keydown="preventNegativeKey"
+            @input="clampNonNegative('directBeneficiaries')"
             @blur="touch('directBeneficiaries')"
           />
           <p v-if="fieldError('directBeneficiaries')" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
@@ -302,6 +333,8 @@ watch(
             min="0"
             placeholder="Approximate number"
             :class="inputClass('indirectBeneficiaries')"
+            @keydown="preventNegativeKey"
+            @input="clampNonNegative('indirectBeneficiaries')"
             @blur="touch('indirectBeneficiaries')"
           />
           <p v-if="fieldError('indirectBeneficiaries')" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
