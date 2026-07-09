@@ -1,15 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
-import { useUsersStore } from './users'
 
 export const useAuthStore = defineStore('auth', () => {
   // --- State ---
   const currentUserId = ref<string | null>(null)
   const currentUser = ref<Record<string, unknown> | null>(null)
   const authError = ref('')
+  const networkError = ref('')
   const fieldErrors = ref<Record<string, string[]>>({})
   const loading = ref(false)
+
   // Reactive role — kept in sync with localStorage on login/logout
   const userRole = ref<string>(localStorage.getItem('userRole') ?? '')
 
@@ -19,13 +20,23 @@ export const useAuthStore = defineStore('auth', () => {
   // --- Actions ---
 
   /**
+   * Clears all error state — called before each new login attempt
+   * and when the user fills a demo account.
+   */
+  function clearErrors() {
+    authError.value = ''
+    networkError.value = ''
+    fieldErrors.value = {}
+  }
+
+  /**
    * Hits the backend authentication login endpoint.
-   * If the backend is unavailable, it automatically falls back to local mocked credentials.
+   * Returns true on success, false on any failure.
+   * Sets authError, networkError, or fieldErrors so the UI can react.
    */
   async function login(email: string, password: string) {
     loading.value = true
-    authError.value = ''
-    fieldErrors.value = {}
+    clearErrors()
 
     try {
       const response = await authApi.login({ email, password })
@@ -46,6 +57,7 @@ export const useAuthStore = defineStore('auth', () => {
       return true
     } catch (error) {
       loading.value = false
+
       const axiosError = error as {
         code?: string
         message?: string
@@ -59,49 +71,34 @@ export const useAuthStore = defineStore('auth', () => {
       }
       const res = axiosError.response
 
-      // FALLBACK: If backend is completely unavailable (connection refused, offline, etc.)
+      // Network / server unreachable — no response object
       if (
         !res ||
         axiosError.code === 'ERR_NETWORK' ||
-        axiosError.message?.includes('Network Error')
+        axiosError.message?.includes('Network Error') ||
+        axiosError.code === 'ECONNREFUSED'
       ) {
-        const usersStore = useUsersStore()
-        const user = usersStore.byEmail(email)
-
-        if (user) {
-          if (user.password === password) {
-            localStorage.setItem('authToken', 'mock-jwt-token-123')
-            localStorage.setItem('userRole', user.role)
-            userRole.value = user.role
-            currentUserId.value = user.id
-            return true
-          } else {
-            fieldErrors.value = { password: ['Password is incorrect.'] }
-            authError.value = 'Password is incorrect.'
-            return false
-          }
-        } else {
-          fieldErrors.value = { email: ['Email does not exist.'] }
-          authError.value = 'Email does not exist.'
-          return false
-        }
+        networkError.value =
+          'Unable to connect to the server. Please check your internet connection or try again later.'
+        return false
       }
 
-      // Handle server-returned validation / credentials error messages
-      if (res?.data?.message) {
-        authError.value = res.data.message
-      } else {
-        authError.value = 'Something went wrong on our end. Please try again.'
+      // HTTP 401 — invalid credentials
+      if (res.status === 401) {
+        authError.value = 'Invalid email or password.'
+        return false
       }
 
-      // Handle granular input field validation errors (HTTP 422)
-      if (res?.data?.errors) {
+      // HTTP 422 — server-side field validation errors
+      if (res.status === 422 && res.data?.errors) {
         fieldErrors.value = res.data.errors
-      } else if (res?.status === 401) {
-        // Map general 401 error to password field so it appears under the input
-        fieldErrors.value = { password: [authError.value] }
+        authError.value = res.data.message ?? 'Please correct the errors below.'
+        return false
       }
 
+      // Any other server error (500, 503, …)
+      authError.value =
+        res.data?.message ?? 'Something went wrong on our end. Please try again.'
       return false
     }
   }
@@ -122,11 +119,13 @@ export const useAuthStore = defineStore('auth', () => {
     currentUserId,
     currentUser,
     authError,
+    networkError,
     fieldErrors,
     loading,
     isAuthenticated,
     userRole,
     login,
     logout,
+    clearErrors,
   }
 })

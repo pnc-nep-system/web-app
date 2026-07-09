@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { memberApi } from '@/api/member.api'
 import type { ProgrammeIdentity } from '@/types/programme'
 
