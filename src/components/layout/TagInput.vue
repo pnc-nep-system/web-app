@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 
 const props = withDefaults(
@@ -38,6 +38,19 @@ const focusInput = () => {
     inputRef.value?.focus()
   }
 }
+
+// Watch input value: if they try to type/input anything while at maxTags limit,
+// reject the input immediately and show the limit error. Otherwise, clear any local error.
+watch(inputValue, (newVal) => {
+  if (newVal) {
+    if ((props.modelValue || []).length >= props.maxTags) {
+      localError.value = `You can only add up to ${props.maxTags} keywords.`
+      inputValue.value = ''
+    } else {
+      localError.value = ''
+    }
+  }
+})
 
 /**
  * Core insertion logic — shared by addTag() and handlePaste().
@@ -114,7 +127,6 @@ const removeLastTag = () => {
 
 // Handle keyboard events inside the input field
 const handleKeydown = (event: KeyboardEvent) => {
-  localError.value = ''
   if (event.key === 'Enter' || event.key === ',') {
     event.preventDefault()
     addTag()
@@ -126,7 +138,6 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 // Handle input change — catches typed commas on mobile / IME keyboards
 const handleInput = (event: Event) => {
-  localError.value = ''
   const target = event.target as HTMLInputElement
   if (target.value.includes(',')) {
     inputValue.value = target.value
