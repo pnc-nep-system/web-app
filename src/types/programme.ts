@@ -3,8 +3,6 @@ export interface Activity {
   code: string
   primary: boolean
 }
-
-
 export interface ProgrammeIdentity {
   id?: number | null
   name: string
@@ -15,6 +13,8 @@ export interface ProgrammeIdentity {
   budgetBand: BudgetBand | null
   directBeneficiaries: number | null
   indirectBeneficiaries: number | null
+  method: string
+  verifiedDate: string
   activities?: Activity[]
   provinces?: string[]
 }

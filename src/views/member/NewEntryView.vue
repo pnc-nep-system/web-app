@@ -8,11 +8,13 @@ import ProgrammeKeywordsView from '@/components/programme/ProgrammeKeywordsView.
 import type { ProgrammeIdentity } from '@/types/programme'
 import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
+import { useAuth } from '@/composables/useAuth'
 import { BUDGET_BANDS } from '@/constants/programme'
 
 const router = useRouter()
 const route = useRoute()
 const toast = useToast()
+const { currentUser } = useAuth()
 
 // --- Step Definition ---
 const steps = [
@@ -63,7 +65,12 @@ const saveLabel = computed(() => {
 
 // --- Section 5 Data (Keywords) ---
 const keywordsData = ref<string[]>([])
-const section2Data = ref(null)
+const keywordsError = ref<string | null>(null)
+const section2Data = ref<{
+  selected: string[]
+  primary: string[]
+  aiText: string
+} | null>(null)
 
 
 // Count how many fields in section 1 have been filled
@@ -84,6 +91,24 @@ const section1Progress = computed(() => {
 })
 
 const totalSection1Fields = 9
+
+// --- Submission result message (shown after API response, then auto-clears) ---
+const submissionResult = ref<{ type: 'success' | 'error'; message: string } | null>(null)
+let resultTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearSubmissionResult() {
+  if (resultTimer) clearTimeout(resultTimer)
+  submissionResult.value = null
+}
+
+function showSubmissionResult(type: 'success' | 'error', message: string) {
+  clearSubmissionResult()
+  submissionResult.value = { type, message }
+  // Auto-clear result after 5 seconds
+  resultTimer = setTimeout(() => {
+    submissionResult.value = null
+  }, 5000)
+}
 
 onMounted(async () => {
 
@@ -142,27 +167,46 @@ function clearError(field: string) {
   }
 }
 
-// Unified API Save function
-async function saveEntry(exitAfterSave: boolean) {
-  // Run client-side validation on the current step
+// Run validation for the current step, returns true if valid
+function validateCurrentStep(): boolean {
   if (currentStep.value === 1) {
     const isValid = identityFormRef.value?.validate?.()
     if (!isValid) {
       toast.error('Please fix the errors in the form before saving.')
-      return
+      return false
     }
   }
   if (currentStep.value === 2) {
     const isValid = activitiesFormRef.value?.validate?.()
     if (!isValid) {
       toast.error('Please fix the errors in the form before saving.')
-      return
+      return false
     }
   }
+  return true
+}
 
-  if (isSaving.value) return
-  isSaving.value = true
+// Unified API Save function — follows the submit flow precisely:
+// Click Submit → Validate Form → Set Loading State (isSaving=true) →
+// Disable Button (via :disabled="isSaving") + Show Spinner →
+// Send API Request → Backend Saves Data → Receive Response →
+// Remove Loading (isSaving=false) → Enable Button → Show Result Message
+async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Promise<void> {
+  // 1. Skip if already saving (prevents double-click / duplicate requests)
+  //    But if loading was already set by the caller (step 5), allow through
+  if (isSaving.value && !loadingAlreadySet) return
+
+  // 2. Run client-side validation for non-final steps only
+  if (!loadingAlreadySet && !validateCurrentStep()) return
+
+  // 3. Set loading state — disables buttons & shows spinners (skip if already set)
+  if (!loadingAlreadySet) {
+    isSaving.value = true
+  }
+  saveStatus.value = 'saving'
   errors.value = {}
+  clearSubmissionResult()
+
   try {
     const isEditMode = !!section1Data.value.id
 
@@ -184,24 +228,26 @@ async function saveEntry(exitAfterSave: boolean) {
       verified_date: section1Data.value.verifiedDate || null,
       activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
     }
-    console.log('API Payload:', payload)
 
-
+    // 4. Send API request
     let response
     if (isEditMode) {
-      response = await memberApi.updateProgrammeEntry(section1Data.value.id!, payload)
+      response = await memberApi.updateProgrammeEntry(section1Data.value.id!, payload as any)
     } else {
-      response = await memberApi.createProgrammeEntry(payload)
+      response = await memberApi.createProgrammeEntry(payload as any)
     }
 
-    // Success response handling
+    // 5. Success — save response data and show result message
     sessionStorage.removeItem('new_programme_entry_draft')
-
-    toast.success(response.data.message || 'Saved successfully!')
     saveStatus.value = 'saved'
 
     const savedId = response.data.data.id
     section1Data.value.id = savedId
+
+    // Show persistent result message
+    const successMsg = response.data.message || 'Saved successfully!'
+    showSubmissionResult('success', successMsg)
+    toast.success(successMsg)
 
     // Update route query parameters so reloading does not lose state
     await router.replace({ query: { ...route.query, id: String(savedId) } })
@@ -210,19 +256,23 @@ async function saveEntry(exitAfterSave: boolean) {
       router.push('/dashboard')
     }
   } catch (err: any) {
+    // 6. Error — show error result message
     if (err.response && err.response.status === 422) {
-      console.error('API Validation Error:', err.response.data.errors)
+      const apiMessage = 'Please correct the validation errors below.'
+      showSubmissionResult('error', apiMessage)
       if (exitAfterSave) {
-        console.log('Suppresing validation error toast on exit.')
-        router.push('/dashboard') // Proceed to exit anyway, even if save failed
+        router.push('/dashboard')
       } else {
         errors.value = err.response.data.errors
-        toast.error('Please correct the validation errors below.')
+        toast.error(apiMessage)
       }
     } else {
-      toast.error(err.response?.data?.message || 'An unexpected error occurred while saving.')
+      const apiMessage = err.response?.data?.message || 'An unexpected error occurred while saving.'
+      showSubmissionResult('error', apiMessage)
+      toast.error(apiMessage)
     }
   } finally {
+    // 7. Remove loading state + re-enable buttons
     isSaving.value = false
   }
 }
@@ -268,8 +318,8 @@ const continueButtonText = computed(() => {
   return 'Finish & save'
 })
 
-function saveAndExit() {
-  saveEntry(true)
+async function saveAndExit(loadingAlreadySet = false) {
+  await saveEntry(true, loadingAlreadySet)
 }
 
 function goBack() {
@@ -279,44 +329,40 @@ function goBack() {
   }
 }
 
-function continueToNext() {
-  // Run client-side validation on the current step
-  if (currentStep.value === 1) {
-    const isValid = identityFormRef.value?.validate?.()
-    if (!isValid) return
-  }
-  if (currentStep.value === 2) {
-    const isValid = activitiesFormRef.value?.validate?.()
-    if (!isValid) return
+async function continueToNext() {
+  // --- Final step (Step 5: Finish & save) ---
+  if (currentStep.value === 5) {
+    // Validate that at least one keyword is entered
+    if (keywordsData.value.length === 0) {
+      keywordsError.value = 'You must add at least one keyword before saving.'
+      toast.error('Please add at least one keyword.')
+      return
+    }
+    keywordsError.value = null
+
+    // Set loading state immediately so the spinner shows on the button
+    isSaving.value = true
+    saveStatus.value = 'saving'
+
+    // Check organisation profile completeness before saving
+    if (!(currentUser.value as any)?.is_profile_complete) {
+      toast.error('You haven\'t completed Organisation profile yet')
+      isSaving.value = false
+      return
+    }
+
+    await saveAndExit(true)
+    return
   }
 
-  // Save to API when leaving Step 1
-  if (currentStep.value === 1) {
-    saveEntry(false)
-  }
-
+  // --- Non-final steps (1–4): always advance, no validation, no blocking ---
   completedSteps.value.add(currentStep.value)
 
   if (currentStep.value < steps.length) {
     currentStep.value++
-    return
   }
-
-  // Final step — save & exit
-  if (completedSteps.value.size < steps.length) {
-    toast.error('You need to complete the form')
-    return
-  }
-
-  if (!(auth.currentUser as any)?.is_profile_complete) {
-    toast.error('You haven\'t complete Organisation profile yet')
-    return
-  }
-
-  saveAndExit()
 }
 </script>
-
 <template>
   <AppShell>
     <!-- Breadcrumb slot -->
@@ -335,7 +381,6 @@ function continueToNext() {
         </button>
       </div>
     </template>
-
     <!-- Page Header -->
     <div class="flex items-start justify-between mb-6">
       <div>
@@ -350,20 +395,64 @@ function continueToNext() {
 
       <div class="flex items-center gap-2">
         <button
-          @click="saveAndExit"
+          @click="() => saveAndExit()"
           :disabled="isSaving"
-          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
+          <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
           {{ isSaving ? 'Saving...' : 'Save & exit' }}
         </button>
         <button
           @click="continueToNext"
           :disabled="isSaving"
-          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50"
+          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {{ currentStep === 5 ? 'Finish & save' : 'Continue' }} <span class="text-base">→</span>
+          <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          {{ isSaving ? 'Saving...' : currentStep === 5 ? 'Finish & save' : 'Continue' }} <span v-if="!isSaving" class="text-base">→</span>
         </button>
       </div>
+    </div>
+
+    <!-- Submission Result Banner -->
+    <div
+      v-if="submissionResult"
+      class="mb-6 px-5 py-3.5 rounded-lg border flex items-center gap-3 text-sm font-medium transition-all"
+      :class="submissionResult.type === 'success'
+        ? 'bg-green-50 border-green-200 text-green-800'
+        : 'bg-red-50 border-red-200 text-red-800'"
+    >
+      <!-- Success icon -->
+      <svg
+        v-if="submissionResult.type === 'success'"
+        class="w-5 h-5 shrink-0 text-green-600"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <!-- Error icon -->
+      <svg
+        v-else
+        class="w-5 h-5 shrink-0 text-red-600"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span class="flex-1">{{ submissionResult.message }}</span>
+      <button
+        @click="clearSubmissionResult"
+        class="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+        :class="submissionResult.type === 'success' ? 'text-green-800' : 'text-red-800'"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
     <!-- Two-column layout: Step Sidebar + Form -->
@@ -440,6 +529,7 @@ function continueToNext() {
           v-model="section1Data"
           v-model:valid="section1Valid"
           :errors="errors"
+          :disabled="isSaving"
           @clear-error="clearError"
         />
 
@@ -469,7 +559,19 @@ function continueToNext() {
         </div>
 
         <!-- Step 5: Keywords Form -->
-        <ProgrammeKeywordsView v-else-if="currentStep === 5" v-model="keywordsData" />
+        <div v-else-if="currentStep === 5">
+          <ProgrammeKeywordsView v-model="keywordsData" />
+          <!-- Keywords validation error -->
+          <div
+            v-if="keywordsError"
+            class="mt-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-sm text-red-700"
+          >
+            <svg class="w-4 h-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ keywordsError }}</span>
+          </div>
+        </div>
 
         <!-- Bottom Navigation -->
         <div class="mt-6 flex items-center justify-end gap-2">
@@ -485,9 +587,13 @@ function continueToNext() {
           <button
             @click="continueToNext"
             :disabled="isSaving"
-            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer select-none"
+            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none"
           >
-            {{ currentStep === 5 ? 'Finish & save' : nextStepLabel }}
+            <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            {{ isSaving ? 'Saving...' : currentStep === 5 ? 'Finish & save' : nextStepLabel }}
           </button>
         </div>
       </div>

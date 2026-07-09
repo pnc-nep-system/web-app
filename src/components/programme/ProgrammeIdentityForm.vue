@@ -6,6 +6,7 @@ import type { ProgrammeIdentity } from '@/types/programme'
 const props = defineProps<{
   modelValue?: ProgrammeIdentity
   errors?: Record<string, string[]>
+  disabled?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +26,8 @@ const formData = ref<ProgrammeIdentity>({
   budgetBand: props.modelValue?.budgetBand ?? null,
   directBeneficiaries: props.modelValue?.directBeneficiaries ?? null,
   indirectBeneficiaries: props.modelValue?.indirectBeneficiaries ?? null,
+  method: props.modelValue?.method ?? '',
+  verifiedDate: props.modelValue?.verifiedDate ?? '',
 })
 
 // Watch props.modelValue to sync changes down to formData (e.g. when loading from API)
@@ -43,9 +46,15 @@ watch(
       if (newValue.indirectBeneficiaries !== formData.value.indirectBeneficiaries) formData.value.indirectBeneficiaries = newValue.indirectBeneficiaries
     }
   },
-  { deep: true }
+  { deep: true },
 )
-
+// Add watches for new fields
+watch(() => props.modelValue?.method, (val) => {
+  if (val !== undefined && val !== formData.value.method) formData.value.method = val
+})
+watch(() => props.modelValue?.verifiedDate, (val) => {
+  if (val !== undefined && val !== formData.value.verifiedDate) formData.value.verifiedDate = val
+})
 // ── Client-side validation ────────────────────────────────────────────────────
 const clientErrors = ref<Record<string, string>>({})
 const touched = ref<Record<string, boolean>>({})
@@ -130,20 +139,16 @@ function validate(): boolean {
   emit('update:valid', isValid)
   return isValid
 }
-
 // Expose validate() so parent views can trigger it via template ref
 function getData() {
   return formData.value
 }
-
 defineExpose({ validate, getData })
-
 // ── Per-field blur handler ────────────────────────────────────────────────────
 function touch(field: string) {
   touched.value[field] = true
   validate()
 }
-
 // Helper: show server error first, then client error (only when touched)
 function fieldError(field: string): string {
   // Server-side errors take priority (mapped from snake_case keys in parent)
@@ -153,7 +158,6 @@ function fieldError(field: string): string {
   }
   return touched.value[field] ? (clientErrors.value[field] ?? '') : ''
 }
-
 // Map camelCase field names to snake_case API keys
 function fieldToServerKey(field: string): string {
   const map: Record<string, string> = {
@@ -224,7 +228,6 @@ watch(
   },
   { deep: true },
 )
-
 // Watch individual fields to clear server-side errors when edited
 watch(() => formData.value.name, () => emit('clear-error', 'programme_name'))
 watch(() => formData.value.startYear, () => emit('clear-error', 'start_year'))
@@ -241,8 +244,6 @@ watch(() => formData.value.budgetBand, () => {
 watch(() => formData.value.directBeneficiaries, () => emit('clear-error', 'direct_beneficiaries'))
 watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'indirect_beneficiaries'))
 </script>
-
-
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="p-6">
@@ -258,6 +259,7 @@ watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'ind
             type="text"
             placeholder="Full name as used by your organisation"
             :class="inputClass('name')"
+            :disabled="props.disabled"
             @blur="touch('name')"
           />
           <p v-if="fieldError('name')" class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
@@ -285,6 +287,7 @@ watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'ind
             max="2100"
             placeholder="YYYY"
             :class="inputClass('startYear')"
+            :disabled="props.disabled"
             @keydown="preventNegativeKey"
             @input="clampYear('startYear')"
             @blur="touch('startYear')"
@@ -318,10 +321,10 @@ watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'ind
                 min="1900"
                 max="2100"
                 placeholder="YYYY"
-                :disabled="isEndYearDisabled"
+                :disabled="isEndYearDisabled || props.disabled"
                 :class="[
                   inputClass('endYear'),
-                  isEndYearDisabled
+                  (isEndYearDisabled || props.disabled)
                     ? 'disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed'
                     : '',
                 ]"
@@ -352,7 +355,8 @@ watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'ind
                 id="ongoing"
                 v-model="formData.isOngoing"
                 type="checkbox"
-                class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded transition-colors cursor-pointer accent-teal-700"
+                :disabled="props.disabled"
+                class="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded transition-colors cursor-pointer accent-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               Ongoing
             </label>
@@ -372,6 +376,7 @@ watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'ind
             step="1"
             placeholder="e.g. 12"
             :class="inputClass('fteStaff')"
+            :disabled="props.disabled"
             @keydown="preventNegativeKey"
             @input="clampNonNegative('fteStaff')"
             @blur="touch('fteStaff')"
@@ -396,6 +401,7 @@ watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'ind
           <select
             id="budgetBand"
             v-model="formData.budgetBand"
+            :disabled="props.disabled"
             :class="[
               inputClass('budgetBand'),
               !formData.budgetBand ? 'text-gray-400' : 'text-gray-900',
@@ -432,6 +438,7 @@ watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'ind
             min="0"
             placeholder="Approximate number"
             :class="inputClass('directBeneficiaries')"
+            :disabled="props.disabled"
             @keydown="preventNegativeKey"
             @input="clampNonNegative('directBeneficiaries')"
             @blur="touch('directBeneficiaries')"
@@ -466,6 +473,7 @@ watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'ind
             min="0"
             placeholder="Approximate number"
             :class="inputClass('indirectBeneficiaries')"
+            :disabled="props.disabled"
             @keydown="preventNegativeKey"
             @input="clampNonNegative('indirectBeneficiaries')"
             @blur="touch('indirectBeneficiaries')"
