@@ -41,14 +41,30 @@ const focusInput = () => {
 
 // Watch input value: if they try to type/input anything while at maxTags limit,
 // reject the input immediately and show the limit error. Otherwise, clear any local error.
+const isProgrammaticClear = ref(false)
+
 watch(inputValue, (newVal) => {
+  if (isProgrammaticClear.value) {
+    isProgrammaticClear.value = false
+    return
+  }
+
   if (newVal) {
-    if ((props.modelValue || []).length >= props.maxTags) {
+    const candidates = newVal
+      .split(/[\s,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+
+    const totalCount = (props.modelValue || []).length + candidates.length
+    if (totalCount > props.maxTags) {
       localError.value = `You can only add up to ${props.maxTags} keywords.`
+      isProgrammaticClear.value = true
       inputValue.value = ''
     } else {
       localError.value = ''
     }
+  } else {
+    localError.value = ''
   }
 })
 
@@ -96,7 +112,7 @@ const addTag = () => {
   if (!rawValue) return
 
   const candidates = rawValue
-    .split(',')
+    .split(/[\s,]+/)
     .map((item) => item.trim())
     .filter(Boolean)
 
@@ -127,7 +143,7 @@ const removeLastTag = () => {
 
 // Handle keyboard events inside the input field
 const handleKeydown = (event: KeyboardEvent) => {
-  if (event.key === 'Enter' || event.key === ',') {
+  if (event.key === 'Enter' || event.key === ',' || event.key === ' ') {
     event.preventDefault()
     addTag()
   } else if (event.key === 'Backspace' && !inputValue.value) {
@@ -139,13 +155,13 @@ const handleKeydown = (event: KeyboardEvent) => {
 // Handle input change — catches typed commas on mobile / IME keyboards
 const handleInput = (event: Event) => {
   const target = event.target as HTMLInputElement
-  if (target.value.includes(',')) {
+  if (target.value.includes(',') || target.value.includes(' ')) {
     inputValue.value = target.value
     addTag()
   }
 }
 
-// Handle paste — splits on commas and commits all candidates at once
+// Handle paste — splits on commas/spaces and commits all candidates at once
 const handlePaste = (event: ClipboardEvent) => {
   event.preventDefault()
   const text = event.clipboardData?.getData('text') || ''
@@ -154,14 +170,14 @@ const handlePaste = (event: ClipboardEvent) => {
   const fullText = inputValue.value + text
   inputValue.value = ''
 
-  if (fullText.includes(',')) {
+  if (fullText.includes(',') || fullText.includes(' ')) {
     const candidates = fullText
-      .split(',')
+      .split(/[\s,]+/)
       .map((item) => item.trim())
       .filter(Boolean)
     commitTags(candidates)
   } else {
-    // No comma — treat as a single in-progress keyword, put it back in the input
+    // No comma/space — treat as a single in-progress keyword, put it back in the input
     inputValue.value = fullText.trim()
   }
 }
