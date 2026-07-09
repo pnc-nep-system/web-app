@@ -65,6 +65,7 @@ const saveLabel = computed(() => {
 
 // --- Section 5 Data (Keywords) ---
 const keywordsData = ref<string[]>([])
+const keywordsError = ref<string | null>(null)
 const section2Data = ref<{
   selected: string[]
   primary: string[]
@@ -331,6 +332,14 @@ function goBack() {
 async function continueToNext() {
   // --- Final step (Step 5: Finish & save) ---
   if (currentStep.value === 5) {
+    // Validate that at least one keyword is entered
+    if (keywordsData.value.length === 0) {
+      keywordsError.value = 'You must add at least one keyword before saving.'
+      toast.error('Please add at least one keyword.')
+      return
+    }
+    keywordsError.value = null
+
     // Set loading state immediately so the spinner shows on the button
     isSaving.value = true
     saveStatus.value = 'saving'
@@ -550,7 +559,19 @@ async function continueToNext() {
         </div>
 
         <!-- Step 5: Keywords Form -->
-        <ProgrammeKeywordsView v-else-if="currentStep === 5" v-model="keywordsData" />
+        <div v-else-if="currentStep === 5">
+          <ProgrammeKeywordsView v-model="keywordsData" />
+          <!-- Keywords validation error -->
+          <div
+            v-if="keywordsError"
+            class="mt-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-sm text-red-700"
+          >
+            <svg class="w-4 h-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ keywordsError }}</span>
+          </div>
+        </div>
 
         <!-- Bottom Navigation -->
         <div class="mt-6 flex items-center justify-end gap-2">
