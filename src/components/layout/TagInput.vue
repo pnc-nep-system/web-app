@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 
 const props = withDefaults(
@@ -27,16 +27,14 @@ const emit = defineEmits<{
 const inputRef = ref<HTMLInputElement | null>(null)
 const inputValue = ref('')
 const isFocused = ref(false)
+const localError = ref('')
 
 // Stable unique ID — initialised once as a ref, not recomputed on every render
 const inputId = props.id ?? `tag-input-${Math.random().toString(36).substring(2, 9)}`
 
-// Determine if the maximum number of tags has been reached
-const isMaxReached = computed(() => (props.modelValue || []).length >= props.maxTags)
-
 // Focus the internal input element
 const focusInput = () => {
-  if (!props.disabled && !isMaxReached.value) {
+  if (!props.disabled) {
     inputRef.value?.focus()
   }
 }
@@ -50,14 +48,25 @@ const focusInput = () => {
 const commitTags = (candidates: string[]) => {
   const updatedTags = [...(props.modelValue || [])]
   let hasChanges = false
+  let limitExceeded = false
 
   for (const tag of candidates) {
-    if (updatedTags.length >= props.maxTags) break
     const isDuplicate = updatedTags.some((t) => t.toLowerCase() === tag.toLowerCase())
-    if (!isDuplicate) {
-      updatedTags.push(tag)
-      hasChanges = true
+    if (isDuplicate) continue
+
+    if (updatedTags.length >= props.maxTags) {
+      limitExceeded = true
+      break
     }
+
+    updatedTags.push(tag)
+    hasChanges = true
+  }
+
+  if (limitExceeded) {
+    localError.value = `You can only add up to ${props.maxTags} keywords.`
+  } else {
+    localError.value = ''
   }
 
   if (hasChanges) {
@@ -67,7 +76,7 @@ const commitTags = (candidates: string[]) => {
 
 // Parse the current input value into candidates and commit them
 const addTag = () => {
-  if (props.disabled || isMaxReached.value) return
+  if (props.disabled) return
 
   const rawValue = inputValue.value.trim()
   inputValue.value = ''
@@ -89,6 +98,8 @@ const removeTag = (index: number) => {
   updatedTags.splice(index, 1)
   emit('update:modelValue', updatedTags)
 
+  localError.value = ''
+
   // Refocus input to keep keyboard navigation flow intact
   focusInput()
 }
@@ -98,10 +109,12 @@ const removeLastTag = () => {
   if (props.disabled || !props.modelValue?.length) return
 
   emit('update:modelValue', props.modelValue.slice(0, -1))
+  localError.value = ''
 }
 
 // Handle keyboard events inside the input field
 const handleKeydown = (event: KeyboardEvent) => {
+  localError.value = ''
   if (event.key === 'Enter' || event.key === ',') {
     event.preventDefault()
     addTag()
@@ -113,6 +126,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 // Handle input change — catches typed commas on mobile / IME keyboards
 const handleInput = (event: Event) => {
+  localError.value = ''
   const target = event.target as HTMLInputElement
   if (target.value.includes(',')) {
     inputValue.value = target.value
@@ -162,7 +176,7 @@ const handlePaste = (event: ClipboardEvent) => {
       :class="[
         isFocused ? 'ring-2 ring-teal-500 border-teal-500' : 'border-gray-300',
         disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : '',
-        error ? 'border-red-500 ring-2 ring-red-100' : '',
+        (error || localError) ? 'border-red-500 ring-2 ring-red-100' : '',
       ]"
       @click="focusInput"
     >
@@ -196,8 +210,8 @@ const handlePaste = (event: ClipboardEvent) => {
         ref="inputRef"
         v-model="inputValue"
         type="text"
-        :placeholder="isMaxReached ? 'Maximum keywords reached' : placeholder"
-        :disabled="disabled || isMaxReached"
+        :placeholder="placeholder"
+        :disabled="disabled"
         class="flex-1 min-w-[120px] bg-transparent border-0 p-0 text-gray-900 focus:ring-0 focus:outline-none sm:text-sm disabled:cursor-not-allowed placeholder-gray-400"
         @keydown="handleKeydown"
         @input="handleInput"
@@ -208,9 +222,9 @@ const handlePaste = (event: ClipboardEvent) => {
     </div>
 
     <!-- Error or Hint Text -->
-    <div v-if="error" class="error mt-1.5 text-xs text-red-600 flex items-center gap-1 select-none">
+    <div v-if="error || localError" class="error mt-1.5 text-xs text-red-600 flex items-center gap-1 select-none">
       <BaseIcon name="alert" :size="14" />
-      <span>{{ error }}</span>
+      <span>{{ error || localError }}</span>
     </div>
     <div v-else-if="hint" class="hint mt-1.5 text-xs text-gray-400 select-none">
       {{ hint }}
