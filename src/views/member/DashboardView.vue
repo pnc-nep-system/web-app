@@ -10,7 +10,7 @@
           to="/entries/new"
           class="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
-          <span class="text-lg leading-none text-white">+ New programme entry</span> 
+          <p class="text-white">+ New programme entry</p> 
         </RouterLink>
       </div>
     </template>
