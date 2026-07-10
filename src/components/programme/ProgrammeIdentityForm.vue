@@ -80,36 +80,63 @@ function validate(): boolean {
   // Programme name
   if (!d.name.trim()) {
     e.name = 'Programme name is required.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   }
 
   // Start year
   if (d.startYear === null || d.startYear === undefined || (d.startYear as any) === '') {
     e.startYear = 'Start year is required.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   } else if (d.startYear < YEAR_MIN || d.startYear > YEAR_MAX) {
     e.startYear = `Start year must be between ${YEAR_MIN} and ${YEAR_MAX}.`
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   }
 
   // End year (skip when Ongoing)
   if (!d.isOngoing) {
     if (d.endYear === null || d.endYear === undefined || (d.endYear as any) === '') {
       e.endYear = 'End year is required, or check "Ongoing".'
+      clientErrors.value = e
+      emit('update:valid', false)
+      return false
     } else if (d.endYear < YEAR_MIN || d.endYear > YEAR_MAX) {
       e.endYear = `End year must be between ${YEAR_MIN} and ${YEAR_MAX}.`
+      clientErrors.value = e
+      emit('update:valid', false)
+      return false
     } else if (d.startYear !== null && d.endYear < d.startYear) {
       e.endYear = 'End year must not be before start year.'
+      clientErrors.value = e
+      emit('update:valid', false)
+      return false
     }
   }
 
   // FTE Staff
   if (d.fteStaff === null || d.fteStaff === undefined || (d.fteStaff as any) === '') {
     e.fteStaff = 'Number of staff is required.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   } else if (d.fteStaff < 0) {
     e.fteStaff = 'Number of staff cannot be negative.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   }
 
   // Budget band
   if (!d.budgetBand) {
     e.budgetBand = 'Please select a budget band.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   }
 
   // Direct beneficiaries
@@ -119,8 +146,14 @@ function validate(): boolean {
     (d.directBeneficiaries as any) === ''
   ) {
     e.directBeneficiaries = 'Direct beneficiaries count is required.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   } else if (d.directBeneficiaries < 0) {
     e.directBeneficiaries = 'Direct beneficiaries cannot be negative.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   }
 
   // Indirect beneficiaries
@@ -130,14 +163,19 @@ function validate(): boolean {
     (d.indirectBeneficiaries as any) === ''
   ) {
     e.indirectBeneficiaries = 'Indirect beneficiaries count is required.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   } else if (d.indirectBeneficiaries < 0) {
     e.indirectBeneficiaries = 'Indirect beneficiaries cannot be negative.'
+    clientErrors.value = e
+    emit('update:valid', false)
+    return false
   }
 
-  clientErrors.value = e
-  const isValid = Object.keys(e).length === 0
-  emit('update:valid', isValid)
-  return isValid
+  clientErrors.value = {}
+  emit('update:valid', true)
+  return true
 }
 // Expose validate() so parent views can trigger it via template ref
 function getData() {
@@ -147,14 +185,15 @@ defineExpose({ validate, getData })
 // ── Per-field blur handler ────────────────────────────────────────────────────
 function touch(field: string) {
   touched.value[field] = true
-  validate()
+  // validate() is intentionally not called here.
+  // Validation should only run when the user explicitly clicks Continue or Save.
 }
 // Helper: show server error first, then client error (only when touched)
 function fieldError(field: string): string {
   // Server-side errors take priority (mapped from snake_case keys in parent)
   const serverKey = fieldToServerKey(field)
   if (props.errors?.[serverKey]?.length) {
-    return props.errors[serverKey][0]
+    return props.errors[serverKey][0] ?? ''
   }
   return touched.value[field] ? (clientErrors.value[field] ?? '') : ''
 }
@@ -216,7 +255,6 @@ watch(
     if (isOngoing) {
       formData.value.endYear = null
     }
-    validate()
   },
 )
 
@@ -228,21 +266,40 @@ watch(
   },
   { deep: true },
 )
-// Watch individual fields to clear server-side errors when edited
-watch(() => formData.value.name, () => emit('clear-error', 'programme_name'))
-watch(() => formData.value.startYear, () => emit('clear-error', 'start_year'))
-watch(() => formData.value.endYear, () => emit('clear-error', 'end_year'))
+// Watch individual fields to clear server-side AND client-side errors when edited
+watch(() => formData.value.name, () => {
+  emit('clear-error', 'programme_name')
+  delete clientErrors.value.name
+})
+watch(() => formData.value.startYear, () => {
+  emit('clear-error', 'start_year')
+  delete clientErrors.value.startYear
+})
+watch(() => formData.value.endYear, () => {
+  emit('clear-error', 'end_year')
+  delete clientErrors.value.endYear
+})
 watch(() => formData.value.isOngoing, () => {
   emit('clear-error', 'ongoing')
   emit('clear-error', 'end_year')
+  delete clientErrors.value.endYear
 })
-watch(() => formData.value.fteStaff, () => emit('clear-error', 'fte_staff'))
+watch(() => formData.value.fteStaff, () => {
+  emit('clear-error', 'fte_staff')
+  delete clientErrors.value.fteStaff
+})
 watch(() => formData.value.budgetBand, () => {
   emit('clear-error', 'budget_band_id')
   delete clientErrors.value.budgetBand
 })
-watch(() => formData.value.directBeneficiaries, () => emit('clear-error', 'direct_beneficiaries'))
-watch(() => formData.value.indirectBeneficiaries, () => emit('clear-error', 'indirect_beneficiaries'))
+watch(() => formData.value.directBeneficiaries, () => {
+  emit('clear-error', 'direct_beneficiaries')
+  delete clientErrors.value.directBeneficiaries
+})
+watch(() => formData.value.indirectBeneficiaries, () => {
+  emit('clear-error', 'indirect_beneficiaries')
+  delete clientErrors.value.indirectBeneficiaries
+})
 </script>
 <template>
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

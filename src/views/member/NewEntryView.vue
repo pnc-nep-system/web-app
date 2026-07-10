@@ -355,7 +355,23 @@ async function continueToNext() {
     return
   }
 
-  // --- Non-final steps (1–4): always advance, no validation, no blocking ---
+  // --- Non-final steps (1–4): validate before advancing ---
+  if (currentStep.value === 1) {
+    const isValid = identityFormRef.value?.validate?.()
+    if (!isValid) {
+      toast.error('Please fix the errors in the form before continuing.')
+      return
+    }
+  }
+
+  if (currentStep.value === 2) {
+    const isValid = activitiesFormRef.value?.validate?.()
+    if (!isValid) {
+      toast.error('Please fix the errors in the form before continuing.')
+      return
+    }
+  }
+
   completedSteps.value.add(currentStep.value)
 
   if (currentStep.value < steps.length) {
