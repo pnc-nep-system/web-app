@@ -110,8 +110,8 @@ function validate(): boolean {
       clientErrors.value = e
       emit('update:valid', false)
       return false
-    } else if (d.startYear !== null && d.endYear < d.startYear) {
-      e.endYear = 'End year must not be before start year.'
+    } else if (d.startYear !== null && d.endYear <= d.startYear) {
+      e.endYear = 'End year must be greater than start year.'
       clientErrors.value = e
       emit('update:valid', false)
       return false
@@ -227,13 +227,10 @@ function clampNonNegative(field: 'fteStaff' | 'directBeneficiaries' | 'indirectB
   }
 }
 
-// Clamp year fields — disallow values below YEAR_MIN
-function clampYear(field: 'startYear' | 'endYear') {
-  const val = formData.value[field]
-  if (val !== null && val < YEAR_MIN) {
-    ;(formData.value as any)[field] = YEAR_MIN
-  }
-}
+// Computed min for end year: must be greater than start year
+const endYearMin = computed(() => {
+  return formData.value.startYear !== null ? formData.value.startYear + 1 : YEAR_MIN
+})
 
 // ── Computed helpers ──────────────────────────────────────────────────────────
 const isEndYearDisabled = computed(() => formData.value.isOngoing)
@@ -274,10 +271,24 @@ watch(() => formData.value.name, () => {
 watch(() => formData.value.startYear, () => {
   emit('clear-error', 'start_year')
   delete clientErrors.value.startYear
+
+  // Re-validate end year > start year in real-time
+  if (formData.value.startYear !== null && formData.value.endYear !== null && formData.value.endYear <= formData.value.startYear) {
+    clientErrors.value.endYear = 'End year must be greater than start year.'
+  } else {
+    delete clientErrors.value.endYear
+  }
 })
 watch(() => formData.value.endYear, () => {
   emit('clear-error', 'end_year')
   delete clientErrors.value.endYear
+
+  // Validate end year > start year in real-time
+  if (formData.value.startYear !== null && formData.value.endYear !== null && formData.value.endYear <= formData.value.startYear) {
+    clientErrors.value.endYear = 'End year must be greater than start year.'
+  } else {
+    delete clientErrors.value.endYear
+  }
 })
 watch(() => formData.value.isOngoing, () => {
   emit('clear-error', 'ongoing')
@@ -346,7 +357,6 @@ watch(() => formData.value.indirectBeneficiaries, () => {
             :class="inputClass('startYear')"
             :disabled="props.disabled"
             @keydown="preventNegativeKey"
-            @input="clampYear('startYear')"
             @blur="touch('startYear')"
           />
           <p
@@ -375,7 +385,7 @@ watch(() => formData.value.indirectBeneficiaries, () => {
                 id="endYear"
                 v-model.number="formData.endYear"
                 type="number"
-                min="1900"
+                :min="endYearMin"
                 max="2100"
                 placeholder="YYYY"
                 :disabled="isEndYearDisabled || props.disabled"
@@ -386,7 +396,6 @@ watch(() => formData.value.indirectBeneficiaries, () => {
                     : '',
                 ]"
                 @keydown="preventNegativeKey"
-                @input="clampYear('endYear')"
                 @blur="touch('endYear')"
               />
               <p
