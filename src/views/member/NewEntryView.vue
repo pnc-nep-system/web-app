@@ -16,20 +16,18 @@ const route = useRoute()
 const toast = useToast()
 const { currentUser } = useAuth()
 
-// --- Step Definition ---
 const steps = [
-  { number: 1, title: '1 · Programme identity', subtitle: 'Name, dates, scale' },
-  { number: 2, title: '2 · Activities', subtitle: 'Taxonomy B1–B9' },
-  { number: 3, title: '3 · Geographic coverage', subtitle: 'Provinces & districts' },
-  { number: 4, title: '4 · Government agreements', subtitle: 'Counterparts & status' },
-  { number: 5, title: '5 · Keywords', subtitle: 'Up to 5 tags' },
+  { number: 1, title: 'Programme identity', subtitle: 'Name, dates, scale' },
+  { number: 2, title: 'Activities', subtitle: 'Taxonomy B1–B9' },
+  { number: 3, title: 'Geographic coverage', subtitle: 'Provinces & districts' },
+  { number: 4, title: 'Government agreements', subtitle: 'Counterparts & status' },
+  { number: 5, title: 'Keywords', subtitle: 'Up to 5 tags' },
 ]
 
 const currentStep = ref(1)
 const isSaving = ref(false)
 const errors = ref<Record<string, string[]>>({})
 
-// --- Section 1 Form Data ---
 const section1Data = ref<ProgrammeIdentity>({
   id: null,
   name: '',
@@ -47,23 +45,15 @@ const section1Data = ref<ProgrammeIdentity>({
 const section1Valid = ref(false)
 const identityFormRef = ref<InstanceType<typeof ProgrammeIdentityForm> | null>(null)
 const activitiesFormRef = ref<InstanceType<typeof ActivitiesForm> | null>(null)
-
-// Dynamic page title — shows programme name once entered
 const pageTitle = computed(() => section1Data.value.name.trim() || 'New programme entry')
-
-// Progress bar width for sidebar
 const progressPercent = computed(() => (currentStep.value / steps.length) * 100)
-
-// Save status display
 const saveStatus = ref<'unsaved' | 'saving' | 'saved'>('unsaved')
-
 const saveLabel = computed(() => {
   if (isSaving.value) return 'Saving…'
   if (saveStatus.value === 'saved') return 'Saved'
   return 'Not yet saved'
 })
 
-// --- Section 5 Data (Keywords) ---
 const keywordsData = ref<string[]>([])
 const keywordsError = ref<string | null>(null)
 const section2Data = ref<{
@@ -72,8 +62,6 @@ const section2Data = ref<{
   aiText: string
 } | null>(null)
 
-
-// Count how many fields in section 1 have been filled
 const section1Progress = computed(() => {
   const d = section1Data.value
   const fields = [
@@ -91,8 +79,6 @@ const section1Progress = computed(() => {
 })
 
 const totalSection1Fields = 9
-
-// --- Submission result message (shown after API response, then auto-clears) ---
 const submissionResult = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 let resultTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -104,15 +90,12 @@ function clearSubmissionResult() {
 function showSubmissionResult(type: 'success' | 'error', message: string) {
   clearSubmissionResult()
   submissionResult.value = { type, message }
-  // Auto-clear result after 5 seconds
   resultTimer = setTimeout(() => {
     submissionResult.value = null
   }, 5000)
 }
 
 onMounted(async () => {
-
-  // Load saved data if an ID is present in query parameters
   const entryId = route.query.id
   if (entryId) {
     try {
@@ -144,8 +127,8 @@ onMounted(async () => {
       toast.error('Failed to load the programme entry data.')
     }
   } else {
-    // Load draft from session storage
     const savedDraft = sessionStorage.getItem('new_programme_entry_draft')
+
     if (savedDraft) {
       try {
         const draft = JSON.parse(savedDraft)
@@ -160,14 +143,12 @@ onMounted(async () => {
   }
 })
 
-// Handle clearing validation errors from child component edits
 function clearError(field: string) {
   if (errors.value[field]) {
     delete errors.value[field]
   }
 }
 
-// Run validation for the current step, returns true if valid
 function validateCurrentStep(): boolean {
   if (currentStep.value === 1) {
     const isValid = identityFormRef.value?.validate?.()
@@ -185,21 +166,9 @@ function validateCurrentStep(): boolean {
   }
   return true
 }
-
-// Unified API Save function — follows the submit flow precisely:
-// Click Submit → Validate Form → Set Loading State (isSaving=true) →
-// Disable Button (via :disabled="isSaving") + Show Spinner →
-// Send API Request → Backend Saves Data → Receive Response →
-// Remove Loading (isSaving=false) → Enable Button → Show Result Message
 async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Promise<void> {
-  // 1. Skip if already saving (prevents double-click / duplicate requests)
-  //    But if loading was already set by the caller (step 5), allow through
   if (isSaving.value && !loadingAlreadySet) return
-
-  // 2. Run client-side validation for non-final steps only
   if (!loadingAlreadySet && !validateCurrentStep()) return
-
-  // 3. Set loading state — disables buttons & shows spinners (skip if already set)
   if (!loadingAlreadySet) {
     isSaving.value = true
   }

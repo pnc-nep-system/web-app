@@ -89,23 +89,17 @@ export const useAuthStore = defineStore('auth', () => {
         return false
       }
 
-      // HTTP 422 — server-side field validation errors
       if (res.status === 422 && res.data?.errors) {
         fieldErrors.value = res.data.errors
         authError.value = res.data.message ?? 'Please correct the errors below.'
         return false
       }
 
-      // Any other server error (500, 503, …)
       authError.value =
-        res.data?.message ?? 'Something went wrong on our end. Please try again.'
+        res.data?.message ?? 'Something went wrong on database. Please try again.'
       return false
     }
   }
-
-  /**
-   * Clears session storage and redirects to the login route.
-   */
   function logout() {
     currentUserId.value = null
     currentUser.value = null
