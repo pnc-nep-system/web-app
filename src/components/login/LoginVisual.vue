@@ -7,7 +7,7 @@
     ></div>
     <div class="relative max-w-[440px]">
       <img src="@/assets/images/logoes/NEP-logoo.png" alt="NEP Logo" class="w-20 mb-5.5" />
-      <h1 class="text-3xl leading-tight font-semibold text-white">
+      <h1  class="text-3xl leading-tight font-semibold !text-white">
         Tell NEP what your organisation does — once, kept current.
       </h1>
       <p class="text-sm text-white/65 mt-3.5 leading-7">

@@ -7,7 +7,6 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-// --- Form Reactive State ---
 const email = ref('')
 const password = ref('')
 const emailError = ref('')
@@ -18,24 +17,14 @@ const failedAttempts = ref(0)
 const router = useRouter()
 const authStore = useAuthStore()
 
-// Clear field errors as the user corrects their input
 watch(email, () => { emailError.value = '' })
 watch(password, () => { passwordError.value = '' })
 
-
-
-/**
- * Handles the login form submission.
- * Validates required fields first, then calls the API.
- * Maps backend errors to the appropriate UI fields.
- */
 async function submit() {
-  // Clear previous errors
   emailError.value = ''
   passwordError.value = ''
   authStore.clearErrors()
 
-  // 1. Required field validation
   let hasErrors = false
 
   if (!email.value.trim()) {
@@ -80,26 +69,6 @@ async function submit() {
       Accounts are organisational, not individual — staff turnover never costs you access.
     </p>
 
-    <!-- Network / Server Error Banner -->
-    <div
-      v-if="authStore.networkError"
-      class="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-      role="alert"
-    >
-      <BaseIcon name="alert" size="16" class="mt-0.5 shrink-0 text-red-500" />
-      <span>{{ authStore.networkError }}</span>
-    </div>
-
-    <!-- General Auth Error Banner (invalid credentials, server errors) -->
-    <div
-      v-else-if="authStore.authError && !authStore.fieldErrors.email && !authStore.fieldErrors.password"
-      class="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-      role="alert"
-    >
-      <BaseIcon name="alert" size="16" class="mt-0.5 shrink-0 text-red-500" />
-      <span>{{ authStore.authError }}</span>
-    </div>
-
     <form @submit.prevent="submit" class="space-y-4" novalidate>
       <BaseFormField label="Organisation email" :error="emailError">
         <BaseInput
@@ -114,10 +83,6 @@ async function submit() {
 
       <BaseFormField label="Password" :error="passwordError">
         <div class="relative">
-          <!--
-            Standard input type password toggled dynamically to text.
-            This resolves Firefox password masking bug while allowing standard eye toggling.
-          -->
           <BaseInput
             id="password"
             :type="showPassword ? 'text' : 'password'"
@@ -152,7 +117,25 @@ async function submit() {
       >
         {{ authStore.loading ? 'Signing in…' : 'Sign in' }}
       </BaseButton>
-    </form>
+       <!-- Network / Server Error Banner -->
+    <div
+      v-if="authStore.networkError"
+      class="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <BaseIcon name="alert" size="16" class="mt-0.5 shrink-0 text-red-500" />
+      <span>{{ authStore.networkError }}</span>
+    </div>
 
+    <!-- General Auth Error Banner (invalid credentials, server errors) -->
+    <div
+      v-else-if="authStore.authError && !authStore.fieldErrors.email && !authStore.fieldErrors.password"
+      class="mb-4 flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+      role="alert"
+    >
+      <BaseIcon name="alert" size="16" class="mt-0.5 shrink-0 text-red-500" />
+      <span>{{ authStore.authError }}</span>
+    </div>
+    </form>
   </div>
 </template>
