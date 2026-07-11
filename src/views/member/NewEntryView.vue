@@ -441,10 +441,61 @@ async function continueToNext() {
     </div>
 
     <!-- Two-column layout: Step Sidebar + Form -->
-    <div class="flex flex-col lg:flex-row gap-6 items-start">
-      <!-- Step Sidebar -->
+    <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
+      <!-- Mobile Horizontal Stepper with progressive line (visible only on mobile/tablet) -->
+      <div class="lg:hidden w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-2 relative select-none">
+        <div class="flex items-center justify-between relative z-10">
+          <!-- Background progressive line -->
+          <div class="absolute top-4 left-[28px] right-[28px] h-1 bg-gray-100 -z-10 rounded-full">
+            <div
+              class="bg-teal-600 h-1 rounded-full transition-all duration-500"
+              :style="{ width: ((currentStep - 1) / (steps.length - 1)) * 100 + '%' }"
+            ></div>
+          </div>
+
+          <!-- Step Bubbles -->
+          <div
+            v-for="step in steps"
+            :key="step.number"
+            @click="currentStep = step.number"
+            class="flex flex-col items-center cursor-pointer"
+            :style="{ width: (100 / steps.length) + '%' }"
+          >
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all border-2"
+              :class="[
+                completedSteps.has(step.number)
+                  ? 'bg-green-600 border-green-600 text-white shadow-sm'
+                  : step.number === currentStep
+                    ? 'bg-teal-800 border-teal-800 text-white ring-4 ring-teal-50 shadow-sm'
+                    : 'bg-white border-gray-200 text-gray-400'
+              ]"
+            >
+              <svg
+                v-if="completedSteps.has(step.number)"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3.5"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <template v-else>{{ step.number }}</template>
+            </div>
+            <span
+              class="text-[9px] font-bold mt-1.5 transition-colors text-center hidden xs:block truncate px-1 max-w-full"
+              :class="step.number === currentStep ? 'text-teal-900 font-extrabold' : 'text-gray-400'"
+            >
+              {{ step.title.split(' ')[0] }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Desktop Step Sidebar (visible only on desktop) -->
       <aside
-        class="w-full lg:w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden lg:sticky lg:top-24"
+        class="hidden lg:block w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
       >
         <ul class="divide-y divide-gray-100">
           <li
@@ -485,13 +536,13 @@ async function continueToNext() {
               >
                 {{ step.title }}
               </p>
-              <p class="text-xs text-gray-400 mt-0.5 hidden md:block">{{ step.subtitle }}</p>
+              <p class="text-xs text-gray-400 mt-0.5">{{ step.subtitle }}</p>
             </div>
           </li>
         </ul>
 
         <!-- Section Progress -->
-        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 hidden md:block">
+        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
           <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
             <span>Section progress</span>
             <span class="font-semibold text-gray-700">{{ currentStep }} of {{ steps.length }}</span>
