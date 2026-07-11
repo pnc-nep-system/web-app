@@ -441,10 +441,10 @@ async function continueToNext() {
     </div>
 
     <!-- Two-column layout: Step Sidebar + Form -->
-    <div class="flex gap-6 items-start">
+    <div class="flex flex-col lg:flex-row gap-6 items-start">
       <!-- Step Sidebar -->
       <aside
-        class="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
+        class="w-full lg:w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden lg:sticky lg:top-24"
       >
         <ul class="divide-y divide-gray-100">
           <li
@@ -485,13 +485,13 @@ async function continueToNext() {
               >
                 {{ step.title }}
               </p>
-              <p class="text-xs text-gray-400 mt-0.5">{{ step.subtitle }}</p>
+              <p class="text-xs text-gray-400 mt-0.5 hidden md:block">{{ step.subtitle }}</p>
             </div>
           </li>
         </ul>
 
         <!-- Section Progress -->
-        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50 hidden md:block">
           <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
             <span>Section progress</span>
             <span class="font-semibold text-gray-700">{{ currentStep }} of {{ steps.length }}</span>
