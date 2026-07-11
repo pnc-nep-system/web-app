@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import type { ActivityInclusion, InclusionGroup } from '../../types/taxonomy'
 
 const props = defineProps<{
-  modelValue?: { selected: string[]; primary: string[]; aiText: string }
+  modelValue?: { selected: string[]; primary: string[]; aiText: string; inclusions?: Record<string, ActivityInclusion> }
 }>()
 
 watch(() => props.modelValue, (val) => {
@@ -10,6 +11,17 @@ watch(() => props.modelValue, (val) => {
     selected.value = new Set(val.selected)
     primary.value = new Set(val.primary)
     aiText.value = val.aiText
+    
+    // Initialize inclusions
+    inclusions.value = {}
+    if (val.inclusions) {
+      inclusions.value = { ...val.inclusions }
+    }
+    val.selected.forEach(id => {
+      if (!inclusions.value[id]) {
+        inclusions.value[id] = { hasInclusion: false, dimensions: [] }
+      }
+    })
   }
 }, { immediate: true })
 
@@ -114,6 +126,118 @@ const aiText         = ref('')
 const openCategories = ref<Set<string>>(new Set())
 const selected       = ref<Set<string>>(new Set())   // item IDs ticked
 const primary        = ref<Set<string>>(new Set())   // item IDs marked primary
+const inclusions     = ref<Record<string, ActivityInclusion>>({})
+
+const groupsConfig = [
+  { name: 'Disability', allowsA: true },
+  { name: 'Gender', allowsA: true },
+  { name: 'LGBTIQ+', allowsA: false },
+  { name: 'Ethnicity/language', allowsA: true },
+  { name: 'Displacement', allowsA: false },
+  { name: 'Migrant families', allowsA: false },
+  { name: 'Statelessness', allowsA: false },
+  { name: 'Other', allowsA: true }
+] as const;
+
+const isGroupSelected = (itemId: string, groupName: InclusionGroup): boolean => {
+  const inc = inclusions.value[itemId];
+  if (!inc?.dimensions) return false;
+  return inc.dimensions.some(d => d.group === groupName);
+};
+
+const getGroupType = (itemId: string, groupName: InclusionGroup): 'A' | 'B' => {
+  const inc = inclusions.value[itemId];
+  if (!inc?.dimensions) return 'B';
+  const dim = inc.dimensions.find(d => d.group === groupName);
+  return dim?.type || 'B';
+};
+
+const getGroupOtherText = (itemId: string): string => {
+  const inc = inclusions.value[itemId];
+  if (!inc?.dimensions) return '';
+  const dim = inc.dimensions.find(d => d.group === 'Other');
+  return dim?.otherText || '';
+};
+
+const toggleGroupSelection = (itemId: string, groupName: InclusionGroup) => {
+  const inc = inclusions.value[itemId];
+  if (!inc) return;
+  
+  const dimensions = [...inc.dimensions];
+  const idx = dimensions.findIndex(d => d.group === groupName);
+  
+  if (idx === -1) {
+    const allowsA = ['Disability', 'Gender', 'Ethnicity/language', 'Other'].includes(groupName);
+    dimensions.push({
+      group: groupName,
+      type: allowsA ? 'A' : 'B',
+      otherText: groupName === 'Other' ? '' : undefined
+    });
+  } else {
+    dimensions.splice(idx, 1);
+  }
+  
+  inclusions.value[itemId] = {
+    ...inc,
+    dimensions
+  };
+};
+
+const setGroupType = (itemId: string, groupName: InclusionGroup, type: 'A' | 'B') => {
+  const inc = inclusions.value[itemId];
+  if (!inc) return;
+  
+  const dimensions = [...inc.dimensions];
+  const idx = dimensions.findIndex(d => d.group === groupName);
+  
+  if (idx !== -1) {
+    const dim = dimensions[idx];
+    if (dim) {
+      dimensions[idx] = {
+        ...dim,
+        type
+      };
+    }
+  }
+  
+  inclusions.value[itemId] = {
+    ...inc,
+    dimensions
+  };
+};
+
+const setGroupOtherText = (itemId: string, otherText: string) => {
+  const inc = inclusions.value[itemId];
+  if (!inc) return;
+  
+  const dimensions = [...inc.dimensions];
+  const idx = dimensions.findIndex(d => d.group === 'Other');
+  
+  if (idx !== -1) {
+    const dim = dimensions[idx];
+    if (dim) {
+      dimensions[idx] = {
+        ...dim,
+        otherText
+      };
+    }
+  }
+  
+  inclusions.value[itemId] = {
+    ...inc,
+    dimensions
+  };
+};
+
+const updateInclusionToggle = (itemId: string, hasInclusion: boolean) => {
+  const inc = inclusions.value[itemId];
+  if (!inc) return;
+  
+  inclusions.value[itemId] = {
+    hasInclusion,
+    dimensions: hasInclusion ? (inc.dimensions || []) : []
+  };
+};
 
 function toggleCategory(code: string) {
   if (openCategories.value.has(code)) {
@@ -127,8 +251,10 @@ function toggleItem(id: string) {
   if (selected.value.has(id)) {
     selected.value.delete(id)
     primary.value.delete(id)
+    delete inclusions.value[id]
   } else {
     selected.value.add(id)
+    inclusions.value[id] = { hasInclusion: false, dimensions: [] }
   }
 }
 
@@ -160,6 +286,7 @@ function getData() {
     selected: Array.from(selected.value),
     primary: Array.from(primary.value),
     aiText: aiText.value,
+    inclusions: inclusions.value,
   }
 }
 
@@ -253,34 +380,138 @@ function categoryCount(code: string): number {
         </button>
 
         <!-- Accordion body -->
-        <div v-if="openCategories.has(cat.code)" class="border-t border-gray-100 px-5 py-3 space-y-2.5">
-          <label
+        <div v-if="openCategories.has(cat.code)" class="border-t border-gray-100 px-5 py-3 space-y-3">
+          <div
             v-for="item in cat.items"
             :key="item.id"
-            class="flex items-center justify-between gap-3 cursor-pointer group"
+            class="flex flex-col gap-2 p-2 rounded-lg border border-transparent hover:border-gray-50 hover:bg-gray-50/30 transition-all"
           >
-            <div class="flex items-center gap-3">
-              <input
-                type="checkbox"
-                :checked="selected.has(item.id)"
-                @change="toggleItem(item.id)"
-                class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-700 cursor-pointer"
-              />
-              <span class="text-sm text-gray-700">{{ item.id }} · {{ item.label }}</span>
+            <!-- Checkbox Row -->
+            <div class="flex items-center justify-between gap-3">
+              <label :for="`item-${item.id}`" class="flex items-center gap-3 cursor-pointer flex-grow select-none">
+                <input
+                  :id="`item-${item.id}`"
+                  type="checkbox"
+                  :checked="selected.has(item.id)"
+                  @change="toggleItem(item.id)"
+                  class="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-700 cursor-pointer"
+                />
+                <span class="text-sm text-gray-700 font-medium">{{ item.id }} · {{ item.label }}</span>
+              </label>
+              
+              <!-- Primary toggle — only visible when checked -->
+              <button
+                v-if="selected.has(item.id)"
+                type="button"
+                @click.prevent="togglePrimary(item.id)"
+                class="text-xs px-2 py-0.5 rounded-full border transition-colors shrink-0 font-semibold"
+                :class="primary.has(item.id)
+                  ? 'bg-teal-700 text-white border-teal-700'
+                  : 'text-gray-400 border-gray-300 hover:border-teal-500 hover:text-teal-600'"
+              >
+                primary
+              </button>
             </div>
-            <!-- Primary toggle — only visible when checked -->
-            <button
-              v-if="selected.has(item.id)"
-              type="button"
-              @click.prevent="togglePrimary(item.id)"
-              class="text-xs px-2 py-0.5 rounded-full border transition-colors shrink-0"
-              :class="primary.has(item.id)
-                ? 'bg-teal-700 text-white border-teal-700'
-                : 'text-gray-400 border-gray-300 hover:border-teal-500 hover:text-teal-600'"
+
+            <!-- Inclusion Sub-form (Only visible if the item is selected) -->
+            <div 
+              v-if="selected.has(item.id) && inclusions[item.id]" 
+              class="ml-7 mt-1.5 p-4 rounded-xl border border-gray-200 bg-white shadow-sm space-y-4"
             >
-              primary
-            </button>
-          </label>
+              <!-- Yes/No Toggle -->
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                <span class="text-xs font-bold text-gray-700">Specific inclusion focus?</span>
+                <div class="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-100">
+                  <button
+                    type="button"
+                    @click="updateInclusionToggle(item.id, true)"
+                    class="px-3 py-1 rounded-md text-[11px] font-bold transition-all"
+                    :class="inclusions[item.id].hasInclusion ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    @click="updateInclusionToggle(item.id, false)"
+                    class="px-3 py-1 rounded-md text-[11px] font-bold transition-all"
+                    :class="!inclusions[item.id].hasInclusion ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-700'"
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+
+              <!-- Group & Type Selection (conditionally visible when toggled "yes") -->
+              <div v-if="inclusions[item.id].hasInclusion" class="space-y-3">
+                <span class="text-[11px] font-bold text-gray-500 block">Target Groups & Inclusion Types (Type A: Inclusive design | Type B: Targeted programme)</span>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div 
+                    v-for="group in groupsConfig" 
+                    :key="group.name"
+                    class="border border-gray-100 rounded-lg p-2.5 bg-gray-50/50 flex flex-col gap-1.5"
+                  >
+                    <!-- Group Checkbox -->
+                    <label class="inline-flex items-center text-xs font-bold text-gray-700 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        :checked="isGroupSelected(item.id, group.name)"
+                        @change="toggleGroupSelection(item.id, group.name)"
+                        class="h-3.5 w-3.5 border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-700 mr-2 rounded cursor-pointer"
+                      />
+                      {{ group.name }}
+                    </label>
+
+                    <!-- Type Selection (Visible only when Group Checkbox is checked) -->
+                    <div v-if="isGroupSelected(item.id, group.name)" class="pl-5 flex flex-col gap-1.5 border-l-2 border-teal-100 ml-1.5">
+                      <!-- Type A / Type B options -->
+                      <div class="flex gap-4">
+                        <label 
+                          v-if="group.allowsA" 
+                          class="inline-flex items-center text-[11px] font-semibold text-gray-600 cursor-pointer select-none"
+                        >
+                          <input
+                            type="radio"
+                            :name="`type-${item.id}-${group.name}`"
+                            value="A"
+                            :checked="getGroupType(item.id, group.name) === 'A'"
+                            @change="setGroupType(item.id, group.name, 'A')"
+                            class="h-3 w-3 border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-700 mr-1.5 cursor-pointer"
+                          />
+                          Type A (Inclusive design)
+                        </label>
+                        
+                        <label 
+                          class="inline-flex items-center text-[11px] font-semibold text-gray-600 cursor-pointer select-none"
+                        >
+                          <input
+                            type="radio"
+                            :name="`type-${item.id}-${group.name}`"
+                            value="B"
+                            :checked="getGroupType(item.id, group.name) === 'B'"
+                            @change="setGroupType(item.id, group.name, 'B')"
+                            class="h-3 w-3 border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-700 mr-1.5 cursor-pointer"
+                          />
+                          Type B (Targeted programme)
+                        </label>
+                      </div>
+
+                      <!-- Text input for 'Other' -->
+                      <div v-if="group.name === 'Other'" class="mt-1">
+                        <input
+                          type="text"
+                          placeholder="Specify other focus..."
+                          :value="getGroupOtherText(item.id)"
+                          @input="setGroupOtherText(item.id, ($event.target as HTMLInputElement).value)"
+                          class="w-full px-2 py-1 text-[11px] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 text-gray-800 placeholder-gray-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
