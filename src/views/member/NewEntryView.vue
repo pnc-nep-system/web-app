@@ -446,7 +446,7 @@ async function continueToNext() {
       <div class="lg:hidden w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-2 relative select-none">
         <div class="flex items-center justify-between relative z-10">
           <!-- Background progressive line -->
-          <div class="absolute top-4 left-[28px] right-[28px] h-1 bg-gray-100 -z-10 rounded-full">
+          <div class="absolute top-[14px] left-[28px] right-[28px] h-1 bg-gray-100 -z-10 rounded-full">
             <div
               class="bg-teal-600 h-1 rounded-full transition-all duration-500"
               :style="{ width: ((currentStep - 1) / (steps.length - 1)) * 100 + '%' }"
@@ -462,13 +462,13 @@ async function continueToNext() {
             :style="{ width: (100 / steps.length) + '%' }"
           >
             <div
-              class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all border-2"
+              class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all border-2 duration-300"
               :class="[
                 completedSteps.has(step.number)
-                  ? 'bg-green-600 border-green-600 text-white shadow-sm'
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
                   : step.number === currentStep
-                    ? 'bg-teal-800 border-teal-800 text-white ring-4 ring-teal-50 shadow-sm'
-                    : 'bg-white border-gray-200 text-gray-400'
+                    ? 'bg-teal-800 border-teal-800 text-white ring-4 ring-teal-100 shadow-md scale-105'
+                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-teal-600 hover:text-teal-700'
               ]"
             >
               <svg
