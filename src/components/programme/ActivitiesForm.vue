@@ -322,14 +322,14 @@ function categoryCount(code: string): number {
         </svg>
         <span class="text-sm font-semibold text-gray-800">AI-assisted completion</span>
       </div>
-      <p class="text-sm text-gray-500 mb-3 leading-relaxed">
+      <p class="text-sm text-gray-500 mb-3 leading-relaxed hidden sm:block">
         Paste a description of your programme (or the text of a proposal document) and the system will suggest activity tags below.
         You confirm, edit, or reject each one — <span class="text-gray-700 font-medium">nothing saves automatically</span>.
       </p>
       <textarea
         v-model="aiText"
         rows="3"
-        placeholder="e.g. We provide scholarships and mentoring to help girls stay enrolled through lower secondary school in rural Kampong Cham..."
+        placeholder="e.g. We provide scholarships and mentoring to help girls stay enrolled..."
         class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 placeholder-gray-400"
       />
       <button
@@ -341,7 +341,7 @@ function categoryCount(code: string): number {
     </div>
 
     <!-- Instruction -->
-    <p class="text-sm text-gray-500 px-1">
+    <p class="text-sm text-gray-500 px-1 hidden sm:block">
       Select every activity item this programme delivers.
       Mark your most important activities as <strong class="text-gray-700">primary</strong> — NEP's coordination matching prioritises these.
     </p>
