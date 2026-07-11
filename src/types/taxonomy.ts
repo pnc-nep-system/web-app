@@ -4,6 +4,16 @@ export interface TaxonomyItem {
   is_active: boolean;
 }
 
+export interface ActivityInclusion {
+  hasInclusion: boolean;
+  group?: string;
+  type?: 'A' | 'B';
+}
+
+export interface SelectedTaxonomyItem extends TaxonomyItem {
+  inclusion?: ActivityInclusion;
+}
+
 export interface SubCategory {
   id: number;
   name: string;
