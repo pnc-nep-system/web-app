@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { mockTaxonomies } from '../../constants/taxonomy';
-import type { TaxonomyItem } from '../../types/taxonomy';
+import type { SelectedActivity } from '../../types/taxonomy';
 import CategorySelect from './CategorySelect.vue';
 import SubCategorySelect from './SubCategorySelect.vue';
 import ItemSelector from './ItemSelector.vue';
 import SelectedItems from './SelectedItems.vue';
 
 const emit = defineEmits<{
-  (e: 'save', selectedIds: number[]): void;
+  (e: 'save', payload: { activities: { activity_id: number; education_level_ids: number[] }[] }): void;
   (e: 'previous'): void;
 }>();
 
@@ -17,7 +17,7 @@ const selectedCategoryId = ref<number | null>(null);
 const selectedSubCategoryId = ref<number | null>(null);
 
 // Keep full objects to persist across category changes
-const selectedItemsData = ref<TaxonomyItem[]>([]);
+const selectedItemsData = ref<SelectedActivity[]>([]);
 
 // Computed Data
 const availableSubCategories = computed(() => {
@@ -46,7 +46,7 @@ const selectedItemIds = computed({
     addedIds.forEach(id => {
       const itemToAdd = availableItems.value.find(i => i.id === id);
       if (itemToAdd) {
-        updated.push(itemToAdd);
+        updated.push({ ...itemToAdd, educationLevelIds: [] });
       }
     });
     
@@ -65,8 +65,28 @@ const handleRemoveItem = (itemId: number) => {
   selectedItemsData.value = selectedItemsData.value.filter(item => item.id !== itemId);
 };
 
+const handleUpdateEducationLevels = (itemId: number, levels: number[]) => {
+  const item = selectedItemsData.value.find(i => i.id === itemId);
+  if (item) {
+    item.educationLevelIds = levels;
+  }
+};
+
+const canSave = computed(() => {
+  return selectedItemsData.value.every(item => item.educationLevelIds && item.educationLevelIds.length > 0);
+});
+
 const handleSave = () => {
-  emit('save', selectedItemIds.value);
+  if (!canSave.value) return;
+  
+  const payload = {
+    activities: selectedItemsData.value.map(item => ({
+      activity_id: item.id,
+      education_level_ids: item.educationLevelIds
+    }))
+  };
+  
+  emit('save', payload);
 };
 
 const handlePrevious = () => {
@@ -115,6 +135,7 @@ const handlePrevious = () => {
         <SelectedItems
           :selected-items="selectedItemsData"
           @remove="handleRemoveItem"
+          @update:education-levels="handleUpdateEducationLevels"
         />
       </div>
       
@@ -130,7 +151,13 @@ const handlePrevious = () => {
         <button 
           type="button" 
           @click="handleSave"
-          class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors shadow-sm"
+          :disabled="!canSave"
+          :class="[
+            'px-4 py-2 text-sm font-medium text-white border border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all shadow-sm',
+            canSave 
+              ? 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500' 
+              : 'bg-indigo-400 cursor-not-allowed opacity-80'
+          ]"
         >
           Save & Continue
         </button>

@@ -15,3 +15,7 @@ export interface Category {
   name: string;
   subCategories: SubCategory[];
 }
+
+export interface SelectedActivity extends TaxonomyItem {
+  educationLevelIds: number[];
+}
