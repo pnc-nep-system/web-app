@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { mockTaxonomies } from '../../constants/taxonomy';
-import type { TaxonomyItem } from '../../types/taxonomy';
+import type { SelectedTaxonomyItem, ActivityInclusion } from '../../types/taxonomy';
 import CategorySelect from './CategorySelect.vue';
 import SubCategorySelect from './SubCategorySelect.vue';
 import ItemSelector from './ItemSelector.vue';
 import SelectedItems from './SelectedItems.vue';
 
 const emit = defineEmits<{
-  (e: 'save', selectedIds: number[]): void;
+  (e: 'save', selectedItems: SelectedTaxonomyItem[]): void;
   (e: 'previous'): void;
 }>();
 
@@ -17,7 +17,7 @@ const selectedCategoryId = ref<number | null>(null);
 const selectedSubCategoryId = ref<number | null>(null);
 
 // Keep full objects to persist across category changes
-const selectedItemsData = ref<TaxonomyItem[]>([]);
+const selectedItemsData = ref<SelectedTaxonomyItem[]>([]);
 
 // Computed Data
 const availableSubCategories = computed(() => {
@@ -46,7 +46,10 @@ const selectedItemIds = computed({
     addedIds.forEach(id => {
       const itemToAdd = availableItems.value.find(i => i.id === id);
       if (itemToAdd) {
-        updated.push(itemToAdd);
+        updated.push({
+          ...itemToAdd,
+          inclusion: { hasInclusion: false }
+        });
       }
     });
     
@@ -65,8 +68,21 @@ const handleRemoveItem = (itemId: number) => {
   selectedItemsData.value = selectedItemsData.value.filter(item => item.id !== itemId);
 };
 
+const handleUpdateInclusion = (itemId: number, inclusion: ActivityInclusion) => {
+  const index = selectedItemsData.value.findIndex(item => item.id === itemId);
+  if (index !== -1) {
+    const item = selectedItemsData.value[index];
+    if (item) {
+      selectedItemsData.value[index] = {
+        ...item,
+        inclusion
+      };
+    }
+  }
+};
+
 const handleSave = () => {
-  emit('save', selectedItemIds.value);
+  emit('save', selectedItemsData.value);
 };
 
 const handlePrevious = () => {
@@ -115,6 +131,7 @@ const handlePrevious = () => {
         <SelectedItems
           :selected-items="selectedItemsData"
           @remove="handleRemoveItem"
+          @updateInclusion="handleUpdateInclusion"
         />
       </div>
       
