@@ -48,7 +48,7 @@ const selectedItemIds = computed({
       if (itemToAdd) {
         updated.push({
           ...itemToAdd,
-          inclusion: { hasInclusion: false }
+          inclusion: { hasInclusion: false, dimensions: [] }
         });
       }
     });
