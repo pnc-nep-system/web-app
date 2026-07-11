@@ -132,13 +132,13 @@ function toggleItem(id: string) {
   }
 }
 
-function togglePrimary(id: string) {
+function setActivityImportance(id: string, importance: 'primary' | 'secondary') {
   if (!selected.value.has(id)) return
-  if (primary.value.has(id)) {
-    primary.value.delete(id)
-  } else {
+  if (importance === 'primary') {
     primary.value.add(id)
-  }
+  } else {
+    primary.value.delete(id)
+    }
 }
 
 function suggestActivities() {
@@ -268,18 +268,29 @@ function categoryCount(code: string): number {
               />
               <span class="text-sm text-gray-700">{{ item.id }} · {{ item.label }}</span>
             </div>
-            <!-- Primary toggle — only visible when checked -->
-            <button
-              v-if="selected.has(item.id)"
-              type="button"
-              @click.prevent="togglePrimary(item.id)"
-              class="text-xs px-2 py-0.5 rounded-full border transition-colors shrink-0"
-              :class="primary.has(item.id)
-                ? 'bg-teal-700 text-white border-teal-700'
-                : 'text-gray-400 border-gray-300 hover:border-teal-500 hover:text-teal-600'"
-            >
-              primary
-            </button>
+            <!-- Primary/secondary importance toggle — only visible when checked -->
+            <div v-if="selected.has(item.id)" class="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-100 shrink-0 select-none">
+              <button
+                type="button"
+                @click.prevent="setActivityImportance(item.id, 'primary')"
+                class="px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer"
+                :class="primary.has(item.id)
+                  ? 'bg-teal-700 text-white shadow-sm'
+                  : 'text-gray-400 hover:text-gray-700'"
+              >
+                Primary
+              </button>
+              <button
+                type="button"
+                @click.prevent="setActivityImportance(item.id, 'secondary')"
+                class="px-2.5 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer"
+                :class="!primary.has(item.id)
+                  ? 'bg-white text-gray-800 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-700'"
+              >
+                Secondary
+              </button>
+            </div>
           </label>
         </div>
       </div>
