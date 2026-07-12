@@ -58,7 +58,7 @@ function logout() {
         class="text-white hover:text-white/80 transition-colors p-1"
         aria-label="Toggle navigation menu"
       >
-        <BaseIcon :name="isSidebarOpen ? 'close' : 'menu'" size="22" />
+        <BaseIcon :name="isSidebarOpen ? 'x' : 'list'" size="22" />
       </button>
     </div>
 
