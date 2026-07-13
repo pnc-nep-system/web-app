@@ -7,6 +7,7 @@ import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
 import AgreementsForm from '@/components/programme/AgreementsForm.vue'
 import ProgrammeKeywordsView from '@/components/programme/ProgrammeKeywordsView.vue'
 import ProgrammeGeographic from '@/components/programme/ProgrammeGeographic.vue'
+import StatusBadge from '@/components/common/StatusBadge.vue'
 import type { ProgrammeIdentity, ProgrammeGeographicData } from '@/types/programme'
 import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
@@ -133,6 +134,7 @@ onMounted(async () => {
         indirectBeneficiaries: entry.indirect_beneficiaries || null,
         method: entry.method || '',
         verifiedDate: entry.verified_date || '',
+        isUnverified: !!entry.is_unverified,
       }
 
 
@@ -611,7 +613,10 @@ async function continueToNext() {
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle }}</h1>
+        <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          {{ pageTitle }}
+          <StatusBadge v-if="section1Data.isUnverified" label="Unverified" variant="warning" />
+        </h1>
         <p class="text-sm text-gray-500 mt-0.5">
           Section {{ currentStep }} of {{ steps.length }} ·
           <span :class="saveStatus === 'saved' ? 'text-green-600' : 'text-gray-400'">
