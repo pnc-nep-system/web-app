@@ -45,7 +45,7 @@ async function loadProvinces() {
 }
 
 async function fetchDistricts(provinceId: number) {
-    if (districtsCache.value[provinceId]) return
+    if (districtsCache.value[provinceId] || loadingDistricts.value.has(provinceId)) return
     loadingDistricts.value = new Set([...loadingDistricts.value, provinceId])
     try {
         const res = await memberApi.getDistricts(provinceId)
@@ -100,20 +100,24 @@ watch(
     (val) => {
         if (!val) return
         let changed = false
-        if (JSON.stringify(val.provinceIds) !== JSON.stringify(formData.value.provinceIds)) {
-            formData.value.provinceIds = [...val.provinceIds]
+        const incomingProvinceIds = Array.isArray(val.provinceIds) ? val.provinceIds : []
+        const incomingDistricts = val.districts && typeof val.districts === 'object' ? val.districts : {}
+        const incomingOtherCountries = typeof val.otherCountries === 'string' ? val.otherCountries : ''
+
+        if (JSON.stringify(incomingProvinceIds) !== JSON.stringify(formData.value.provinceIds)) {
+            formData.value.provinceIds = [...incomingProvinceIds]
             changed = true
         }
-        if (JSON.stringify(val.districts) !== JSON.stringify(formData.value.districts)) {
-            formData.value.districts = JSON.parse(JSON.stringify(val.districts))
+        if (JSON.stringify(incomingDistricts) !== JSON.stringify(formData.value.districts)) {
+            formData.value.districts = JSON.parse(JSON.stringify(incomingDistricts))
             changed = true
         }
-        if (val.otherCountries !== formData.value.otherCountries) {
-            formData.value.otherCountries = val.otherCountries
+        if (incomingOtherCountries !== formData.value.otherCountries) {
+            formData.value.otherCountries = incomingOtherCountries
             changed = true
         }
         if (changed) {
-            for (const pid of val.provinceIds) {
+            for (const pid of incomingProvinceIds) {
                 if (!districtsCache.value[pid]) {
                     fetchDistricts(pid)
                 }
@@ -145,8 +149,8 @@ function getData() {
 
 defineExpose({ validate, getData })
 
-onMounted(async () => {
-    await loadProvinces()
+onMounted(() => {
+    loadProvinces()
     for (const pid of formData.value.provinceIds) {
         fetchDistricts(pid)
     }

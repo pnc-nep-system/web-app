@@ -7,22 +7,39 @@ const props = defineProps<{
   modelValue?: { selected: string[]; primary: string[]; aiText: string; inclusions?: Record<string, ActivityInclusion>; educationLevels?: Record<string, number[]> }
 }>()
 
+// ── State ─────────────────────────────────────────────────────────────────────
+const aiText         = ref('')
+const openCategories = ref<Set<string>>(new Set())
+const selected       = ref<Set<string>>(new Set())   // item IDs ticked
+const primary        = ref<Set<string>>(new Set())   // item IDs marked primary
+const inclusions     = ref<Record<string, ActivityInclusion>>({})
+const educationLevels = ref<Record<string, number[]>>({})
+
 watch(() => props.modelValue, (val) => {
+  selected.value = new Set()
+  primary.value = new Set()
+  aiText.value = ''
+  inclusions.value = {}
+  educationLevels.value = {}
+
   if (val) {
-    selected.value = new Set(val.selected)
-    primary.value = new Set(val.primary)
-    aiText.value = val.aiText
+    if (Array.isArray(val.selected)) {
+      selected.value = new Set(val.selected)
+    }
+    if (Array.isArray(val.primary)) {
+      primary.value = new Set(val.primary)
+    }
+    if (typeof val.aiText === 'string') {
+      aiText.value = val.aiText
+    }
     
-    // Initialize inclusions and educationLevels
-    inclusions.value = {}
-    educationLevels.value = {}
-    if (val.inclusions) {
+    if (val.inclusions && typeof val.inclusions === 'object') {
       inclusions.value = { ...val.inclusions }
     }
-    if (val.educationLevels) {
+    if (val.educationLevels && typeof val.educationLevels === 'object') {
       educationLevels.value = { ...val.educationLevels }
     }
-    val.selected.forEach(id => {
+    selected.value.forEach(id => {
       if (!inclusions.value[id]) {
         inclusions.value[id] = { hasInclusion: false, dimensions: [] }
       }
@@ -129,13 +146,6 @@ const categories = [
   },
 ]
 
-// ── State ─────────────────────────────────────────────────────────────────────
-const aiText         = ref('')
-const openCategories = ref<Set<string>>(new Set())
-const selected       = ref<Set<string>>(new Set())   // item IDs ticked
-const primary        = ref<Set<string>>(new Set())   // item IDs marked primary
-const inclusions     = ref<Record<string, ActivityInclusion>>({})
-const educationLevels = ref<Record<string, number[]>>({})
 
 const groupsConfig = [
   { name: 'Disability', allowsA: true },

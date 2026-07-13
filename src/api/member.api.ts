@@ -31,6 +31,9 @@ export const memberApi = {
   },
   saveGeography(id: number | string, data: any) {
     return api.put(`/programme-entries/${id}/geography`, data);
+  },
+  getGeography(id: number | string) {
+    return api.get(`/programme-entries/${id}/geography`);
   }
 };
 

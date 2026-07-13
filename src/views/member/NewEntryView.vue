@@ -160,10 +160,37 @@ onMounted(async () => {
         inclusions: inclusionsMap,
         educationLevels: educationLevelsMap
       }
-      section3Data.value = {
-        provinceIds: entry.provinces || [],
-        districts: entry.districts || {},
-        otherCountries: entry.other_countries || '',
+      try {
+        const geographyResponse = await memberApi.getGeography(entryId as string)
+        const resLocations = geographyResponse.data.data || []
+        const resProvinceIds: number[] = []
+        const resDistricts: Record<number, number[]> = {}
+        const resOtherCountries: string[] = []
+        resLocations.forEach((loc: any) => {
+          if (loc.country) {
+            resOtherCountries.push(loc.country)
+          } else if (loc.province_id) {
+            if (!resProvinceIds.includes(loc.province_id)) {
+              resProvinceIds.push(loc.province_id)
+            }
+            if (loc.district_id) {
+              const distArray = resDistricts[loc.province_id] || []
+              distArray.push(loc.district_id)
+              resDistricts[loc.province_id] = distArray
+            }
+          }
+        })
+        section3Data.value = {
+          provinceIds: resProvinceIds,
+          districts: resDistricts,
+          otherCountries: resOtherCountries.join(', ')
+        }
+      } catch {
+        section3Data.value = {
+          provinceIds: [],
+          districts: {},
+          otherCountries: '',
+        }
       }
       section4Data.value = entry.government_agreements || []
       saveStatus.value = 'saved'
@@ -294,6 +321,47 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
     })) : []
     const agreementsResponse = await memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
     section4Data.value = agreementsResponse.data.data || []
+
+    // Save Section 3 geographic coverage
+    const geographicData = geographicFormRef.value?.getData?.() || section3Data.value
+    const otherCountriesArray = (geographicData && geographicData.otherCountries)
+      ? geographicData.otherCountries.split(',').map((c: string) => c.trim()).filter(Boolean)
+      : []
+    const provincesPayload = (geographicData && geographicData.provinceIds)
+      ? geographicData.provinceIds.map((pId: number) => ({
+          province_id: pId,
+          district_ids: geographicData.districts[pId] || []
+        }))
+      : []
+
+    const geographyPayload = {
+      provinces: provincesPayload,
+      other_countries: otherCountriesArray
+    }
+    const geographyResponse = await memberApi.saveGeography(savedId, geographyPayload)
+    const resLocations = geographyResponse.data.data || []
+    const resProvinceIds: number[] = []
+    const resDistricts: Record<number, number[]> = {}
+    const resOtherCountries: string[] = []
+    resLocations.forEach((loc: any) => {
+      if (loc.country) {
+        resOtherCountries.push(loc.country)
+      } else if (loc.province_id) {
+        if (!resProvinceIds.includes(loc.province_id)) {
+          resProvinceIds.push(loc.province_id)
+        }
+        if (loc.district_id) {
+          const distArray = resDistricts[loc.province_id] || []
+          distArray.push(loc.district_id)
+          resDistricts[loc.province_id] = distArray
+        }
+      }
+    })
+    section3Data.value = {
+      provinceIds: resProvinceIds,
+      districts: resDistricts,
+      otherCountries: resOtherCountries.join(', ')
+    }
 
     // Save Section 2 programme activities
     const mappedActivities = activitiesData ? activitiesData.selected.map((code: string) => {
