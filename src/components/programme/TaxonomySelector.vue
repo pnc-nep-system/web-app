@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { mockTaxonomies } from '../../constants/taxonomy';
-import type { SelectedActivity } from '../../types/taxonomy';
+import type { SelectedActivity, ActivityInclusion } from '../../types/taxonomy';
 import CategorySelect from './CategorySelect.vue';
 import SubCategorySelect from './SubCategorySelect.vue';
 import ItemSelector from './ItemSelector.vue';
 import SelectedItems from './SelectedItems.vue';
 
 const emit = defineEmits<{
-  (e: 'save', payload: { activities: { activity_id: number; education_level_ids: number[] }[] }): void;
+  (e: 'save', payload: { activities: { activity_id: number; education_level_ids: number[]; inclusion?: ActivityInclusion }[] }): void;
   (e: 'previous'): void;
 }>();
 
@@ -27,7 +27,6 @@ const availableSubCategories = computed(() => {
 
 const availableItems = computed(() => {
   const subCategory = availableSubCategories.value.find(s => s.id === selectedSubCategoryId.value);
-  // We pass all items so the ItemSelector can render inactive ones as visually disabled.
   return subCategory ? subCategory.items : [];
 });
 
@@ -46,7 +45,11 @@ const selectedItemIds = computed({
     addedIds.forEach(id => {
       const itemToAdd = availableItems.value.find(i => i.id === id);
       if (itemToAdd) {
-        updated.push({ ...itemToAdd, educationLevelIds: [] });
+        updated.push({
+          ...itemToAdd,
+          educationLevelIds: [],
+          inclusion: { hasInclusion: false, dimensions: [] }
+        });
       }
     });
     
@@ -56,7 +59,6 @@ const selectedItemIds = computed({
 
 // Watchers
 watch(selectedCategoryId, () => {
-  // Reset sub-category when category changes
   selectedSubCategoryId.value = null;
 });
 
@@ -72,8 +74,15 @@ const handleUpdateEducationLevels = (itemId: number, levels: number[]) => {
   }
 };
 
+const handleUpdateInclusion = (itemId: number, inclusion: ActivityInclusion) => {
+  const item = selectedItemsData.value.find(i => i.id === itemId);
+  if (item) {
+    item.inclusion = inclusion;
+  }
+};
+
 const canSave = computed(() => {
-  return selectedItemsData.value.every(item => item.educationLevelIds && item.educationLevelIds.length > 0);
+  return selectedItemsData.value.length > 0 && selectedItemsData.value.every(item => item.educationLevelIds && item.educationLevelIds.length > 0);
 });
 
 const handleSave = () => {
@@ -82,7 +91,8 @@ const handleSave = () => {
   const payload = {
     activities: selectedItemsData.value.map(item => ({
       activity_id: item.id,
-      education_level_ids: item.educationLevelIds
+      education_level_ids: item.educationLevelIds,
+      inclusion: item.inclusion
     }))
   };
   
@@ -136,6 +146,7 @@ const handlePrevious = () => {
           :selected-items="selectedItemsData"
           @remove="handleRemoveItem"
           @update:education-levels="handleUpdateEducationLevels"
+          @updateInclusion="handleUpdateInclusion"
         />
       </div>
       

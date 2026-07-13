@@ -356,8 +356,8 @@ async function continueToNext() {
       <span class="mx-1.5 text-gray-300">›</span>
       <span class="text-gray-700 font-medium">New programme entry</span>
 
-      <!-- Top-right action button -->
-      <div class="ml-auto">
+      <!-- Top-right action button (hidden on mobile) -->
+      <div class="ml-auto hidden sm:block">
         <button
           @click="() => router.push('/entries/new')"
           class="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
@@ -367,7 +367,7 @@ async function continueToNext() {
       </div>
     </template>
     <!-- Page Header -->
-    <div class="flex items-start justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle }}</h1>
         <p class="text-sm text-gray-500 mt-0.5">
@@ -378,11 +378,11 @@ async function continueToNext() {
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 w-full sm:w-auto">
         <button
           @click="() => saveAndExit()"
           :disabled="isSaving"
-          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -393,7 +393,7 @@ async function continueToNext() {
         <button
           @click="continueToNext"
           :disabled="isSaving"
-          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -441,10 +441,69 @@ async function continueToNext() {
     </div>
 
     <!-- Two-column layout: Step Sidebar + Form -->
-    <div class="flex gap-6 items-start">
-      <!-- Step Sidebar -->
+    <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
+      <!-- Mobile Horizontal Stepper with progressive line (visible only on mobile/tablet) -->
+      <div class="lg:hidden w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-2 relative select-none flex flex-col gap-2">
+        <div class="flex items-center justify-between relative z-10">
+          <!-- Background progressive line -->
+          <div class="absolute top-[14px] left-[28px] right-[28px] h-1 bg-gray-100 -z-10 rounded-full">
+            <div
+              class="bg-teal-600 h-1 rounded-full transition-all duration-500"
+              :style="{ width: ((currentStep - 1) / (steps.length - 1)) * 100 + '%' }"
+            ></div>
+          </div>
+
+          <!-- Step Bubbles -->
+          <div
+            v-for="step in steps"
+            :key="step.number"
+            @click="currentStep = step.number"
+            class="flex flex-col items-center cursor-pointer"
+            :style="{ width: (100 / steps.length) + '%' }"
+          >
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all border-2 duration-300"
+              :class="[
+                completedSteps.has(step.number)
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : step.number === currentStep
+                    ? 'bg-teal-800 border-teal-800 text-white ring-4 ring-teal-100 shadow-md scale-105'
+                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-teal-600 hover:text-teal-700'
+              ]"
+            >
+              <svg
+                v-if="completedSteps.has(step.number)"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3.5"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <template v-else>{{ step.number }}</template>
+            </div>
+            <span
+              class="text-[9px] font-bold mt-1.5 transition-colors text-center hidden xs:block truncate px-1 max-w-full"
+              :class="step.number === currentStep ? 'text-teal-900 font-extrabold' : 'text-gray-400'"
+            >
+              {{ step.title.split(' ')[0] }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Active Step Name Label -->
+        <div class="text-center mt-1 pt-2 border-t border-gray-100">
+          <span class="text-[9px] uppercase tracking-wider text-gray-400 font-extrabold block">Current Step</span>
+          <span class="text-xs font-extrabold text-teal-900 mt-0.5 block animate-fade-in">
+            {{ currentStep }} · {{ steps[currentStep - 1]?.title }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Desktop Step Sidebar (visible only on desktop) -->
       <aside
-        class="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
+        class="hidden lg:block w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
       >
         <ul class="divide-y divide-gray-100">
           <li
@@ -559,26 +618,35 @@ async function continueToNext() {
         </div>
 
         <!-- Bottom Navigation -->
-        <div class="mt-6 flex items-center justify-end gap-2">
+        <div class="mt-6 flex items-center justify-end gap-2 w-full sm:w-auto">
           <button
             v-if="currentStep > 1"
             type="button"
             @click="goBack"
-            class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            class="flex-1 sm:flex-initial flex items-center justify-center px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            {{ backStepLabel }}
+            <span class="sm:hidden">← Back</span>
+            <span class="hidden sm:inline">{{ backStepLabel }}</span>
           </button>
 
           <button
             @click="continueToNext"
             :disabled="isSaving"
-            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none"
+            class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none"
           >
             <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            {{ isSaving ? 'Saving...' : currentStep === 5 ? 'Finish & save' : nextStepLabel }}
+            <span v-if="isSaving">Saving...</span>
+            <template v-else>
+              <span class="sm:hidden">
+                {{ currentStep === 5 ? 'Finish & save' : 'Continue →' }}
+              </span>
+              <span class="hidden sm:inline">
+                {{ currentStep === 5 ? 'Finish & save' : nextStepLabel }}
+              </span>
+            </template>
           </button>
         </div>
       </div>

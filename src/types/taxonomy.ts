@@ -4,6 +4,31 @@ export interface TaxonomyItem {
   is_active: boolean;
 }
 
+export type InclusionGroup =
+  | 'Disability'
+  | 'Gender'
+  | 'LGBTIQ+'
+  | 'Ethnicity/language'
+  | 'Displacement'
+  | 'Migrant families'
+  | 'Statelessness'
+  | 'Other';
+
+export interface ActivityInclusionDimension {
+  group: InclusionGroup;
+  type?: 'A' | 'B';
+  otherText?: string;
+}
+
+export interface ActivityInclusion {
+  hasInclusion: boolean;
+  dimensions: ActivityInclusionDimension[];
+}
+
+export interface SelectedTaxonomyItem extends TaxonomyItem {
+  inclusion?: ActivityInclusion;
+}
+
 export interface SubCategory {
   id: number;
   name: string;
@@ -18,4 +43,5 @@ export interface Category {
 
 export interface SelectedActivity extends TaxonomyItem {
   educationLevelIds: number[];
+  inclusion?: ActivityInclusion;
 }
