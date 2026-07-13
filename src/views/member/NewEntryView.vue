@@ -170,6 +170,13 @@ function validateCurrentStep(): boolean {
       return false
     }
   }
+  if (currentStep.value === 4) {
+    const isValid = agreementsFormRef.value?.validate?.()
+    if (isValid === false) {
+      toast.error('Please select a counterpart and specify the institution details for all agreement rows.')
+      return false
+    }
+  }
   return true
 }
 async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Promise<void> {
