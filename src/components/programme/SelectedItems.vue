@@ -4,6 +4,7 @@ import EducationLevelSelector from './EducationLevelSelector.vue';
 
 const props = defineProps<{
   selectedItems: SelectedActivity[];
+  errors?: Record<number, any>;
 }>();
 
 const emit = defineEmits<{
@@ -120,7 +121,7 @@ const updateInclusionToggle = (itemId: number, currentInclusion: ActivityInclusi
     
     <div v-else class="grid grid-cols-1 gap-4">
       <div
-        v-for="item in selectedItems"
+        v-for="(item, index) in selectedItems"
         :key="item.id"
         class="bg-slate-50 rounded-xl p-5 border border-slate-200 relative group transition-all hover:shadow-sm"
       >
@@ -151,11 +152,11 @@ const updateInclusionToggle = (itemId: number, currentInclusion: ActivityInclusi
           />
         </div>
         
-        <p v-if="!item.educationLevelIds || item.educationLevelIds.length === 0" class="mt-2 text-xs text-red-500 flex items-center gap-1.5">
+        <p v-if="errors?.[index]?.educationLevels" class="mt-2 text-xs text-red-500 flex items-center gap-1.5">
           <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
-          Please select at least one education level.
+          {{ errors[index].educationLevels }}
         </p>
 
         <!-- Inclusion Sub-form -->
@@ -185,6 +186,22 @@ const updateInclusionToggle = (itemId: number, currentInclusion: ActivityInclusi
 
           <!-- Group & Type Selection (conditionally visible when toggled "yes") -->
           <div v-if="item.inclusion?.hasInclusion" class="bg-white p-4 rounded-lg border border-slate-200 shadow-inner mt-2 space-y-4">
+            
+            <div v-if="errors?.[index]?.inclusionGroup || errors?.[index]?.inclusionType" class="space-y-1 mb-3">
+              <p v-if="errors?.[index]?.inclusionGroup" class="text-xs text-red-500 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {{ errors[index].inclusionGroup }}
+              </p>
+              <p v-if="errors?.[index]?.inclusionType" class="text-xs text-red-500 flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                {{ errors[index].inclusionType }}
+              </p>
+            </div>
+
             <span class="text-xs font-semibold text-slate-600 block mb-2">Target Groups & Inclusion Types (Type A: Inclusive design | Type B: Targeted programme)</span>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
