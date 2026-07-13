@@ -63,7 +63,6 @@ function toggleProvince(provinceId: number) {
     const idx = formData.value.provinceIds.indexOf(provinceId)
     if (idx === -1) {
         formData.value.provinceIds.push(provinceId)
-        fetchDistricts(provinceId)
     } else {
         formData.value.provinceIds.splice(idx, 1)
         delete formData.value.districts[provinceId]
@@ -78,6 +77,7 @@ function toggleDistrictVisibility(provinceId: number) {
         next.delete(provinceId)
     } else {
         next.add(provinceId)
+        fetchDistricts(provinceId)
     }
     expandedProvinces.value = next
 }
@@ -99,29 +99,18 @@ watch(
     () => props.modelValue,
     (val) => {
         if (!val) return
-        let changed = false
         const incomingProvinceIds = Array.isArray(val.provinceIds) ? val.provinceIds : []
         const incomingDistricts = val.districts && typeof val.districts === 'object' ? val.districts : {}
         const incomingOtherCountries = typeof val.otherCountries === 'string' ? val.otherCountries : ''
 
         if (JSON.stringify(incomingProvinceIds) !== JSON.stringify(formData.value.provinceIds)) {
             formData.value.provinceIds = [...incomingProvinceIds]
-            changed = true
         }
         if (JSON.stringify(incomingDistricts) !== JSON.stringify(formData.value.districts)) {
             formData.value.districts = JSON.parse(JSON.stringify(incomingDistricts))
-            changed = true
         }
         if (incomingOtherCountries !== formData.value.otherCountries) {
             formData.value.otherCountries = incomingOtherCountries
-            changed = true
-        }
-        if (changed) {
-            for (const pid of incomingProvinceIds) {
-                if (!districtsCache.value[pid]) {
-                    fetchDistricts(pid)
-                }
-            }
         }
     },
     { deep: true },
@@ -151,9 +140,6 @@ defineExpose({ validate, getData })
 
 onMounted(() => {
     loadProvinces()
-    for (const pid of formData.value.provinceIds) {
-        fetchDistricts(pid)
-    }
 })
 </script>
 
