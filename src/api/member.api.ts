@@ -28,6 +28,9 @@ export const memberApi = {
   },
   saveActivities(id: number | string, activities: any[]) {
     return api.post(`/programme-entries/${id}/activities`, { activities });
+  },
+  saveGeography(id: number | string, data: any) {
+    return api.put(`/programme-entries/${id}/geography`, data);
   }
 };
 
