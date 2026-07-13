@@ -170,25 +170,30 @@ onMounted(() => {
 
         <!-- Province pills -->
         <div v-else class="mt-6">
-            <label class="input-label">Select all provinces where this programme currently operates</label>
-            <div class="pill-grid">
-                <label v-for="p in provinces" :key="p.id" class="pill-check"
-                    :class="{ on: formData.provinceIds.includes(p.id) }">
+            <label class="block text-xs font-semibold text-gray-700 mb-2.5">Select all provinces where this programme currently operates</label>
+            <div class="flex flex-wrap gap-2 mb-5">
+                <label v-for="p in provinces" :key="p.id"
+                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-medium cursor-pointer border transition-all select-none"
+                    :class="formData.provinceIds.includes(p.id)
+                        ? 'bg-teal-800 text-white border-teal-800 hover:bg-teal-700 hover:border-teal-700'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:bg-teal-50'">
                     <input type="checkbox" :checked="formData.provinceIds.includes(p.id)"
-                        @change="toggleProvince(p.id)" />
+                        @change="toggleProvince(p.id)" class="hidden" />
                     {{ p.province_name }}
                 </label>
             </div>
 
             <!-- District section -->
             <template v-if="formData.provinceIds.length">
-                <div class="divider"></div>
-                <label class="input-label">Select districts for each province (optional)</label>
+                <div class="h-px bg-gray-200 my-4"></div>
+                <label class="block text-xs font-semibold text-gray-700 mb-2.5">Select districts for each province (optional)</label>
 
-                <div v-for="pid in formData.provinceIds" :key="pid" class="district-block">
-                    <div class="district-heading">
+                <div v-for="pid in formData.provinceIds" :key="pid" class="mb-4">
+                    <div class="flex items-center justify-between text-[13px] font-semibold text-gray-700 mb-2">
                         <span>{{ provinceNameById[pid] || `Province #${pid}` }}</span>
-                        <button class="district-toggle" @click="toggleDistrictVisibility(pid)">
+                        <button
+                            class="inline-flex items-center gap-1 text-xs font-medium text-teal-700 bg-transparent border border-teal-200 rounded-md px-2.5 py-1 cursor-pointer transition-all hover:bg-teal-50 hover:border-teal-400"
+                            @click="toggleDistrictVisibility(pid)">
                             <template v-if="expandedProvinces.has(pid)">
                                 Hide districts
                                 <svg height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
@@ -220,11 +225,14 @@ onMounted(() => {
                     </div>
 
                     <!-- District pills -->
-                    <div v-else-if="districtsCache[pid]?.length" v-show="expandedProvinces.has(pid)" class="pill-grid">
-                        <label v-for="d in districtsCache[pid]" :key="d.id" class="pill-check pill-check-sm"
-                            :class="{ on: formData.districts[pid]?.includes(d.id) }">
+                    <div v-else-if="districtsCache[pid]?.length" v-show="expandedProvinces.has(pid)" class="flex flex-wrap gap-2 mb-5">
+                        <label v-for="d in districtsCache[pid]" :key="d.id"
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-all select-none"
+                            :class="formData.districts[pid]?.includes(d.id)
+                                ? 'bg-teal-800 text-white border-teal-800 hover:bg-teal-700 hover:border-teal-700'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:bg-teal-50'">
                             <input type="checkbox" :checked="formData.districts[pid]?.includes(d.id)"
-                                @change="toggleDistrict(pid, d.id)" />
+                                @change="toggleDistrict(pid, d.id)" class="hidden" />
                             {{ d.name }}
                         </label>
                     </div>
@@ -234,110 +242,13 @@ onMounted(() => {
                 </div>
             </template>
 
-            <div class="divider"></div>
-            <div class="field">
-                <label>Other countries (if applicable)</label>
-                <input type="text" v-model="formData.otherCountries" placeholder="Leave blank if Cambodia-only" />
+            <div class="h-px bg-gray-200 my-4"></div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-700 mb-2">Other countries (if applicable)</label>
+                <input type="text" v-model="formData.otherCountries" placeholder="Leave blank if Cambodia-only"
+                    class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 placeholder-gray-400" />
             </div>
         </div>
     </div>
 </template>
 
-<style scoped>
-.input-label {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--ink-700);
-    display: block;
-    margin-bottom: 10px;
-}
-
-.pill-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 20px;
-}
-
-.pill-check {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: 1px solid var(--line);
-    background: #fff;
-    color: var(--ink-600);
-    transition: 0.12s;
-    user-select: none;
-}
-
-.pill-check:hover {
-    border-color: var(--teal-400);
-    background: var(--teal-50);
-}
-
-.pill-check.on {
-    background: var(--teal-800);
-    color: #fff;
-    border-color: var(--teal-800);
-}
-
-.pill-check.on:hover {
-    background: var(--teal-700);
-    border-color: var(--teal-700);
-}
-
-.pill-check-sm {
-    padding: 4px 11px;
-    font-size: 12px;
-}
-
-.pill-check input {
-    display: none;
-}
-
-.divider {
-    height: 1px;
-    background: var(--line);
-    margin: 16px 0;
-}
-
-.district-block {
-    margin-bottom: 16px;
-}
-
-.district-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ink-700);
-    margin-bottom: 8px;
-}
-
-.district-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--teal-700);
-    background: none;
-    border: 1px solid var(--teal-200);
-    border-radius: 6px;
-    padding: 4px 10px;
-    cursor: pointer;
-    transition: 0.12s;
-    font-family: inherit;
-}
-
-.district-toggle:hover {
-    background: var(--teal-50);
-    border-color: var(--teal-400);
-}
-</style>
