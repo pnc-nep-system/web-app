@@ -1,5 +1,5 @@
 import api from './axios';
-import type { ProgrammeIdentity } from '@/types/programme'
+import type { ProgrammeIdentity, Province, District } from '@/types/programme'
 
 export const memberApi = {
   listProgrammeEntries() {
@@ -13,5 +13,15 @@ export const memberApi = {
   },
   getProgrammeEntry(id: number | string) {
     return api.get(`/programme-entries/${id}`);
-  }
+  },
+  getProvinces() {
+    return api.get<{ data: Province[] }>('/provinces');
+  },
+  getDistricts(provinceId: number) {
+    return api.get<{ data: District[] }>(`/provinces/${provinceId}/districts`);
+  },
+  getMapEntries() {
+    return api.get('/map/entries');
+  },
 };
+
