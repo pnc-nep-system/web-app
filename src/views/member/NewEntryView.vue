@@ -25,6 +25,16 @@ const steps = [
   { number: 5, title: 'Keywords', subtitle: 'Up to 5 tags' },
 ]
 
+const dbIdToCodeMap: Record<number, string> = {
+  1: 'B1.1',
+  3: 'B2.2'
+}
+
+const taxonomyMap: Record<string, number> = {
+  'B1.1': 1,
+  'B2.2': 3
+}
+
 const currentStep = ref(1)
 const isSaving = ref(false)
 const errors = ref<Record<string, string[]>>({})
@@ -57,11 +67,7 @@ const saveLabel = computed(() => {
 
 const keywordsData = ref<string[]>([])
 const keywordsError = ref<string | null>(null)
-const section2Data = ref<{
-  selected: string[]
-  primary: string[]
-  aiText: string
-} | null>(null)
+const section2Data = ref<any>(null)
 
 const section4Data = ref<any[]>([])
 const agreementsFormRef = ref<InstanceType<typeof AgreementsForm> | null>(null)
@@ -121,10 +127,31 @@ onMounted(async () => {
         method: entry.method || '',
         verifiedDate: entry.verified_date || '',
       }
+
+
+      const selectedCodes = entry.activities?.map((a: any) => dbIdToCodeMap[a.activity_item_id] || a.code).filter(Boolean) || []
+      const primaryCodes = entry.activities?.filter((a: any) => a.is_primary).map((a: any) => dbIdToCodeMap[a.activity_item_id] || a.code).filter(Boolean) || []
+
+      const inclusionsMap: Record<string, any> = {}
+      const educationLevelsMap: Record<string, number[]> = {}
+
+      entry.activities?.forEach((a: any) => {
+        const code = dbIdToCodeMap[a.activity_item_id] || a.code
+        if (code) {
+          inclusionsMap[code] = {
+            hasInclusion: !!a.inclusion_group,
+            dimensions: a.inclusion_group ? [{ group: a.inclusion_group, type: a.inclusion_type }] : []
+          }
+          educationLevelsMap[code] = a.activity_levels?.map((l: any) => l.education_level_id) || []
+        }
+      })
+
       section2Data.value = {
-        selected: entry.activities?.map((a: any) => a.code) || [],
-        primary: entry.activities?.filter((a: any) => a.primary).map((a: any) => a.code) || [],
+        selected: selectedCodes,
+        primary: primaryCodes,
         aiText: '',
+        inclusions: inclusionsMap,
+        educationLevels: educationLevelsMap
       }
       section4Data.value = entry.government_agreements || []
       saveStatus.value = 'saved'
@@ -245,6 +272,55 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
     const agreementsResponse = await memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
     section4Data.value = agreementsResponse.data.data || []
 
+    // Save Section 2 programme activities
+    const mappedActivities = activitiesData ? activitiesData.selected.map((code: string) => {
+      const dbId = taxonomyMap[code] || 1
+      const levels = activitiesData.educationLevels?.[code] || []
+      const inc = activitiesData.inclusions?.[code]
+
+      const payloadAct: any = {
+        activity_item_id: dbId,
+        is_primary: activitiesData.primary.includes(code),
+        education_level_ids: levels.length > 0 ? levels : [1],
+        source: 'human_entered'
+      }
+
+      if (inc && inc.hasInclusion && inc.dimensions?.length > 0) {
+        const dim = inc.dimensions[0]
+        payloadAct.inclusion_group = dim.group
+        payloadAct.inclusion_type = dim.type
+      }
+
+      return payloadAct
+    }) : []
+
+    if (mappedActivities.length > 0) {
+      const activitiesResponse = await memberApi.saveActivities(savedId, mappedActivities)
+      // Update section2Data with response to keep frontend and backend in sync
+      const resActivities = activitiesResponse.data.data || []
+      const resInclusions: Record<string, any> = {}
+      const resLevels: Record<string, number[]> = {}
+      
+      resActivities.forEach((a: any) => {
+        const code = dbIdToCodeMap[a.activity_item_id] || a.code
+        if (code) {
+          resInclusions[code] = {
+            hasInclusion: !!a.inclusion_group,
+            dimensions: a.inclusion_group ? [{ group: a.inclusion_group, type: a.inclusion_type }] : []
+          }
+          resLevels[code] = a.activity_levels?.map((l: any) => l.education_level_id) || []
+        }
+      })
+      
+      section2Data.value = {
+        selected: activitiesData.selected,
+        primary: activitiesData.primary,
+        aiText: activitiesData.aiText || '',
+        inclusions: resInclusions,
+        educationLevels: resLevels
+      }
+    }
+
     // Show persistent result message
     const successMsg = response.data.message || 'Saved successfully!'
     showSubmissionResult('success', successMsg)
@@ -324,8 +400,17 @@ async function saveAndExit(loadingAlreadySet = false) {
   await saveEntry(true, loadingAlreadySet)
 }
 
+function captureCurrentStepData() {
+  if (currentStep.value === 2 && activitiesFormRef.value) {
+    section2Data.value = activitiesFormRef.value.getData()
+  } else if (currentStep.value === 4 && agreementsFormRef.value) {
+    section4Data.value = agreementsFormRef.value.getData()
+  }
+}
+
 function goBack() {
   if (currentStep.value > 1) {
+    captureCurrentStepData()
     completedSteps.value.delete(currentStep.value - 1)
     currentStep.value--
   }
@@ -339,6 +424,7 @@ function goToStep(stepNumber: number) {
   if (!validateCurrentStep()) {
     return
   }
+  captureCurrentStepData()
   currentStep.value = stepNumber
 }
 
@@ -385,6 +471,7 @@ async function continueToNext() {
     }
   }
 
+  captureCurrentStepData()
   completedSteps.value.add(currentStep.value)
 
   if (currentStep.value < steps.length) {
@@ -402,10 +489,8 @@ async function continueToNext() {
 
       <!-- Top-right action button (hidden on mobile) -->
       <div class="ml-auto hidden sm:block">
-        <button
-          @click="() => router.push('/entries/new')"
-          class="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-        >
+        <button @click="() => router.push('/entries/new')"
+          class="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
           <span class="text-lg leading-none">+</span> New programme entry
         </button>
       </div>
@@ -423,61 +508,48 @@ async function continueToNext() {
       </div>
 
       <div class="flex items-center gap-2 w-full sm:w-auto">
-        <button
-          @click="() => saveAndExit()"
-          :disabled="isSaving"
-          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <button @click="() => saveAndExit()" :disabled="isSaving"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg"
+            fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
           {{ isSaving ? 'Saving...' : 'Save & exit' }}
         </button>
-        <button
-          @click="continueToNext"
-          :disabled="isSaving"
-          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
-          <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <button @click="continueToNext" :disabled="isSaving"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+          <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
+            fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
-          {{ isSaving ? 'Saving...' : currentStep === 5 ? 'Finish & save' : 'Continue' }} <span v-if="!isSaving" class="text-base">→</span>
+          {{ isSaving ? 'Saving...' : currentStep === 5 ? 'Finish & save' : 'Continue' }} <span v-if="!isSaving"
+            class="text-base">→</span>
         </button>
       </div>
     </div>
 
     <!-- Submission Result Banner -->
-    <div
-      v-if="submissionResult"
-      class="mb-6 px-5 py-3.5 rounded-lg border flex items-center gap-3 text-sm font-medium transition-all"
-      :class="submissionResult.type === 'success'
+    <div v-if="submissionResult"
+      class="mb-6 px-5 py-3.5 rounded-lg border flex items-center gap-3 text-sm font-medium transition-all" :class="submissionResult.type === 'success'
         ? 'bg-green-50 border-green-200 text-green-800'
-        : 'bg-red-50 border-red-200 text-red-800'"
-    >
+        : 'bg-red-50 border-red-200 text-red-800'">
       <!-- Success icon -->
-      <svg
-        v-if="submissionResult.type === 'success'"
-        class="w-5 h-5 shrink-0 text-green-600"
-        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-      >
+      <svg v-if="submissionResult.type === 'success'" class="w-5 h-5 shrink-0 text-green-600" fill="none"
+        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       <!-- Error icon -->
-      <svg
-        v-else
-        class="w-5 h-5 shrink-0 text-red-600"
-        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-      >
+      <svg v-else class="w-5 h-5 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
       <span class="flex-1">{{ submissionResult.message }}</span>
-      <button
-        @click="clearSubmissionResult"
-        class="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-        :class="submissionResult.type === 'success' ? 'text-green-800' : 'text-red-800'"
-      >
+      <button @click="clearSubmissionResult" class="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+        :class="submissionResult.type === 'success' ? 'text-green-800' : 'text-red-800'">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -487,24 +559,18 @@ async function continueToNext() {
     <!-- Two-column layout: Step Sidebar + Form -->
     <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
       <!-- Mobile Horizontal Stepper with progressive line (visible only on mobile/tablet) -->
-      <div class="lg:hidden w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-2 relative select-none flex flex-col gap-2">
+      <div
+        class="lg:hidden w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-2 relative select-none flex flex-col gap-2">
         <div class="flex items-center justify-between relative z-10">
           <!-- Background progressive line -->
           <div class="absolute top-[14px] left-[28px] right-[28px] h-1 bg-gray-100 -z-10 rounded-full">
-            <div
-              class="bg-teal-600 h-1 rounded-full transition-all duration-500"
-              :style="{ width: ((currentStep - 1) / (steps.length - 1)) * 100 + '%' }"
-            ></div>
+            <div class="bg-teal-600 h-1 rounded-full transition-all duration-500"
+              :style="{ width: ((currentStep - 1) / (steps.length - 1)) * 100 + '%' }"></div>
           </div>
 
           <!-- Step Bubbles -->
-          <div
-            v-for="step in steps"
-            :key="step.number"
-            @click="goToStep(step.number)"
-            class="flex flex-col items-center cursor-pointer"
-            :style="{ width: (100 / steps.length) + '%' }"
-          >
+          <div v-for="step in steps" :key="step.number" @click="goToStep(step.number)"
+            class="flex flex-col items-center cursor-pointer" :style="{ width: (100 / steps.length) + '%' }">
             <div
               class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all border-2 duration-300"
               :class="[
@@ -513,24 +579,16 @@ async function continueToNext() {
                   : step.number === currentStep
                     ? 'bg-teal-800 border-teal-800 text-white ring-4 ring-teal-100 shadow-md scale-105'
                     : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-teal-600 hover:text-teal-700'
-              ]"
-            >
-              <svg
-                v-if="completedSteps.has(step.number)"
-                class="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="3.5"
-              >
+              ]">
+              <svg v-if="completedSteps.has(step.number)" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="3.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               <template v-else>{{ step.number }}</template>
             </div>
             <span
               class="text-[9px] font-bold mt-1.5 transition-colors text-center hidden xs:block truncate px-1 max-w-full"
-              :class="step.number === currentStep ? 'text-teal-900 font-extrabold' : 'text-gray-400'"
-            >
+              :class="step.number === currentStep ? 'text-teal-900 font-extrabold' : 'text-gray-400'">
               {{ step.title.split(' ')[0] }}
             </span>
           </div>
@@ -547,45 +605,28 @@ async function continueToNext() {
 
       <!-- Desktop Step Sidebar (visible only on desktop) -->
       <aside
-        class="hidden lg:block w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
-      >
+        class="hidden lg:block w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
         <ul class="divide-y divide-gray-100">
-          <li
-            v-for="step in steps"
-            :key="step.number"
+          <li v-for="step in steps" :key="step.number"
             class="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer select-none"
-            :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'"
-            @click="goToStep(step.number)"
-          >
+            :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'" @click="goToStep(step.number)">
             <!-- Step bubble: checkmark if done, number otherwise -->
-            <span
-              class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-              :class="
-                completedSteps.has(step.number)
+            <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+              :class="completedSteps.has(step.number)
                   ? 'bg-green-600 text-white'
                   : step.number === currentStep
                     ? 'bg-teal-800 text-white'
                     : 'bg-gray-100 text-gray-500'
-              "
-            >
-              <svg
-                v-if="completedSteps.has(step.number)"
-                class="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="3"
-              >
+                ">
+              <svg v-if="completedSteps.has(step.number)" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="3">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               <template v-else>{{ step.number }}</template>
             </span>
 
             <div>
-              <p
-                class="text-sm font-semibold"
-                :class="step.number === currentStep ? 'text-teal-900' : 'text-gray-600'"
-              >
+              <p class="text-sm font-semibold" :class="step.number === currentStep ? 'text-teal-900' : 'text-gray-600'">
                 {{ step.title }}
               </p>
               <p class="text-xs text-gray-400 mt-0.5">{{ step.subtitle }}</p>
@@ -600,10 +641,8 @@ async function continueToNext() {
             <span class="font-semibold text-gray-700">{{ currentStep }} of {{ steps.length }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-1.5">
-            <div
-              class="bg-teal-600 h-1.5 rounded-full transition-all duration-500"
-              :style="{ width: progressPercent + '%' }"
-            />
+            <div class="bg-teal-600 h-1.5 rounded-full transition-all duration-500"
+              :style="{ width: progressPercent + '%' }" />
           </div>
         </div>
       </aside>
@@ -611,24 +650,14 @@ async function continueToNext() {
       <!-- Form Content Container -->
       <div class="flex-1 min-w-0">
         <!-- Step 1: Programme Identity -->
-        <ProgrammeIdentityForm
-          v-if="currentStep === 1"
-          ref="identityFormRef"
-          v-model="section1Data"
-          v-model:valid="section1Valid"
-          :errors="errors"
-          :disabled="isSaving"
-          @clear-error="clearError"
-        />
+        <ProgrammeIdentityForm v-if="currentStep === 1" ref="identityFormRef" v-model="section1Data"
+          v-model:valid="section1Valid" :errors="errors" :disabled="isSaving" @clear-error="clearError" />
 
         <!-- Step 2: Activities -->
-        <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesFormRef" />
+        <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesFormRef" :model-value="section2Data" />
 
         <!-- Step 3 Placeholder -->
-        <div
-          v-else-if="currentStep === 3"
-          class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none"
-        >
+        <div v-else-if="currentStep === 3" class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none">
           <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 3: Geographic coverage</h3>
           <p class="text-sm text-gray-500">
             Geographic coverage form is currently in development. Use the sidebar to navigate.
@@ -636,22 +665,18 @@ async function continueToNext() {
         </div>
 
         <!-- Step 4: Government Agreements -->
-        <AgreementsForm
-          v-else-if="currentStep === 4"
-          ref="agreementsFormRef"
-          v-model="section4Data"
-        />
+        <AgreementsForm v-else-if="currentStep === 4" ref="agreementsFormRef" v-model="section4Data" />
 
         <!-- Step 5: Keywords Form -->
         <div v-else-if="currentStep === 5">
           <ProgrammeKeywordsView v-model="keywordsData" />
           <!-- Keywords validation error -->
-          <div
-            v-if="keywordsError"
-            class="mt-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-sm text-red-700"
-          >
-            <svg class="w-4 h-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div v-if="keywordsError"
+            class="mt-2 px-4 py-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-sm text-red-700">
+            <svg class="w-4 h-4 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{{ keywordsError }}</span>
           </div>
@@ -659,24 +684,19 @@ async function continueToNext() {
 
         <!-- Bottom Navigation -->
         <div class="mt-6 flex items-center justify-end gap-2 w-full sm:w-auto">
-          <button
-            v-if="currentStep > 1"
-            type="button"
-            @click="goBack"
-            class="flex-1 sm:flex-initial flex items-center justify-center px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
+          <button v-if="currentStep > 1" type="button" @click="goBack"
+            class="flex-1 sm:flex-initial flex items-center justify-center px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             <span class="sm:hidden">← Back</span>
             <span class="hidden sm:inline">{{ backStepLabel }}</span>
           </button>
 
-          <button
-            @click="continueToNext"
-            :disabled="isSaving"
-            class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none"
-          >
-            <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <button @click="continueToNext" :disabled="isSaving"
+            class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none">
+            <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
+              fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <span v-if="isSaving">Saving...</span>
             <template v-else>

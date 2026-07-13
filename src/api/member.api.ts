@@ -16,5 +16,8 @@ export const memberApi = {
   },
   saveGovernmentAgreements(id: number | string, agreements: any[]) {
     return api.put(`/programme-entries/${id}/government-agreements`, { agreements });
+  },
+  saveActivities(id: number | string, activities: any[]) {
+    return api.post(`/programme-entries/${id}/activities`, { activities });
   }
 };
