@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
 import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
+import AgreementsForm from '@/components/programme/AgreementsForm.vue'
 import ProgrammeKeywordsView from '@/components/programme/ProgrammeKeywordsView.vue'
 import type { ProgrammeIdentity } from '@/types/programme'
 import { memberApi } from '@/api/member.api'
@@ -61,6 +62,9 @@ const section2Data = ref<{
   primary: string[]
   aiText: string
 } | null>(null)
+
+const section4Data = ref<any[]>([])
+const agreementsFormRef = ref<InstanceType<typeof AgreementsForm> | null>(null)
 
 const section1Progress = computed(() => {
   const d = section1Data.value
@@ -122,6 +126,7 @@ onMounted(async () => {
         primary: entry.activities?.filter((a: any) => a.primary).map((a: any) => a.code) || [],
         aiText: '',
       }
+      section4Data.value = entry.agreements || []
       saveStatus.value = 'saved'
     } catch (err: any) {
       toast.error('Failed to load the programme entry data.')
@@ -135,6 +140,7 @@ onMounted(async () => {
         currentStep.value = draft.currentStep || 1
         section1Data.value = draft.section1Data
         section2Data.value = draft.section2Data
+        section4Data.value = draft.section4Data || []
         toast.success('Resumed from saved draft.')
       } catch {
         console.error('Failed to parse draft data')
@@ -180,7 +186,8 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
     const isEditMode = !!section1Data.value.id
 
     // Map data to API schema keys
-    const activitiesData = activitiesFormRef.value?.getData?.()
+    const activitiesData = activitiesFormRef.value?.getData?.() || section2Data.value
+    const agreementsData = agreementsFormRef.value?.getData?.() || section4Data.value
 
     const payload = {
       programme_name: section1Data.value.name,
@@ -196,6 +203,14 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
       method: section1Data.value.method || null,
       verified_date: section1Data.value.verifiedDate || null,
       activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
+      agreements: agreementsData ? agreementsData.map((a: any) => ({
+        counterpart: a.counterpart,
+        nature: a.nature,
+        status: a.status,
+        specify_institution: a.specify_institution,
+        specified_institution: a.specify_institution,
+        institution: a.specify_institution
+      })) : []
     }
 
     // 4. Send API request
@@ -263,7 +278,8 @@ function saveDraftAndExit() {
   const draft = {
     currentStep: currentStep.value,
     section1Data: section1Data.value,
-    section2Data: activitiesFormRef.value?.getData?.(),
+    section2Data: activitiesFormRef.value?.getData?.() || section2Data.value,
+    section4Data: agreementsFormRef.value?.getData?.() || section4Data.value,
   }
   sessionStorage.setItem('new_programme_entry_draft', JSON.stringify(draft))
   toast.success('Progress saved to session.')
@@ -532,16 +548,12 @@ async function continueToNext() {
           </p>
         </div>
 
-        <!-- Step 4 Placeholder -->
-        <div
+        <!-- Step 4: Government Agreements -->
+        <AgreementsForm
           v-else-if="currentStep === 4"
-          class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none"
-        >
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 4: Government agreements</h3>
-          <p class="text-sm text-gray-500">
-            Government agreements form is currently in development. Use the sidebar to navigate.
-          </p>
-        </div>
+          ref="agreementsFormRef"
+          v-model="section4Data"
+        />
 
         <!-- Step 5: Keywords Form -->
         <div v-else-if="currentStep === 5">
