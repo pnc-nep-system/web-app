@@ -311,7 +311,9 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
     const savedId = response.data.data.id
     section1Data.value.id = savedId
 
-    // Save Section 4 government agreements
+    // Prepare all three saving payloads
+    
+    // 1. Agreements
     const mappedAgreements = agreementsData ? agreementsData.map((a: any) => ({
       id: a.id || null,
       counterpart_agency: a.counterpart_agency,
@@ -319,10 +321,8 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
       status: a.status,
       institution_name: a.institution_name
     })) : []
-    const agreementsResponse = await memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
-    section4Data.value = agreementsResponse.data.data || []
 
-    // Save Section 3 geographic coverage
+    // 2. Geography
     const geographicData = geographicFormRef.value?.getData?.() || section3Data.value
     const otherCountriesArray = (geographicData && geographicData.otherCountries)
       ? geographicData.otherCountries.split(',').map((c: string) => c.trim()).filter(Boolean)
@@ -333,12 +333,49 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
           district_ids: geographicData.districts[pId] || []
         }))
       : []
-
     const geographyPayload = {
       provinces: provincesPayload,
       other_countries: otherCountriesArray
     }
-    const geographyResponse = await memberApi.saveGeography(savedId, geographyPayload)
+
+    // 3. Activities
+    const mappedActivities = activitiesData ? activitiesData.selected.map((code: string) => {
+      const dbId = taxonomyMap[code] || 1
+      const levels = activitiesData.educationLevels?.[code] || []
+      const inc = activitiesData.inclusions?.[code]
+
+      const payloadAct: any = {
+        activity_item_id: dbId,
+        is_primary: activitiesData.primary.includes(code),
+        education_level_ids: levels.length > 0 ? levels : [1],
+        source: 'human_entered'
+      }
+
+      if (inc && inc.hasInclusion && inc.dimensions?.length > 0) {
+        const dim = inc.dimensions[0]
+        payloadAct.inclusion_group = dim.group
+        payloadAct.inclusion_type = dim.type
+      }
+
+      return payloadAct
+    }) : []
+
+    // Launch all API requests in parallel!
+    const agreementsPromise = memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
+    const geographyPromise = memberApi.saveGeography(savedId, geographyPayload)
+    const activitiesPromise = mappedActivities.length > 0
+      ? memberApi.saveActivities(savedId, mappedActivities)
+      : Promise.resolve(null)
+
+    const [agreementsResponse, geographyResponse, activitiesResponse] = await Promise.all([
+      agreementsPromise,
+      geographyPromise,
+      activitiesPromise
+    ])
+
+    // Update frontend state with the API responses
+    section4Data.value = agreementsResponse.data.data || []
+
     const resLocations = geographyResponse.data.data || []
     const resProvinceIds: number[] = []
     const resDistricts: Record<number, number[]> = {}
@@ -363,31 +400,7 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
       otherCountries: resOtherCountries.join(', ')
     }
 
-    // Save Section 2 programme activities
-    const mappedActivities = activitiesData ? activitiesData.selected.map((code: string) => {
-      const dbId = taxonomyMap[code] || 1
-      const levels = activitiesData.educationLevels?.[code] || []
-      const inc = activitiesData.inclusions?.[code]
-
-      const payloadAct: any = {
-        activity_item_id: dbId,
-        is_primary: activitiesData.primary.includes(code),
-        education_level_ids: levels.length > 0 ? levels : [1],
-        source: 'human_entered'
-      }
-
-      if (inc && inc.hasInclusion && inc.dimensions?.length > 0) {
-        const dim = inc.dimensions[0]
-        payloadAct.inclusion_group = dim.group
-        payloadAct.inclusion_type = dim.type
-      }
-
-      return payloadAct
-    }) : []
-
-    if (mappedActivities.length > 0) {
-      const activitiesResponse = await memberApi.saveActivities(savedId, mappedActivities)
-      // Update section2Data with response to keep frontend and backend in sync
+    if (activitiesResponse) {
       const resActivities = activitiesResponse.data.data || []
       const resInclusions: Record<string, any> = {}
       const resLevels: Record<string, number[]> = {}
