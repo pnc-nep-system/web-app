@@ -126,7 +126,7 @@ onMounted(async () => {
         primary: entry.activities?.filter((a: any) => a.primary).map((a: any) => a.code) || [],
         aiText: '',
       }
-      section4Data.value = entry.agreements || []
+      section4Data.value = entry.government_agreements || []
       saveStatus.value = 'saved'
     } catch (err: any) {
       toast.error('Failed to load the programme entry data.')
@@ -203,14 +203,6 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
       method: section1Data.value.method || null,
       verified_date: section1Data.value.verifiedDate || null,
       activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
-      agreements: agreementsData ? agreementsData.map((a: any) => ({
-        counterpart: a.counterpart,
-        nature: a.nature,
-        status: a.status,
-        specify_institution: a.specify_institution,
-        specified_institution: a.specify_institution,
-        institution: a.specify_institution
-      })) : []
     }
 
     // 4. Send API request
@@ -227,6 +219,17 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
 
     const savedId = response.data.data.id
     section1Data.value.id = savedId
+
+    // Save Section 4 government agreements
+    const mappedAgreements = agreementsData ? agreementsData.map((a: any) => ({
+      id: a.id || null,
+      counterpart_agency: a.counterpart_agency,
+      nature: a.nature,
+      status: a.status,
+      institution_name: a.institution_name
+    })) : []
+    const agreementsResponse = await memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
+    section4Data.value = agreementsResponse.data.data || []
 
     // Show persistent result message
     const successMsg = response.data.message || 'Saved successfully!'

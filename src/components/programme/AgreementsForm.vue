@@ -2,10 +2,11 @@
 import { ref, watch } from 'vue'
 
 export interface GovernmentAgreement {
-  counterpart: string
+  id?: number
+  counterpart_agency: string
   nature: string
   status: string
-  specify_institution?: string
+  institution_name: string
 }
 
 const props = defineProps<{
@@ -18,26 +19,26 @@ const emit = defineEmits<{
 }>()
 
 const COUNTERPARTS = [
-  'MoEYS — national level',
-  'Provincial Office of Education',
-  'District Office of Education',
-  'Teacher Education Institution',
-  'Specific school or cluster of schools',
-  'Other government ministry or body'
+  { value: 'MoEYS national level', label: 'MoEYS — national level' },
+  { value: 'Provincial Office of Education', label: 'Provincial Office of Education' },
+  { value: 'District Office of Education', label: 'District Office of Education' },
+  { value: 'Teacher Education Institution', label: 'Teacher Education Institution' },
+  { value: 'specific school or cluster', label: 'Specific school or cluster of schools' },
+  { value: 'other government ministry', label: 'Other government ministry or body' }
 ]
 
 const NATURES = [
-  'MoU',
-  'LoU',
-  'Approval letter',
-  'Informal'
+  { value: 'MoU', label: 'MoU' },
+  { value: 'Letter of Understanding', label: 'LoU' },
+  { value: 'official approval letter', label: 'Approval letter' },
+  { value: 'informal working arrangement', label: 'Informal' }
 ]
 
 const STATUSES = [
-  'Active',
-  'Expired',
-  'Renewal',
-  'Negotiating'
+  { value: 'active', label: 'Active' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'under renewal', label: 'Renewal' },
+  { value: 'under negotiation', label: 'Negotiating' }
 ]
 
 const agreements = ref<GovernmentAgreement[]>([])
@@ -55,10 +56,10 @@ watch(
 
 function addAgreement() {
   agreements.value.push({
-    counterpart: '',
+    counterpart_agency: '',
     nature: 'MoU',
-    status: 'Active',
-    specify_institution: ''
+    status: 'active',
+    institution_name: ''
   })
   emitUpdate()
 }
@@ -74,7 +75,10 @@ function emitUpdate() {
 }
 
 function validate(): boolean {
-  return true
+  // Each added agreement must have counterpart_agency and institution_name filled.
+  return agreements.value.every(
+    a => a.counterpart_agency.trim() !== '' && a.institution_name.trim() !== ''
+  )
 }
 
 function getData() {
@@ -107,13 +111,13 @@ defineExpose({ validate, getData })
               </label>
               <select
                 :id="`counterpart-${index}`"
-                v-model="agreement.counterpart"
+                v-model="agreement.counterpart_agency"
                 @change="emitUpdate"
                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white"
               >
                 <option value="" disabled>Select counterpart</option>
-                <option v-for="c in COUNTERPARTS" :key="c" :value="c">
-                  {{ c }}
+                <option v-for="c in COUNTERPARTS" :key="c.value" :value="c.value">
+                  {{ c.label }}
                 </option>
               </select>
             </div>
@@ -129,8 +133,8 @@ defineExpose({ validate, getData })
                 @change="emitUpdate"
                 class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white"
               >
-                <option v-for="n in NATURES" :key="n" :value="n">
-                  {{ n }}
+                <option v-for="n in NATURES" :key="n.value" :value="n.value">
+                  {{ n.label }}
                 </option>
               </select>
             </div>
@@ -147,8 +151,8 @@ defineExpose({ validate, getData })
                   @change="emitUpdate"
                   class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white"
                 >
-                  <option v-for="s in STATUSES" :key="s" :value="s">
-                    {{ s }}
+                  <option v-for="s in STATUSES" :key="s.value" :value="s.value">
+                    {{ s.label }}
                   </option>
                 </select>
               </div>
@@ -171,7 +175,7 @@ defineExpose({ validate, getData })
             <input
               :id="`institution-${index}`"
               type="text"
-              v-model="agreement.specify_institution"
+              v-model="agreement.institution_name"
               @input="emitUpdate"
               placeholder="e.g. Kampong Cham Provincial Office of Education"
               class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 placeholder-gray-400"
