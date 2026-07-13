@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import type { ActivityInclusion, InclusionGroup } from '../../types/taxonomy'
+import EducationLevelSelector from './EducationLevelSelector.vue'
 
 const props = defineProps<{
-  modelValue?: { selected: string[]; primary: string[]; aiText: string; inclusions?: Record<string, ActivityInclusion> }
+  modelValue?: { selected: string[]; primary: string[]; aiText: string; inclusions?: Record<string, ActivityInclusion>; educationLevels?: Record<string, number[]> }
 }>()
 
 watch(() => props.modelValue, (val) => {
@@ -12,14 +13,21 @@ watch(() => props.modelValue, (val) => {
     primary.value = new Set(val.primary)
     aiText.value = val.aiText
     
-    // Initialize inclusions
+    // Initialize inclusions and educationLevels
     inclusions.value = {}
+    educationLevels.value = {}
     if (val.inclusions) {
       inclusions.value = { ...val.inclusions }
+    }
+    if (val.educationLevels) {
+      educationLevels.value = { ...val.educationLevels }
     }
     val.selected.forEach(id => {
       if (!inclusions.value[id]) {
         inclusions.value[id] = { hasInclusion: false, dimensions: [] }
+      }
+      if (!educationLevels.value[id]) {
+        educationLevels.value[id] = []
       }
     })
   }
@@ -127,6 +135,7 @@ const openCategories = ref<Set<string>>(new Set())
 const selected       = ref<Set<string>>(new Set())   // item IDs ticked
 const primary        = ref<Set<string>>(new Set())   // item IDs marked primary
 const inclusions     = ref<Record<string, ActivityInclusion>>({})
+const educationLevels = ref<Record<string, number[]>>({})
 
 const groupsConfig = [
   { name: 'Disability', allowsA: true },
@@ -252,9 +261,11 @@ function toggleItem(id: string) {
     selected.value.delete(id)
     primary.value.delete(id)
     delete inclusions.value[id]
+    delete educationLevels.value[id]
   } else {
     selected.value.add(id)
     inclusions.value[id] = { hasInclusion: false, dimensions: [] }
+    educationLevels.value[id] = []
   }
 }
 
@@ -264,7 +275,7 @@ function setActivityImportance(id: string, importance: 'primary' | 'secondary') 
     primary.value.add(id)
   } else {
     primary.value.delete(id)
-    }
+  }
 }
 
 function suggestActivities() {
@@ -287,6 +298,7 @@ function getData() {
     primary: Array.from(primary.value),
     aiText: aiText.value,
     inclusions: inclusions.value,
+    educationLevels: educationLevels.value,
   }
 }
 
@@ -424,11 +436,20 @@ function categoryCount(code: string): number {
               </div>
             </div>
 
-            <!-- Inclusion Sub-form (Only visible if the item is selected) -->
+            <!-- Inclusion & Education Levels Sub-form (Only visible if the item is selected) -->
             <div 
               v-if="selected.has(item.id) && inclusions[item.id]" 
               class="ml-7 mt-1.5 p-4 rounded-xl border border-gray-200 bg-white shadow-sm space-y-4"
             >
+              <!-- Education Levels -->
+              <div class="border-b border-gray-100 pb-4">
+                <span class="text-xs font-bold text-gray-700 block mb-2">Education Levels</span>
+                <EducationLevelSelector
+                  :model-value="educationLevels[item.id] || []"
+                  @update:model-value="(val) => educationLevels[item.id] = val"
+                />
+              </div>
+
               <!-- Yes/No Toggle -->
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
                 <span class="text-xs font-bold text-gray-700">Specific inclusion focus?</span>

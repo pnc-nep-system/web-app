@@ -44,4 +44,5 @@ export interface Category {
 export interface SelectedActivity extends TaxonomyItem {
   educationLevelIds: number[];
   inclusion?: ActivityInclusion;
+  is_primary?: boolean;
 }
