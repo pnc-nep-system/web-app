@@ -15,6 +15,7 @@ export interface ProgrammeIdentity {
   indirectBeneficiaries: number | null
   method: string
   verifiedDate: string
+  isUnverified?: boolean
   activities?: Activity[]
   provinces?: string[]
 }
