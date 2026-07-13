@@ -7,12 +7,11 @@ export const useEntriesStore = defineStore('entries', () => {
   const items = ref<ProgrammeIdentity[]>([])
   const loading = ref(false)
 
-  async function fetchEntries() {
+  async function fetchEntries(organisationId: number | string) {
     loading.value = true
     try {
-        const response = await memberApi.listProgrammeEntries()
-        // Assuming response.data is the list
-        items.value = response.data
+        const response = await memberApi.listProgrammeEntries(organisationId)
+        items.value = response.data.data || []
     } finally {
         loading.value = false
     }

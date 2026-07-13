@@ -28,7 +28,10 @@ const auth = useAuthStore()
 const entries = useEntriesStore()
 
 onMounted(() => {
-  entries.fetchEntries()
+  const orgId = auth.currentUser?.organisation_id
+  if (orgId) {
+    entries.fetchEntries(orgId as number)
+  }
 })
 
 const orgName = computed(() => (auth.currentUser?.name as string) || 'Organisation')

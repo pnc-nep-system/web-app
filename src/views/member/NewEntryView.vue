@@ -196,20 +196,27 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
     const activitiesData = activitiesFormRef.value?.getData?.() || section2Data.value
     const agreementsData = agreementsFormRef.value?.getData?.() || section4Data.value
 
-    const payload = {
+    const payload: any = {
       programme_name: section1Data.value.name,
       start_year: section1Data.value.startYear,
       end_year: section1Data.value.isOngoing ? null : section1Data.value.endYear,
       ongoing: section1Data.value.isOngoing,
-      fte_staff: section1Data.value.fteStaff,
-      budget_band_id: section1Data.value.budgetBand
-        ? BUDGET_BANDS.indexOf(section1Data.value.budgetBand) + 1
-        : null,
-      direct_beneficiaries: section1Data.value.directBeneficiaries,
-      indirect_beneficiaries: section1Data.value.indirectBeneficiaries,
       method: section1Data.value.method || null,
       verified_date: section1Data.value.verifiedDate || null,
       activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
+    }
+
+    if (section1Data.value.fteStaff !== null && String(section1Data.value.fteStaff) !== '') {
+      payload.fte_staff = Number(section1Data.value.fteStaff)
+    }
+    if (section1Data.value.budgetBand) {
+      payload.budget_band_id = BUDGET_BANDS.indexOf(section1Data.value.budgetBand) + 1
+    }
+    if (section1Data.value.directBeneficiaries !== null && String(section1Data.value.directBeneficiaries) !== '') {
+      payload.direct_beneficiaries = Number(section1Data.value.directBeneficiaries)
+    }
+    if (section1Data.value.indirectBeneficiaries !== null && String(section1Data.value.indirectBeneficiaries) !== '') {
+      payload.indirect_beneficiaries = Number(section1Data.value.indirectBeneficiaries)
     }
 
     // 4. Send API request
@@ -322,6 +329,17 @@ function goBack() {
     completedSteps.value.delete(currentStep.value - 1)
     currentStep.value--
   }
+}
+
+function goToStep(stepNumber: number) {
+  if (stepNumber > 1 && (!section1Data.value.name?.trim() || !section1Data.value.startYear)) {
+    toast.error('Please fill in the Programme identity (Name and Start year) before navigating to other steps.')
+    return
+  }
+  if (!validateCurrentStep()) {
+    return
+  }
+  currentStep.value = stepNumber
 }
 
 async function continueToNext() {
@@ -483,7 +501,7 @@ async function continueToNext() {
           <div
             v-for="step in steps"
             :key="step.number"
-            @click="currentStep = step.number"
+            @click="goToStep(step.number)"
             class="flex flex-col items-center cursor-pointer"
             :style="{ width: (100 / steps.length) + '%' }"
           >
@@ -537,7 +555,7 @@ async function continueToNext() {
             :key="step.number"
             class="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer select-none"
             :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'"
-            @click="currentStep = step.number"
+            @click="goToStep(step.number)"
           >
             <!-- Step bubble: checkmark if done, number otherwise -->
             <span

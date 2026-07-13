@@ -2,8 +2,8 @@ import api from './axios';
 import type { ProgrammeIdentity } from '@/types/programme'
 
 export const memberApi = {
-  listProgrammeEntries() {
-    return api.get('/programme-entries');
+  listProgrammeEntries(organisationId: number | string) {
+    return api.get(`/organisations/${organisationId}/programme-entries`);
   },
   createProgrammeEntry(data: ProgrammeIdentity) {
     return api.post('/programme-entries', data);
