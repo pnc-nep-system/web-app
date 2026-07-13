@@ -6,7 +6,8 @@ import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.
 import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
 import AgreementsForm from '@/components/programme/AgreementsForm.vue'
 import ProgrammeKeywordsView from '@/components/programme/ProgrammeKeywordsView.vue'
-import type { ProgrammeIdentity } from '@/types/programme'
+import ProgrammeGeographic from '@/components/programme/ProgrammeGeographic.vue'
+import type { ProgrammeIdentity, ProgrammeGeographicData } from '@/types/programme'
 import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
 import { useAuth } from '@/composables/useAuth'
@@ -67,6 +68,12 @@ const saveLabel = computed(() => {
 
 const keywordsData = ref<string[]>([])
 const keywordsError = ref<string | null>(null)
+const section3Data = ref<ProgrammeGeographicData>({
+  provinceIds: [],
+  districts: {},
+  otherCountries: '',
+})
+const geographicFormRef = ref<InstanceType<typeof ProgrammeGeographic> | null>(null)
 const section2Data = ref<any>(null)
 
 const section4Data = ref<any[]>([])
@@ -153,6 +160,11 @@ onMounted(async () => {
         inclusions: inclusionsMap,
         educationLevels: educationLevelsMap
       }
+      section3Data.value = {
+        provinceIds: entry.provinces || [],
+        districts: entry.districts || {},
+        otherCountries: entry.other_countries || '',
+      }
       section4Data.value = entry.government_agreements || []
       saveStatus.value = 'saved'
     } catch (err: any) {
@@ -167,6 +179,7 @@ onMounted(async () => {
         currentStep.value = draft.currentStep || 1
         section1Data.value = draft.section1Data
         section2Data.value = draft.section2Data
+        section3Data.value = draft.section3Data || { provinceIds: [], districts: {}, otherCountries: '' }
         section4Data.value = draft.section4Data || []
         toast.success('Resumed from saved draft.')
       } catch {
@@ -192,6 +205,13 @@ function validateCurrentStep(): boolean {
   }
   if (currentStep.value === 2) {
     const isValid = activitiesFormRef.value?.validate?.()
+    if (!isValid) {
+      toast.error('Please fix the errors in the form before saving.')
+      return false
+    }
+  }
+  if (currentStep.value === 3) {
+    const isValid = geographicFormRef.value?.validate?.()
     if (!isValid) {
       toast.error('Please fix the errors in the form before saving.')
       return false
@@ -231,6 +251,9 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
       method: section1Data.value.method || null,
       verified_date: section1Data.value.verifiedDate || null,
       activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
+      province_ids: section3Data.value.provinceIds,
+      district_ids: section3Data.value.districts,
+      other_countries: section3Data.value.otherCountries,
     }
 
     if (section1Data.value.fteStaff !== null && String(section1Data.value.fteStaff) !== '') {
@@ -371,6 +394,7 @@ function saveDraftAndExit() {
   const draft = {
     currentStep: currentStep.value,
     section1Data: section1Data.value,
+    section3Data: section3Data.value,
     section2Data: activitiesFormRef.value?.getData?.() || section2Data.value,
     section4Data: agreementsFormRef.value?.getData?.() || section4Data.value,
   }
@@ -465,6 +489,14 @@ async function continueToNext() {
 
   if (currentStep.value === 2) {
     const isValid = activitiesFormRef.value?.validate?.()
+    if (!isValid) {
+      toast.error('Please fix the errors in the form before continuing.')
+      return
+    }
+  }
+
+  if (currentStep.value === 3) {
+    const isValid = geographicFormRef.value?.validate?.()
     if (!isValid) {
       toast.error('Please fix the errors in the form before continuing.')
       return
@@ -656,13 +688,12 @@ async function continueToNext() {
         <!-- Step 2: Activities -->
         <ActivitiesForm v-else-if="currentStep === 2" ref="activitiesFormRef" :model-value="section2Data" />
 
-        <!-- Step 3 Placeholder -->
-        <div v-else-if="currentStep === 3" class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none">
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 3: Geographic coverage</h3>
-          <p class="text-sm text-gray-500">
-            Geographic coverage form is currently in development. Use the sidebar to navigate.
-          </p>
-        </div>
+        <!-- Step 3: Geographic Coverage -->
+        <ProgrammeGeographic
+          v-else-if="currentStep === 3"
+          ref="geographicFormRef"
+          v-model="section3Data"
+        />
 
         <!-- Step 4: Government Agreements -->
         <AgreementsForm v-else-if="currentStep === 4" ref="agreementsFormRef" v-model="section4Data" />
