@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeIdentityForm from '@/components/programme/ProgrammeIdentityForm.vue'
 import ActivitiesForm from '@/components/programme/ActivitiesForm.vue'
+import AgreementsForm from '@/components/programme/AgreementsForm.vue'
 import ProgrammeKeywordsView from '@/components/programme/ProgrammeKeywordsView.vue'
 import ProgrammeGeographic from '@/components/programme/ProgrammeGeographic.vue'
 import type { ProgrammeIdentity, ProgrammeGeographicData } from '@/types/programme'
@@ -70,6 +71,9 @@ const section2Data = ref<{
   aiText: string
 } | null>(null)
 
+const section4Data = ref<any[]>([])
+const agreementsFormRef = ref<InstanceType<typeof AgreementsForm> | null>(null)
+
 const section1Progress = computed(() => {
   const d = section1Data.value
   const fields = [
@@ -135,6 +139,7 @@ onMounted(async () => {
         districts: entry.districts || {},
         otherCountries: entry.other_countries || '',
       }
+      section4Data.value = entry.government_agreements || []
       saveStatus.value = 'saved'
     } catch (err: any) {
       toast.error('Failed to load the programme entry data.')
@@ -149,6 +154,7 @@ onMounted(async () => {
         section1Data.value = draft.section1Data
         section2Data.value = draft.section2Data
         section3Data.value = draft.section3Data || { provinceIds: [], districts: {}, otherCountries: '' }
+        section4Data.value = draft.section4Data || []
         toast.success('Resumed from saved draft.')
       } catch {
         console.error('Failed to parse draft data')
@@ -185,6 +191,13 @@ function validateCurrentStep(): boolean {
       return false
     }
   }
+  if (currentStep.value === 4) {
+    const isValid = agreementsFormRef.value?.validate?.()
+    if (isValid === false) {
+      toast.error('Please select a counterpart and specify the institution details for all agreement rows.')
+      return false
+    }
+  }
   return true
 }
 async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Promise<void> {
@@ -201,25 +214,33 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
     const isEditMode = !!section1Data.value.id
 
     // Map data to API schema keys
-    const activitiesData = activitiesFormRef.value?.getData?.()
+    const activitiesData = activitiesFormRef.value?.getData?.() || section2Data.value
+    const agreementsData = agreementsFormRef.value?.getData?.() || section4Data.value
 
-    const payload = {
+    const payload: any = {
       programme_name: section1Data.value.name,
       start_year: section1Data.value.startYear,
       end_year: section1Data.value.isOngoing ? null : section1Data.value.endYear,
       ongoing: section1Data.value.isOngoing,
-      fte_staff: section1Data.value.fteStaff,
-      budget_band_id: section1Data.value.budgetBand
-        ? BUDGET_BANDS.indexOf(section1Data.value.budgetBand) + 1
-        : null,
-      direct_beneficiaries: section1Data.value.directBeneficiaries,
-      indirect_beneficiaries: section1Data.value.indirectBeneficiaries,
       method: section1Data.value.method || null,
       verified_date: section1Data.value.verifiedDate || null,
       activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
       province_ids: section3Data.value.provinceIds,
       district_ids: section3Data.value.districts,
       other_countries: section3Data.value.otherCountries,
+    }
+
+    if (section1Data.value.fteStaff !== null && String(section1Data.value.fteStaff) !== '') {
+      payload.fte_staff = Number(section1Data.value.fteStaff)
+    }
+    if (section1Data.value.budgetBand) {
+      payload.budget_band_id = BUDGET_BANDS.indexOf(section1Data.value.budgetBand) + 1
+    }
+    if (section1Data.value.directBeneficiaries !== null && String(section1Data.value.directBeneficiaries) !== '') {
+      payload.direct_beneficiaries = Number(section1Data.value.directBeneficiaries)
+    }
+    if (section1Data.value.indirectBeneficiaries !== null && String(section1Data.value.indirectBeneficiaries) !== '') {
+      payload.indirect_beneficiaries = Number(section1Data.value.indirectBeneficiaries)
     }
 
     // 4. Send API request
@@ -236,6 +257,17 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
 
     const savedId = response.data.data.id
     section1Data.value.id = savedId
+
+    // Save Section 4 government agreements
+    const mappedAgreements = agreementsData ? agreementsData.map((a: any) => ({
+      id: a.id || null,
+      counterpart_agency: a.counterpart_agency,
+      nature: a.nature,
+      status: a.status,
+      institution_name: a.institution_name
+    })) : []
+    const agreementsResponse = await memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
+    section4Data.value = agreementsResponse.data.data || []
 
     // Show persistent result message
     const successMsg = response.data.message || 'Saved successfully!'
@@ -287,8 +319,9 @@ function saveDraftAndExit() {
   const draft = {
     currentStep: currentStep.value,
     section1Data: section1Data.value,
-    section2Data: activitiesFormRef.value?.getData?.(),
     section3Data: section3Data.value,
+    section2Data: activitiesFormRef.value?.getData?.() || section2Data.value,
+    section4Data: agreementsFormRef.value?.getData?.() || section4Data.value,
   }
   sessionStorage.setItem('new_programme_entry_draft', JSON.stringify(draft))
   toast.success('Progress saved to session.')
@@ -321,6 +354,17 @@ function goBack() {
     completedSteps.value.delete(currentStep.value - 1)
     currentStep.value--
   }
+}
+
+function goToStep(stepNumber: number) {
+  if (stepNumber > 1 && (!section1Data.value.name?.trim() || !section1Data.value.startYear)) {
+    toast.error('Please fill in the Programme identity (Name and Start year) before navigating to other steps.')
+    return
+  }
+  if (!validateCurrentStep()) {
+    return
+  }
+  currentStep.value = stepNumber
 }
 
 async function continueToNext() {
@@ -389,8 +433,8 @@ async function continueToNext() {
       <span class="mx-1.5 text-gray-300">›</span>
       <span class="text-gray-700 font-medium">New programme entry</span>
 
-      <!-- Top-right action button -->
-      <div class="ml-auto">
+      <!-- Top-right action button (hidden on mobile) -->
+      <div class="ml-auto hidden sm:block">
         <button
           @click="() => router.push('/entries/new')"
           class="flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
@@ -400,7 +444,7 @@ async function continueToNext() {
       </div>
     </template>
     <!-- Page Header -->
-    <div class="flex items-start justify-between mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">{{ pageTitle }}</h1>
         <p class="text-sm text-gray-500 mt-0.5">
@@ -411,11 +455,11 @@ async function continueToNext() {
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 w-full sm:w-auto">
         <button
           @click="() => saveAndExit()"
           :disabled="isSaving"
-          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -426,7 +470,7 @@ async function continueToNext() {
         <button
           @click="continueToNext"
           :disabled="isSaving"
-          class="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -474,10 +518,69 @@ async function continueToNext() {
     </div>
 
     <!-- Two-column layout: Step Sidebar + Form -->
-    <div class="flex gap-6 items-start">
-      <!-- Step Sidebar -->
+    <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
+      <!-- Mobile Horizontal Stepper with progressive line (visible only on mobile/tablet) -->
+      <div class="lg:hidden w-full bg-white rounded-xl shadow-sm border border-gray-100 p-4 mb-2 relative select-none flex flex-col gap-2">
+        <div class="flex items-center justify-between relative z-10">
+          <!-- Background progressive line -->
+          <div class="absolute top-[14px] left-[28px] right-[28px] h-1 bg-gray-100 -z-10 rounded-full">
+            <div
+              class="bg-teal-600 h-1 rounded-full transition-all duration-500"
+              :style="{ width: ((currentStep - 1) / (steps.length - 1)) * 100 + '%' }"
+            ></div>
+          </div>
+
+          <!-- Step Bubbles -->
+          <div
+            v-for="step in steps"
+            :key="step.number"
+            @click="goToStep(step.number)"
+            class="flex flex-col items-center cursor-pointer"
+            :style="{ width: (100 / steps.length) + '%' }"
+          >
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all border-2 duration-300"
+              :class="[
+                completedSteps.has(step.number)
+                  ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm'
+                  : step.number === currentStep
+                    ? 'bg-teal-800 border-teal-800 text-white ring-4 ring-teal-100 shadow-md scale-105'
+                    : 'bg-slate-50 border-slate-200 text-slate-400 hover:border-teal-600 hover:text-teal-700'
+              ]"
+            >
+              <svg
+                v-if="completedSteps.has(step.number)"
+                class="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="3.5"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <template v-else>{{ step.number }}</template>
+            </div>
+            <span
+              class="text-[9px] font-bold mt-1.5 transition-colors text-center hidden xs:block truncate px-1 max-w-full"
+              :class="step.number === currentStep ? 'text-teal-900 font-extrabold' : 'text-gray-400'"
+            >
+              {{ step.title.split(' ')[0] }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Active Step Name Label -->
+        <div class="text-center mt-1 pt-2 border-t border-gray-100">
+          <span class="text-[9px] uppercase tracking-wider text-gray-400 font-extrabold block">Current Step</span>
+          <span class="text-xs font-extrabold text-teal-900 mt-0.5 block animate-fade-in">
+            {{ currentStep }} · {{ steps[currentStep - 1]?.title }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Desktop Step Sidebar (visible only on desktop) -->
       <aside
-        class="w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
+        class="hidden lg:block w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24"
       >
         <ul class="divide-y divide-gray-100">
           <li
@@ -485,7 +588,7 @@ async function continueToNext() {
             :key="step.number"
             class="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer select-none"
             :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'"
-            @click="currentStep = step.number"
+            @click="goToStep(step.number)"
           >
             <!-- Step bubble: checkmark if done, number otherwise -->
             <span
@@ -561,16 +664,12 @@ async function continueToNext() {
           v-model="section3Data"
         />
 
-        <!-- Step 4 Placeholder -->
-        <div
+        <!-- Step 4: Government Agreements -->
+        <AgreementsForm
           v-else-if="currentStep === 4"
-          class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none"
-        >
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 4: Government agreements</h3>
-          <p class="text-sm text-gray-500">
-            Government agreements form is currently in development. Use the sidebar to navigate.
-          </p>
-        </div>
+          ref="agreementsFormRef"
+          v-model="section4Data"
+        />
 
         <!-- Step 5: Keywords Form -->
         <div v-else-if="currentStep === 5">
@@ -588,26 +687,35 @@ async function continueToNext() {
         </div>
 
         <!-- Bottom Navigation -->
-        <div class="mt-6 flex items-center justify-end gap-2">
+        <div class="mt-6 flex items-center justify-end gap-2 w-full sm:w-auto">
           <button
             v-if="currentStep > 1"
             type="button"
             @click="goBack"
-            class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            class="flex-1 sm:flex-initial flex items-center justify-center px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            {{ backStepLabel }}
+            <span class="sm:hidden">← Back</span>
+            <span class="hidden sm:inline">{{ backStepLabel }}</span>
           </button>
 
           <button
             @click="continueToNext"
             :disabled="isSaving"
-            class="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none"
+            class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer select-none"
           >
             <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
-            {{ isSaving ? 'Saving...' : currentStep === 5 ? 'Finish & save' : nextStepLabel }}
+            <span v-if="isSaving">Saving...</span>
+            <template v-else>
+              <span class="sm:hidden">
+                {{ currentStep === 5 ? 'Finish & save' : 'Continue →' }}
+              </span>
+              <span class="hidden sm:inline">
+                {{ currentStep === 5 ? 'Finish & save' : nextStepLabel }}
+              </span>
+            </template>
           </button>
         </div>
       </div>
