@@ -22,5 +22,6 @@ export function useAuth() {
     // actions
     login: authStore.login,
     logout: authStore.logout,
+    fetchCurrentUser: authStore.fetchCurrentUser,
   }
 }

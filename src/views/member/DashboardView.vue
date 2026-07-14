@@ -48,8 +48,8 @@
       <!-- Entries list -->
       <div v-else class="divide-y divide-gray-100">
         <RouterLink
-          v-for="entry in entries.items"
-          :key="entry.id"
+          v-for="(entry, index) in entries.items"
+          :key="entry.id ?? index"
           :to="`/entries/new?id=${entry.id}`"
           class="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors group"
         >
@@ -87,7 +87,14 @@ import { useEntriesStore } from '@/stores/entries.store'
 const auth = useAuthStore()
 const entries = useEntriesStore()
 
-onMounted(() => {
+onMounted(async () => {
+  if (!auth.currentUser) {
+    try {
+      await auth.fetchCurrentUser()
+    } catch (e) {
+      console.error('Error fetching current user:', e)
+    }
+  }
   const orgId = auth.currentUser?.organisation_id
   if (orgId) {
     entries.fetchEntries(orgId as number)

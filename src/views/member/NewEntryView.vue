@@ -255,9 +255,9 @@ function validateCurrentStep(): boolean {
   }
   return true
 }
-async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Promise<void> {
-  if (isSaving.value && !loadingAlreadySet) return
-  if (!loadingAlreadySet && !validateCurrentStep()) return
+async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Promise<boolean> {
+  if (isSaving.value && !loadingAlreadySet) return false
+  if (!loadingAlreadySet && !validateCurrentStep()) return false
   if (!loadingAlreadySet) {
     isSaving.value = true
   }
@@ -438,6 +438,7 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
     if (exitAfterSave) {
       router.push('/dashboard')
     }
+    return true
   } catch (err: any) {
     // 6. Error — show error result message
     if (err.response && err.response.status === 422) {
@@ -454,6 +455,7 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
       showSubmissionResult('error', apiMessage)
       toast.error(apiMessage)
     }
+    return false
   } finally {
     // 7. Remove loading state + re-enable buttons
     isSaving.value = false
@@ -588,6 +590,14 @@ async function continueToNext() {
   }
 
   captureCurrentStepData()
+
+  // Save current step data to database before advancing
+  isSaving.value = true
+  const success = await saveEntry(false, true)
+  if (!success) {
+    return
+  }
+
   completedSteps.value.add(currentStep.value)
 
   if (currentStep.value < steps.length) {

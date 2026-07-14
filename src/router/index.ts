@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -38,12 +39,29 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('authToken')
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
-  } else if (to.name === 'login' && isAuthenticated) {
+    return
+  }
+
+  if (isAuthenticated) {
+    const authStore = useAuthStore()
+    if (!authStore.currentUser) {
+      try {
+        await authStore.fetchCurrentUser()
+      } catch (err) {
+        console.error('Error fetching user profile in router guard:', err)
+        authStore.logout()
+        next({ name: 'login' })
+        return
+      }
+    }
+  }
+
+  if (to.name === 'login' && isAuthenticated) {
     // All roles use the same dashboard; title changes based on role
     next({ name: 'dashboard' })
   } else {

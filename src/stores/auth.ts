@@ -109,6 +109,26 @@ export const useAuthStore = defineStore('auth', () => {
     window.location.href = '/login'
   }
 
+  async function fetchCurrentUser() {
+    if (!isAuthenticated.value) return null
+    loading.value = true
+    try {
+      const response = await authApi.getUser()
+      const user = response.data.data || response.data
+      currentUser.value = user
+      if (user?.id) {
+        currentUserId.value = user.id
+      }
+      return user
+    } catch (error) {
+      console.error('Failed to fetch current user profile:', error)
+      logout()
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     currentUserId,
     currentUser,
@@ -121,5 +141,6 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     clearErrors,
+    fetchCurrentUser,
   }
 })
