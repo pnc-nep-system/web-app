@@ -22,7 +22,13 @@ const router = createRouter({
       path: '/admin/dashboard',
       name: 'admin-dashboard',
       component: () => import('@/views/staff/DashboardView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/admin/taxonomy',
+      name: 'admin-taxonomy',
+      component: () => import('@/views/staff/TaxonomyAdminView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
       path: '/manager/dashboard',
@@ -58,6 +64,12 @@ router.beforeEach(async (to, from, next) => {
         next({ name: 'login' })
         return
       }
+    }
+
+    const allowedRoles = to.meta.roles as string[] | undefined
+    if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
+      next({ name: 'dashboard' })
+      return
     }
   }
 

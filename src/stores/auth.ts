@@ -116,6 +116,10 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authApi.getUser()
       const user = response.data.data || response.data
       currentUser.value = user
+      userRole.value = user?.role || userRole.value
+      if (user?.role) {
+        localStorage.setItem('userRole', user.role)
+      }
       if (user?.id) {
         currentUserId.value = user.id
       }
