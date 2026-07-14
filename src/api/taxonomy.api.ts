@@ -13,7 +13,7 @@ export interface TaxonomyCreatePayload {
 }
 
 export interface TaxonomyRenamePayload {
-  name: string
+  label: string
 }
 
 export interface OtherQueuePayload {

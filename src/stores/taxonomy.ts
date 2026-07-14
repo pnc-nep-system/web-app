@@ -164,7 +164,7 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
 
     loading.value = true
     try {
-      await taxonomyApi.rename(toApiNodeType(kind), id, { name: label })
+      await taxonomyApi.rename(toApiNodeType(kind), id, { label })
       node.label = label
       writeCache(categories.value)
     } finally {
