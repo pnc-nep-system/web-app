@@ -3,7 +3,8 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
 
 export const useAuthStore = defineStore('auth', () => {
-  // --- State ---
+
+  const token = ref<string | null>(sessionStorage.getItem('authToken'))
   const currentUserId = ref<string | null>(null)
   const currentUser = ref<Record<string, unknown> | null>(null)
   const authError = ref('')
@@ -11,29 +12,16 @@ export const useAuthStore = defineStore('auth', () => {
   const fieldErrors = ref<Record<string, string[]>>({})
   const loading = ref(false)
 
-  // Reactive role — kept in sync with localStorage on login/logout
-  const userRole = ref<string>(localStorage.getItem('userRole') ?? '')
+  const userRole = ref<string>(sessionStorage.getItem('userRole') ?? '')
 
-  // --- Getters ---
-  const isAuthenticated = computed(() => !!localStorage.getItem('authToken'))
+  const isAuthenticated = computed(() => !!token.value)
 
-  // --- Actions ---
-
-  /**
-   * Clears all error state — called before each new login attempt
-   * and when the user fills a demo account.
-   */
   function clearErrors() {
     authError.value = ''
     networkError.value = ''
     fieldErrors.value = {}
   }
 
-  /**
-   * Hits the backend authentication login endpoint.
-   * Returns true on success, false on any failure.
-   * Sets authError, networkError, or fieldErrors so the UI can react.
-   */
   async function login(email: string, password: string) {
     loading.value = true
     clearErrors()
@@ -41,13 +29,14 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authApi.login({ email, password })
       // API returns: { message, token, user: { id, name, email, role, ... } }
-      const { token, user } = response.data
+      const { token: newToken, user } = response.data
 
-      // Store token and role locally to maintain user session
-      localStorage.setItem('authToken', token || 'default_token')
-      localStorage.setItem('userRole', user?.role || 'user')
+      token.value = newToken || 'default_token'
       userRole.value = user?.role || 'user'
       currentUser.value = user ?? null
+
+      sessionStorage.setItem('authToken', token.value)
+      sessionStorage.setItem('userRole', userRole.value)
 
       if (user?.id) {
         currentUserId.value = user.id
@@ -70,7 +59,6 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
       const res = axiosError.response
-
       // Network / server unreachable — no response object
       if (
         !res ||
@@ -82,7 +70,6 @@ export const useAuthStore = defineStore('auth', () => {
           'Unable to connect to the server. Please check your internet connection or try again later.'
         return false
       }
-
       // HTTP 401 — invalid credentials
       if (res.status === 401) {
         authError.value = 'Invalid email or password.'
@@ -100,12 +87,14 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
   }
+
   function logout() {
+    token.value = null
     currentUserId.value = null
     currentUser.value = null
     userRole.value = ''
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('userRole')
+    sessionStorage.removeItem('authToken')
+    sessionStorage.removeItem('userRole')
     window.location.href = '/login'
   }
 
@@ -118,7 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
       currentUser.value = user
       userRole.value = user?.role || userRole.value
       if (user?.role) {
-        localStorage.setItem('userRole', user.role)
+        sessionStorage.setItem('userRole', userRole.value)
       }
       if (user?.id) {
         currentUserId.value = user.id
@@ -134,6 +123,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
+    token,
     currentUserId,
     currentUser,
     authError,

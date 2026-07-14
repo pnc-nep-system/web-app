@@ -45,40 +45,37 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('authToken')
+router.beforeEach(async (to) => {
+  const authStore = useAuthStore()
+  const isAuthenticated = authStore.isAuthenticated
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'login' })
-    return
+    return { name: 'login' }
   }
 
   if (isAuthenticated) {
-    const authStore = useAuthStore()
     if (!authStore.currentUser) {
       try {
         await authStore.fetchCurrentUser()
       } catch (err) {
         console.error('Error fetching user profile in router guard:', err)
         authStore.logout()
-        next({ name: 'login' })
-        return
+        return { name: 'login' }
       }
     }
 
     const allowedRoles = to.meta.roles as string[] | undefined
     if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
-      next({ name: 'dashboard' })
-      return
+      return { name: 'dashboard' }
     }
   }
 
   if (to.name === 'login' && isAuthenticated) {
     // All roles use the same dashboard; title changes based on role
-    next({ name: 'dashboard' })
-  } else {
-    next()
+    return { name: 'dashboard' }
   }
+
+  return true
 })
 
 export default router
