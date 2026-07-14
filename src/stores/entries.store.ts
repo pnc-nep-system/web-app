@@ -1,11 +1,24 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { memberApi } from '@/api/member.api'
 import type { ProgrammeIdentity } from '@/types/programme'
+
+export interface EntryWithStatus extends ProgrammeIdentity {
+  status: string
+  statusVariant: 'warning' | 'success'
+}
 
 export const useEntriesStore = defineStore('entries', () => {
   const items = ref<ProgrammeIdentity[]>([])
   const loading = ref(false)
+
+  const entriesWithStatus = computed<EntryWithStatus[]>(() =>
+    items.value.map(entry => ({
+      ...entry,
+      status: entry.isUnverified ? 'Unverified' : 'Verified',
+      statusVariant: entry.isUnverified ? 'warning' : 'success' as const,
+    }))
+  )
 
   async function fetchEntries(organisationId: number | string) {
     loading.value = true
@@ -31,5 +44,5 @@ export const useEntriesStore = defineStore('entries', () => {
     }
   }
 
-  return { items, loading, fetchEntries }
+  return { items, loading, entriesWithStatus, fetchEntries }
 })

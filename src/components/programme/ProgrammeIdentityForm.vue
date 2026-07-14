@@ -28,6 +28,7 @@ const formData = ref<ProgrammeIdentity>({
   indirectBeneficiaries: props.modelValue?.indirectBeneficiaries ?? null,
   method: props.modelValue?.method ?? '',
   verifiedDate: props.modelValue?.verifiedDate ?? '',
+  isUnverified: props.modelValue?.isUnverified ?? false,
 })
 
 // Watch props.modelValue to sync changes down to formData (e.g. when loading from API)
@@ -54,6 +55,9 @@ watch(() => props.modelValue?.method, (val) => {
 })
 watch(() => props.modelValue?.verifiedDate, (val) => {
   if (val !== undefined && val !== formData.value.verifiedDate) formData.value.verifiedDate = val
+})
+watch(() => props.modelValue?.isUnverified, (val) => {
+  if (val !== undefined && val !== formData.value.isUnverified) formData.value.isUnverified = val
 })
 // ── Client-side validation ────────────────────────────────────────────────────
 const clientErrors = ref<Record<string, string>>({})
