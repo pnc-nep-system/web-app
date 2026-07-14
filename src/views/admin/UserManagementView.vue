@@ -127,6 +127,22 @@ async function handleDeactivateConfirm() {
     deactivateTarget.value = null
   }
 }
+
+// ─── Pagination helpers ───────────────────────────────────────────────────────
+
+/** Generate a smart page range (max 5 buttons, with ellipsis-like gaps) */
+function pageRange(): number[] {
+  if (lastPage.value <= 5) {
+    return Array.from({ length: lastPage.value }, (_, i) => i + 1)
+  }
+  const pages = new Set<number>()
+  pages.add(1)
+  pages.add(lastPage.value)
+  for (let i = Math.max(2, currentPage.value - 1); i <= Math.min(lastPage.value - 1, currentPage.value + 1); i++) {
+    pages.add(i)
+  }
+  return [...pages].sort((a, b) => a - b)
+}
 </script>
 
 <template>
@@ -139,23 +155,33 @@ async function handleDeactivateConfirm() {
     </template>
 
     <!-- ── Page Header ────────────────────────────────────────────────────── -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-xl font-bold text-[var(--ink-900)]">User Management</h1>
-        <p class="text-xs text-[var(--ink-400)] mt-0.5">
-          Manage system accounts, roles and organisation access permissions.
-        </p>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h1>User Management</h1>
+        <p>Manage system accounts, roles and organisation access.</p>
       </div>
 
-      <button id="create-user-btn" class="btn btn-primary shrink-0" @click="openCreateModal">
+      <button id="create-user-btn" class="btn btn-primary" @click="openCreateModal">
         <BaseIcon name="plus" :size="14" />
         Create User
       </button>
     </div>
 
-    <!-- ── Search & Filter ────────────────────────────────────────────────── -->
-    <div class="relative mb-4 max-w-sm">
-      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-400)] pointer-events-none">
+    <!-- ── Stats Row ──────────────────────────────────────────────────────── -->
+    <div v-if="!isLoading && totalItems > 0" class="stats-row">
+      <div class="stat-chip">
+        <BaseIcon name="users" :size="14" />
+        <span><strong>{{ totalItems }}</strong> total users</span>
+      </div>
+      <div class="stat-chip">
+        <BaseIcon name="check" :size="14" />
+        <span><strong>{{ users.filter(u => u.status === 'active').length }}</strong> active</span>
+      </div>
+    </div>
+
+    <!-- ── Search ─────────────────────────────────────────────────────────── -->
+    <div class="search-container">
+      <span class="search-icon">
         <BaseIcon name="search" :size="15" />
       </span>
       <input
@@ -163,15 +189,12 @@ async function handleDeactivateConfirm() {
         v-model="searchQuery"
         type="text"
         placeholder="Search by name or email…"
-        class="w-full border border-[var(--line)] rounded-lg pl-9 pr-4 py-2.5
-               text-sm text-[var(--ink-900)] bg-white
-               focus:outline-none focus:border-[var(--teal-600)] focus:ring-2 focus:ring-[var(--teal-100)]
-               transition"
+        class="search-input"
       />
     </div>
 
     <!-- ── User List Table ────────────────────────────────────────────────── -->
-    <div class="space-y-4">
+    <div class="table-section">
       <UserTable
         :users="users"
         :is-loading="isLoading"
@@ -182,37 +205,37 @@ async function handleDeactivateConfirm() {
 
       <!-- Pagination footer -->
       <div
-        v-if="!isLoading && totalItems > 0"
-        class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-4
-               card bg-white"
+        v-if="!isLoading && totalItems > perPage"
+        class="pagination-bar"
       >
-        <span class="text-xs text-[var(--ink-500)]">
-          Showing {{ totalItems > 0 ? (currentPage - 1) * perPage + 1 : 0 }} to
-          {{ Math.min(currentPage * perPage, totalItems) }} of {{ totalItems }} users
+        <span class="pagination-info">
+          Showing {{ (currentPage - 1) * perPage + 1 }}–{{ Math.min(currentPage * perPage, totalItems) }}
+          of {{ totalItems }}
         </span>
-        <div class="flex items-center gap-1.5">
+        <div class="pagination-btns">
           <button
-            class="btn btn-secondary btn-sm"
+            class="pg-btn"
             :disabled="currentPage === 1"
             @click="fetchUsers(currentPage - 1)"
           >
-            Previous
+            ‹ Prev
           </button>
+          <template v-for="(p, idx) in pageRange()" :key="p">
+            <span v-if="idx > 0 && p - pageRange()[idx - 1] > 1" class="pg-ellipsis">…</span>
+            <button
+              class="pg-btn"
+              :class="{ active: p === currentPage }"
+              @click="fetchUsers(p)"
+            >
+              {{ p }}
+            </button>
+          </template>
           <button
-            v-for="p in lastPage"
-            :key="p"
-            class="btn btn-sm"
-            :class="p === currentPage ? 'btn-primary' : 'btn-secondary'"
-            @click="fetchUsers(p)"
-          >
-            {{ p }}
-          </button>
-          <button
-            class="btn btn-secondary btn-sm"
+            class="pg-btn"
             :disabled="currentPage === lastPage"
             @click="fetchUsers(currentPage + 1)"
           >
-            Next
+            Next ›
           </button>
         </div>
       </div>
@@ -248,3 +271,159 @@ async function handleDeactivateConfirm() {
   <ToastHost />
 </template>
 
+<style scoped>
+/* ── Page Header ── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+  }
+}
+.page-header-text h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink-900);
+  letter-spacing: -0.02em;
+}
+.page-header-text p {
+  font-size: 13px;
+  color: var(--ink-400);
+  margin-top: 4px;
+}
+
+/* ── Stats ── */
+.stats-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 12.5px;
+  color: var(--ink-500);
+}
+.stat-chip strong {
+  color: var(--ink-900);
+  font-weight: 700;
+}
+
+/* ── Search ── */
+.search-container {
+  position: relative;
+  max-width: 360px;
+  margin-bottom: 16px;
+}
+.search-icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink-400);
+  pointer-events: none;
+  display: flex;
+}
+.search-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px 10px 38px;
+  font-size: 13px;
+  color: var(--ink-900);
+  background: var(--card);
+  transition: all 0.15s ease;
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--teal-600);
+  box-shadow: 0 0 0 3px var(--teal-100);
+}
+.search-input::placeholder {
+  color: var(--ink-300);
+}
+
+/* ── Table Section ── */
+.table-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Pagination ── */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-top: none;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+@media (max-width: 640px) {
+  .pagination-bar {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+.pagination-info {
+  font-size: 12px;
+  color: var(--ink-400);
+}
+.pagination-btns {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.pg-btn {
+  min-width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-600);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+.pg-btn:hover:not(:disabled) {
+  border-color: var(--teal-600);
+  color: var(--teal-700);
+  background: var(--teal-50);
+}
+.pg-btn.active {
+  background: var(--teal-800);
+  border-color: var(--teal-800);
+  color: #fff;
+}
+.pg-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.pg-ellipsis {
+  display: inline-flex;
+  width: 28px;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--ink-400);
+}
+</style>
