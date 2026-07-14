@@ -528,7 +528,8 @@ function goToStep(stepNumber: number) {
     toast.error('Please fill in the Programme identity (Name and Start year) before navigating to other steps.')
     return
   }
-  if (!validateCurrentStep()) {
+  // Only validate when leaving Step 1
+  if (currentStep.value === 1 && !validateCurrentStep()) {
     return
   }
   captureCurrentStepData()
