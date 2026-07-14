@@ -36,11 +36,23 @@ const router = createRouter({
       component: () => import('@/views/member/NewEntryView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('@/views/admin/UserManagementView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/403',
+      name: 'forbidden',
+      component: () => import('@/views/errors/403.vue'),
+    },
   ],
 })
 
 router.beforeEach(async (to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('authToken')
+  const authStore = useAuthStore()
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next({ name: 'login' })
@@ -48,7 +60,6 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if (isAuthenticated) {
-    const authStore = useAuthStore()
     if (!authStore.currentUser) {
       try {
         await authStore.fetchCurrentUser()
@@ -59,11 +70,32 @@ router.beforeEach(async (to, from, next) => {
         return
       }
     }
+
+    // Role-based authorization check
+    if (to.meta.roles) {
+      const allowedRoles = to.meta.roles as string[]
+      const userRole = (authStore.currentUser as any)?.role || localStorage.getItem('userRole')
+      if (!allowedRoles.includes(userRole)) {
+        next({ name: 'forbidden' })
+        return
+      }
+    }
   }
 
   if (to.name === 'login' && isAuthenticated) {
-    // All roles use the same dashboard; title changes based on role
-    next({ name: 'dashboard' })
+    const userRole = localStorage.getItem('userRole') || (authStore.currentUser as any)?.role
+    if (userRole === 'nep_admin') {
+      next({ name: 'admin-users' })
+    } else {
+      next({ name: 'dashboard' })
+    }
+  } else if ((to.path === '/dashboard' || to.name === 'dashboard') && isAuthenticated) {
+    const userRole = localStorage.getItem('userRole') || (authStore.currentUser as any)?.role
+    if (userRole === 'nep_admin') {
+      next({ name: 'admin-users' })
+    } else {
+      next()
+    }
   } else {
     next()
   }

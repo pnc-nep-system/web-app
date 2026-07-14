@@ -6,10 +6,18 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 const auth = useAuthStore()
 const isSidebarOpen = ref(false)
 
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-  { to: '/account', label: 'Organisation profile', icon: 'building' },
-]
+const navItems = computed(() => {
+  if (auth.userRole === 'nep_admin') {
+    return [
+      { to: '/admin/users', label: 'User Management', icon: 'users' },
+    ]
+  }
+
+  return [
+    { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { to: '/account', label: 'Organisation Profile', icon: 'building' },
+  ]
+})
 
 // Derive a human-friendly title from the stored role
 const portalTitle = computed(() => {
