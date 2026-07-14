@@ -636,17 +636,6 @@ async function continueToNext() {
           </svg>
           {{ isSaving ? 'Saving...' : 'Save & exit' }}
         </button>
-        <button @click="continueToNext" :disabled="isSaving"
-          class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-white bg-teal-800 hover:bg-teal-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
-          <svg v-if="isSaving" class="animate-spin -ml-1 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
-            fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-          </svg>
-          {{ isSaving ? 'Saving...' : currentStep === 5 ? 'Finish & save' : 'Continue' }} <span v-if="!isSaving"
-            class="text-base">→</span>
-        </button>
       </div>
     </div>
 
@@ -722,48 +711,100 @@ async function continueToNext() {
       </div>
 
       <!-- Desktop Step Sidebar (visible only on desktop) -->
-      <aside
-        class="hidden lg:block w-64 shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden sticky top-24">
-        <ul class="divide-y divide-gray-100">
-          <li v-for="step in steps" :key="step.number"
-            class="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer select-none"
-            :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'" @click="goToStep(step.number)">
-            <!-- Step bubble: checkmark if done, number otherwise -->
-            <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
-              :class="completedSteps.has(step.number)
-                  ? 'bg-green-600 text-white'
-                  : step.number === currentStep
-                    ? 'bg-teal-800 text-white'
-                    : 'bg-gray-100 text-gray-500'
-                ">
-              <svg v-if="completedSteps.has(step.number)" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor" stroke-width="3">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              <template v-else>{{ step.number }}</template>
-            </span>
+      <div class="hidden lg:flex flex-col gap-4 w-64 shrink-0 sticky top-24 select-none">
+        <aside
+          class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <ul class="divide-y divide-gray-100">
+            <li v-for="step in steps" :key="step.number"
+              class="flex items-start gap-3 px-4 py-3.5 transition-colors cursor-pointer select-none"
+              :class="step.number === currentStep ? 'bg-teal-50' : 'hover:bg-gray-50'" @click="goToStep(step.number)">
+              <!-- Step bubble: checkmark if done, number otherwise -->
+              <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+                :class="completedSteps.has(step.number)
+                    ? 'bg-green-600 text-white'
+                    : step.number === currentStep
+                      ? 'bg-teal-800 text-white'
+                      : 'bg-gray-100 text-gray-500'
+                  ">
+                <svg v-if="completedSteps.has(step.number)" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor" stroke-width="3">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <template v-else>{{ step.number }}</template>
+              </span>
 
-            <div>
-              <p class="text-sm font-semibold" :class="step.number === currentStep ? 'text-teal-900' : 'text-gray-600'">
-                {{ step.title }}
-              </p>
-              <p class="text-xs text-gray-400 mt-0.5">{{ step.subtitle }}</p>
+              <div>
+                <p class="text-sm font-semibold" :class="step.number === currentStep ? 'text-teal-900' : 'text-gray-600'">
+                  {{ step.title }}
+                </p>
+                <p class="text-xs text-gray-400 mt-0.5">{{ step.subtitle }}</p>
+              </div>
+            </li>
+          </ul>
+
+          <!-- Section Progress -->
+          <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
+            <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+              <span>Section progress</span>
+              <span class="font-semibold text-gray-700">{{ currentStep }} of {{ steps.length }}</span>
             </div>
-          </li>
-        </ul>
-
-        <!-- Section Progress -->
-        <div class="px-4 py-3 border-t border-gray-100 bg-gray-50">
-          <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
-            <span>Section progress</span>
-            <span class="font-semibold text-gray-700">{{ currentStep }} of {{ steps.length }}</span>
+            <div class="w-full bg-gray-200 rounded-full h-1.5">
+              <div class="bg-teal-600 h-1.5 rounded-full transition-all duration-500"
+                :style="{ width: progressPercent + '%' }" />
+            </div>
           </div>
-          <div class="w-full bg-gray-200 rounded-full h-1.5">
-            <div class="bg-teal-600 h-1.5 rounded-full transition-all duration-500"
-              :style="{ width: progressPercent + '%' }" />
+        </aside>
+
+        <!-- Navigation Guide Message -->
+        <div 
+          :class="[
+            'p-4 border rounded-xl flex gap-3 text-xs shadow-sm transition-all duration-300',
+            (!section1Data.name?.trim() || !section1Data.startYear)
+              ? 'bg-amber-50/70 border-amber-200 text-amber-900'
+              : 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+          ]"
+        >
+          <span class="shrink-0 mt-0.5">
+            <!-- Warning Icon -->
+            <svg 
+              v-if="!section1Data.name?.trim() || !section1Data.startYear" 
+              class="w-4 h-4 text-amber-600" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <!-- Unlocked Check Icon -->
+            <svg 
+              v-else 
+              class="w-4 h-4 text-emerald-600" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor" 
+              stroke-width="2"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </span>
+          <div>
+            <p 
+              class="font-semibold mb-0.5"
+              :class="(!section1Data.name?.trim() || !section1Data.startYear) ? 'text-amber-950' : 'text-emerald-950'"
+            >
+              {{ (!section1Data.name?.trim() || !section1Data.startYear) ? 'Navigation Restricted' : 'Navigation Unlocked' }}
+            </p>
+            <p class="leading-relaxed opacity-90">
+              {{ 
+                (!section1Data.name?.trim() || !section1Data.startYear) 
+                  ? 'Complete Step 1: Programme identity (Name and Start year) to freely jump to other steps.' 
+                  : 'Step 1 complete! You can now freely click and jump to any step in the sidebar.' 
+              }}
+            </p>
           </div>
         </div>
-      </aside>
+      </div>
 
       <!-- Form Content Container -->
       <div class="flex-1 min-w-0">
