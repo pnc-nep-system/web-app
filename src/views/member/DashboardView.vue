@@ -47,29 +47,35 @@
 
       <!-- Entries list -->
       <div v-else class="divide-y divide-gray-100">
+        <!-- Column headers -->
+        <div class="hidden sm:grid grid-cols-12 gap-4 px-5 py-2 text-xs font-medium text-gray-400 uppercase tracking-wider">
+          <div class="col-span-6">Name</div>
+          <div class="col-span-3">Years</div>
+          <div class="col-span-3 text-right">Status</div>
+        </div>
         <RouterLink
-          v-for="(entry, index) in entries.items"
+          v-for="(entry, index) in entries.entriesWithStatus"
           :key="entry.id ?? index"
           :to="`/entries/new?id=${entry.id}`"
-          class="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors group"
+          class="grid grid-cols-12 gap-4 items-center px-5 py-3.5 hover:bg-gray-50 transition-colors group"
         >
-          <div class="flex items-center gap-3 min-w-0">
+          <div class="col-span-6 flex items-center gap-3 min-w-0">
             <div class="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-700 text-xs font-bold shrink-0">
               {{ (entry.name || 'P').charAt(0).toUpperCase() }}
             </div>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-gray-800 truncate">{{ entry.name || 'Untitled' }}</span>
-                <StatusBadge v-if="entry.isUnverified" label="Unverified" variant="warning" />
-              </div>
-              <span class="text-xs text-gray-400">
-                {{ entry.startYear }}{{ entry.endYear ? ` – ${entry.endYear}` : '' }}{{ entry.isOngoing ? ' · Ongoing' : '' }}
-              </span>
-            </div>
+            <span class="text-sm font-medium text-gray-800 truncate">{{ entry.name || 'Untitled' }}</span>
           </div>
-          <svg class="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
+          <div class="col-span-3 text-xs text-gray-400 hidden sm:block">
+            {{ entry.startYear }}{{ entry.endYear ? ` – ${entry.endYear}` : '' }}{{ entry.isOngoing ? ' · Ongoing' : '' }}
+          </div>
+          <div class="col-span-2 text-right">
+            <StatusBadge :label="entry.status" :variant="entry.statusVariant" />
+          </div>
+          <div class="col-span-1 flex justify-end">
+            <svg class="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
         </RouterLink>
       </div>
     </div>
