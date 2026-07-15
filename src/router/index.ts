@@ -22,7 +22,13 @@ const router = createRouter({
       path: '/admin/dashboard',
       name: 'admin-dashboard',
       component: () => import('@/views/staff/DashboardView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/admin/taxonomy',
+      name: 'admin-taxonomy',
+      component: () => import('@/views/staff/TaxonomyAdminView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
       path: '/manager/dashboard',
@@ -50,13 +56,18 @@ const router = createRouter({
   ],
 })
 
+<<<<<<< HEAD
 router.beforeEach(async (to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('authToken')
   const authStore = useAuthStore()
+=======
+router.beforeEach(async (to) => {
+  const authStore = useAuthStore()
+  const isAuthenticated = authStore.isAuthenticated
+>>>>>>> 0baea147829107158aa36361503425506349bd87
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'login' })
-    return
+    return { name: 'login' }
   }
 
   if (isAuthenticated) {
@@ -66,11 +77,11 @@ router.beforeEach(async (to, from, next) => {
       } catch (err) {
         console.error('Error fetching user profile in router guard:', err)
         authStore.logout()
-        next({ name: 'login' })
-        return
+        return { name: 'login' }
       }
     }
 
+<<<<<<< HEAD
     // Role-based authorization check
     if (to.meta.roles) {
       const allowedRoles = to.meta.roles as string[]
@@ -79,10 +90,16 @@ router.beforeEach(async (to, from, next) => {
         next({ name: 'forbidden' })
         return
       }
+=======
+    const allowedRoles = to.meta.roles as string[] | undefined
+    if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
+      return { name: 'dashboard' }
+>>>>>>> 0baea147829107158aa36361503425506349bd87
     }
   }
 
   if (to.name === 'login' && isAuthenticated) {
+<<<<<<< HEAD
     const userRole = localStorage.getItem('userRole') || (authStore.currentUser as any)?.role
     if (userRole === 'nep_admin') {
       next({ name: 'admin-users' })
@@ -98,7 +115,13 @@ router.beforeEach(async (to, from, next) => {
     }
   } else {
     next()
+=======
+    // All roles use the same dashboard; title changes based on role
+    return { name: 'dashboard' }
+>>>>>>> 0baea147829107158aa36361503425506349bd87
   }
+
+  return true
 })
 
 export default router

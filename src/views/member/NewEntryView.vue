@@ -27,6 +27,7 @@ const steps = [
   { number: 5, title: 'Keywords', subtitle: 'Up to 5 tags' },
 ]
 
+<<<<<<< HEAD
 const dbIdToCodeMap: Record<number, string> = {
   1: 'B1.1',
   3: 'B2.2',
@@ -98,6 +99,11 @@ const taxonomyMap: Record<string, number> = {
   'B9.3': 63,
   'B9.4': 65
 }
+=======
+const dbIdToCodeMap: Record<number, string> = {}
+
+const taxonomyMap: Record<string, number> = {}
+>>>>>>> 0baea147829107158aa36361503425506349bd87
 
 const currentStep = ref(1)
 const isSaving = ref(false)
@@ -176,6 +182,21 @@ function showSubmissionResult(type: 'success' | 'error', message: string) {
 }
 
 onMounted(async () => {
+  try {
+    const taxRes = await memberApi.getTaxonomyCategories()
+    const cats = taxRes.data || []
+    cats.forEach((cat: any) => {
+      cat.subcategories?.forEach((sub: any) => {
+        sub.items?.forEach((item: any) => {
+          dbIdToCodeMap[item.id] = item.code
+          taxonomyMap[item.code] = item.id
+        })
+      })
+    })
+  } catch (err) {
+    console.error('Failed to load taxonomy metadata:', err)
+  }
+
   const entryId = route.query.id
   if (entryId) {
     try {

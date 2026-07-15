@@ -34,17 +34,30 @@ const toggleLevel = (id: number) => {
     <label
       v-for="level in educationLevels"
       :key="level.id"
-      class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border cursor-pointer select-none transition-colors"
-      :class="modelValue.includes(level.id) ? 'border-teal-300 bg-teal-50/30' : 'border-gray-200 bg-white hover:bg-gray-50'"
+      class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer select-none transition-all duration-200 text-xs font-medium"
+      :class="modelValue.includes(level.id)
+        ? 'border-teal-700 bg-teal-50/20 text-teal-900 shadow-sm'
+        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'"
     >
       <input
         type="checkbox"
         :value="level.id"
         :checked="modelValue.includes(level.id)"
         @change="toggleLevel(level.id)"
-        class="h-3.5 w-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500 accent-teal-700 cursor-pointer"
+        class="sr-only"
       />
-      <span class="text-xs font-semibold text-gray-700">
+      <!-- Custom Checkbox -->
+      <div
+        class="h-3.5 w-3.5 rounded border flex items-center justify-center transition-all duration-200 shrink-0"
+        :class="modelValue.includes(level.id)
+          ? 'border-teal-700 bg-teal-700 text-white'
+          : 'border-slate-300 bg-white'"
+      >
+        <svg v-if="modelValue.includes(level.id)" class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="4">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <span>
         {{ level.name }}
       </span>
     </label>
