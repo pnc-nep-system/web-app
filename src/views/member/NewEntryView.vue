@@ -29,12 +29,74 @@ const steps = [
 
 const dbIdToCodeMap: Record<number, string> = {
   1: 'B1.1',
-  3: 'B2.2'
+  3: 'B2.2',
+  5: 'B1.2',
+  7: 'B1.3',
+  9: 'B1.4',
+  11: 'B1.5',
+  13: 'B2.1',
+  15: 'B2.3',
+  17: 'B2.4',
+  19: 'B3.1',
+  21: 'B3.2',
+  23: 'B3.3',
+  25: 'B3.4',
+  27: 'B4.1',
+  29: 'B4.2',
+  31: 'B4.3',
+  33: 'B4.4',
+  35: 'B5.1',
+  37: 'B5.2',
+  39: 'B5.3',
+  41: 'B6.1',
+  43: 'B6.2',
+  45: 'B6.3',
+  47: 'B7.1',
+  49: 'B7.2',
+  51: 'B7.3',
+  53: 'B8.1',
+  55: 'B8.2',
+  57: 'B8.3',
+  59: 'B9.1',
+  61: 'B9.2',
+  63: 'B9.3',
+  65: 'B9.4'
 }
 
 const taxonomyMap: Record<string, number> = {
   'B1.1': 1,
-  'B2.2': 3
+  'B1.2': 5,
+  'B1.3': 7,
+  'B1.4': 9,
+  'B1.5': 11,
+  'B2.1': 13,
+  'B2.2': 3,
+  'B2.3': 15,
+  'B2.4': 17,
+  'B3.1': 19,
+  'B3.2': 21,
+  'B3.3': 23,
+  'B3.4': 25,
+  'B4.1': 27,
+  'B4.2': 29,
+  'B4.3': 31,
+  'B4.4': 33,
+  'B5.1': 35,
+  'B5.2': 37,
+  'B5.3': 39,
+  'B6.1': 41,
+  'B6.2': 43,
+  'B6.3': 45,
+  'B7.1': 47,
+  'B7.2': 49,
+  'B7.3': 51,
+  'B8.1': 53,
+  'B8.2': 55,
+  'B8.3': 57,
+  'B9.1': 59,
+  'B9.2': 61,
+  'B9.3': 63,
+  'B9.4': 65
 }
 
 const currentStep = ref(1)
@@ -261,6 +323,7 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
   if (!loadingAlreadySet) {
     isSaving.value = true
   }
+  captureCurrentStepData()
   saveStatus.value = 'saving'
   errors.value = {}
   clearSubmissionResult()
@@ -512,6 +575,8 @@ async function saveAndExit(loadingAlreadySet = false) {
 function captureCurrentStepData() {
   if (currentStep.value === 2 && activitiesFormRef.value) {
     section2Data.value = activitiesFormRef.value.getData()
+  } else if (currentStep.value === 3 && geographicFormRef.value) {
+    section3Data.value = geographicFormRef.value.getData()
   } else if (currentStep.value === 4 && agreementsFormRef.value) {
     section4Data.value = agreementsFormRef.value.getData()
   }
