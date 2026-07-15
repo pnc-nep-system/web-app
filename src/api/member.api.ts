@@ -1,4 +1,5 @@
 import api from './axios';
+import { taxonomyApi } from './taxonomy.api';
 import type { ProgrammeIdentity, Province, District } from '@/types/programme'
 
 export const memberApi = {
@@ -34,6 +35,16 @@ export const memberApi = {
   },
   getGeography(id: number | string) {
     return api.get(`/programme-entries/${id}/geography`);
+  },
+  getDraftProgrammeEntries(page = 1) {
+    return api.get(`/programme-entries/draft?page=${page}`);
+  },
+  getSubmittedProgrammeEntries(page = 1) {
+    return api.get(`/programme-entries/submitted?page=${page}`);
+  },
+  getTaxonomyCategories() {
+    return taxonomyApi.list();
   }
 };
+
 

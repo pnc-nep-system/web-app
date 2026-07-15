@@ -1,57 +1,66 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
+import { connectRealtimeForRole, disconnectRealtime } from '@/realtime'
 
 export const useAuthStore = defineStore('auth', () => {
-  // --- State ---
-  const currentUserId = ref<string | null>(null)
+  const isLoggedIn = ref<boolean>(sessionStorage.getItem('isLoggedIn') === 'true')
+  const currentUserId = ref<string | null>(sessionStorage.getItem('currentUserId'))
   const currentUser = ref<Record<string, unknown> | null>(null)
   const authError = ref('')
   const networkError = ref('')
   const fieldErrors = ref<Record<string, string[]>>({})
   const loading = ref(false)
+  const userRole = ref<string>(sessionStorage.getItem('userRole') ?? '')
 
-  // Reactive role — kept in sync with localStorage on login/logout
-  const userRole = ref<string>(localStorage.getItem('userRole') ?? '')
+  const isAuthenticated = computed(() => isLoggedIn.value)
 
-  // --- Getters ---
-  const isAuthenticated = computed(() => !!localStorage.getItem('authToken'))
-
-  // --- Actions ---
-
-  /**
-   * Clears all error state — called before each new login attempt
-   * and when the user fills a demo account.
-   */
   function clearErrors() {
     authError.value = ''
     networkError.value = ''
     fieldErrors.value = {}
   }
 
-  /**
-   * Hits the backend authentication login endpoint.
-   * Returns true on success, false on any failure.
-   * Sets authError, networkError, or fieldErrors so the UI can react.
-   */
+  function rememberUser(user: Record<string, unknown> | null) {
+    currentUser.value = user
+    userRole.value = typeof user?.role === 'string' ? user.role : ''
+    currentUserId.value = user?.id ? String(user.id) : null
+    isLoggedIn.value = Boolean(user)
+
+    if (user) {
+      sessionStorage.setItem('isLoggedIn', 'true')
+      sessionStorage.setItem('userRole', userRole.value)
+      if (currentUserId.value) {
+        sessionStorage.setItem('currentUserId', currentUserId.value)
+      }
+      connectRealtimeForRole(userRole.value)
+    } else {
+      disconnectRealtime()
+      sessionStorage.removeItem('isLoggedIn')
+      sessionStorage.removeItem('userRole')
+      sessionStorage.removeItem('currentUserId')
+    }
+  }
+
+  function clearAuthState(redirectToLogin = false) {
+    rememberUser(null)
+
+    if (redirectToLogin && window.location.pathname !== '/login') {
+      window.location.assign('/login')
+    }
+  }
+
   async function login(email: string, password: string) {
     loading.value = true
     clearErrors()
 
     try {
+      await authApi.getCsrfCookie()
+
       const response = await authApi.login({ email, password })
-      // API returns: { message, token, user: { id, name, email, role, ... } }
-      const { token, user } = response.data
+      const { user } = response.data
 
-      // Store token and role locally to maintain user session
-      localStorage.setItem('authToken', token || 'default_token')
-      localStorage.setItem('userRole', user?.role || 'user')
-      userRole.value = user?.role || 'user'
-      currentUser.value = user ?? null
-
-      if (user?.id) {
-        currentUserId.value = user.id
-      }
+      rememberUser(user ?? null)
 
       loading.value = false
       return true
@@ -71,7 +80,6 @@ export const useAuthStore = defineStore('auth', () => {
       }
       const res = axiosError.response
 
-      // Network / server unreachable — no response object
       if (
         !res ||
         axiosError.code === 'ERR_NETWORK' ||
@@ -83,7 +91,6 @@ export const useAuthStore = defineStore('auth', () => {
         return false
       }
 
-      // HTTP 401 — invalid credentials
       if (res.status === 401) {
         authError.value = 'Invalid email or password.'
         return false
@@ -95,34 +102,33 @@ export const useAuthStore = defineStore('auth', () => {
         return false
       }
 
-      authError.value =
-        res.data?.message ?? 'Something went wrong on database. Please try again.'
+      authError.value = res.data?.message ?? 'Something went wrong on database. Please try again.'
       return false
     }
   }
-  function logout() {
-    currentUserId.value = null
-    currentUser.value = null
-    userRole.value = ''
-    localStorage.removeItem('authToken')
-    localStorage.removeItem('userRole')
-    window.location.href = '/login'
+
+  async function logout() {
+    try {
+      await authApi.logout()
+    } catch (err) {
+      console.error('Failed to notify backend on logout:', err)
+    } finally {
+      clearAuthState(true)
+    }
   }
 
   async function fetchCurrentUser() {
-    if (!isAuthenticated.value) return null
+    if (loading.value) return currentUser.value
+
     loading.value = true
     try {
       const response = await authApi.getUser()
       const user = response.data.data || response.data
-      currentUser.value = user
-      if (user?.id) {
-        currentUserId.value = user.id
-      }
+      rememberUser(user ?? null)
       return user
     } catch (error) {
       console.error('Failed to fetch current user profile:', error)
-      logout()
+      clearAuthState(false)
       throw error
     } finally {
       loading.value = false
@@ -130,6 +136,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
+    isLoggedIn,
     currentUserId,
     currentUser,
     authError,
@@ -140,7 +147,9 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     login,
     logout,
+    clearAuthState,
     clearErrors,
     fetchCurrentUser,
   }
 })
+

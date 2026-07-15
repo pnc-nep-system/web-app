@@ -10,6 +10,7 @@ const navItems = computed(() => {
   if (auth.userRole === 'nep_admin') {
     return [
       { to: '/admin/users', label: 'User Management', icon: 'users' },
+      { to: '/admin/taxonomy', label: 'Taxonomy', icon: 'list' },
     ]
   }
 

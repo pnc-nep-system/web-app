@@ -22,7 +22,13 @@ const router = createRouter({
       path: '/admin/dashboard',
       name: 'admin-dashboard',
       component: () => import('@/views/staff/DashboardView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/admin/taxonomy',
+      name: 'admin-taxonomy',
+      component: () => import('@/views/staff/TaxonomyAdminView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
       path: '/manager/dashboard',
@@ -50,13 +56,12 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach(async (to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('authToken')
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
+  const isAuthenticated = authStore.isAuthenticated
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'login' })
-    return
+    return { name: 'login' }
   }
 
   if (isAuthenticated) {
@@ -65,40 +70,31 @@ router.beforeEach(async (to, from, next) => {
         await authStore.fetchCurrentUser()
       } catch (err) {
         console.error('Error fetching user profile in router guard:', err)
-        authStore.logout()
-        next({ name: 'login' })
-        return
+        authStore.clearAuthState(false)
+        return { name: 'login' }
       }
     }
 
     // Role-based authorization check
-    if (to.meta.roles) {
-      const allowedRoles = to.meta.roles as string[]
-      const userRole = (authStore.currentUser as any)?.role || localStorage.getItem('userRole')
-      if (!allowedRoles.includes(userRole)) {
-        next({ name: 'forbidden' })
-        return
-      }
+    const allowedRoles = to.meta.roles as string[] | undefined
+    if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
+      return { name: 'forbidden' }
     }
   }
 
   if (to.name === 'login' && isAuthenticated) {
-    const userRole = localStorage.getItem('userRole') || (authStore.currentUser as any)?.role
-    if (userRole === 'nep_admin') {
-      next({ name: 'admin-users' })
-    } else {
-      next({ name: 'dashboard' })
+    if (authStore.userRole === 'nep_admin') {
+      return { name: 'admin-users' }
     }
+    return { name: 'dashboard' }
   } else if ((to.path === '/dashboard' || to.name === 'dashboard') && isAuthenticated) {
-    const userRole = localStorage.getItem('userRole') || (authStore.currentUser as any)?.role
-    if (userRole === 'nep_admin') {
-      next({ name: 'admin-users' })
-    } else {
-      next()
+    if (authStore.userRole === 'nep_admin') {
+      return { name: 'admin-users' }
     }
-  } else {
-    next()
   }
+
+  return true
 })
 
 export default router
+
