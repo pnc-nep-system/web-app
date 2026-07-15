@@ -34,6 +34,9 @@ export const memberApi = {
   },
   getGeography(id: number | string) {
     return api.get(`/programme-entries/${id}/geography`);
+  },
+  getTaxonomyCategories() {
+    return api.get('/taxonomy/categories');
   }
 };
 

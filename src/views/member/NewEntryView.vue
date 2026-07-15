@@ -27,15 +27,9 @@ const steps = [
   { number: 5, title: 'Keywords', subtitle: 'Up to 5 tags' },
 ]
 
-const dbIdToCodeMap: Record<number, string> = {
-  1: 'B1.1',
-  3: 'B2.2'
-}
+const dbIdToCodeMap: Record<number, string> = {}
 
-const taxonomyMap: Record<string, number> = {
-  'B1.1': 1,
-  'B2.2': 3
-}
+const taxonomyMap: Record<string, number> = {}
 
 const currentStep = ref(1)
 const isSaving = ref(false)
@@ -114,6 +108,21 @@ function showSubmissionResult(type: 'success' | 'error', message: string) {
 }
 
 onMounted(async () => {
+  try {
+    const taxRes = await memberApi.getTaxonomyCategories()
+    const cats = taxRes.data || []
+    cats.forEach((cat: any) => {
+      cat.subcategories?.forEach((sub: any) => {
+        sub.items?.forEach((item: any) => {
+          dbIdToCodeMap[item.id] = item.code
+          taxonomyMap[item.code] = item.id
+        })
+      })
+    })
+  } catch (err) {
+    console.error('Failed to load taxonomy metadata:', err)
+  }
+
   const entryId = route.query.id
   if (entryId) {
     try {
@@ -261,6 +270,7 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
   if (!loadingAlreadySet) {
     isSaving.value = true
   }
+  captureCurrentStepData()
   saveStatus.value = 'saving'
   errors.value = {}
   clearSubmissionResult()
@@ -512,6 +522,8 @@ async function saveAndExit(loadingAlreadySet = false) {
 function captureCurrentStepData() {
   if (currentStep.value === 2 && activitiesFormRef.value) {
     section2Data.value = activitiesFormRef.value.getData()
+  } else if (currentStep.value === 3 && geographicFormRef.value) {
+    section3Data.value = geographicFormRef.value.getData()
   } else if (currentStep.value === 4 && agreementsFormRef.value) {
     section4Data.value = agreementsFormRef.value.getData()
   }

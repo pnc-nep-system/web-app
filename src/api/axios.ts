@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { useAuthStore } from '@/stores/auth'
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -7,9 +8,9 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken')
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`
+    const authStore = useAuthStore()
+    if (authStore.token) {
+      config.headers['Authorization'] = `Bearer ${authStore.token}`
     }
     return config
   },
@@ -25,9 +26,8 @@ api.interceptors.response.use(
       // Do not redirect to /login if the request itself was a login request
       const isLoginRequest = error.config?.url?.endsWith('/login')
       if (!isLoginRequest) {
-        localStorage.removeItem('authToken')
-        localStorage.removeItem('userRole')
-        window.location.href = '/login'
+        const authStore = useAuthStore()
+        authStore.logout()
       }
     }
     return Promise.reject(error)

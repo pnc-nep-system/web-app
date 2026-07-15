@@ -32,12 +32,14 @@ export interface SelectedTaxonomyItem extends TaxonomyItem {
 export interface SubCategory {
   id: number;
   name: string;
+  is_active?: boolean;
   items: TaxonomyItem[];
 }
 
 export interface Category {
   id: number;
   name: string;
+  is_active?: boolean;
   subCategories: SubCategory[];
 }
 
