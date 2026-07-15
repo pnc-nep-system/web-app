@@ -6,7 +6,7 @@
       class="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(217,119,6,0.18),transparent_45%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.08),transparent_40%)]"
     ></div>
     <div class="relative max-w-[440px]">
-      <img src="@/assets/images/logoes/NEP-logoo.png" alt="NEP Logo" class="w-20 mb-5.5" />
+      <img src="@/assets/images/logoes/NEP-logoo.webp" alt="NEP Logo" class="w-20 mb-5.5" />
       <h1  class="text-3xl leading-tight font-semibold !text-white">
         Tell NEP what your organisation does — once, kept current.
       </h1>
