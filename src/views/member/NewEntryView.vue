@@ -108,8 +108,15 @@ function showSubmissionResult(type: 'success' | 'error', message: string) {
 }
 
 onMounted(async () => {
+  const entryId = route.query.id
+
   try {
-    const cats = await memberApi.getTaxonomyCategories()
+    const [cats, entryResult, geoResult] = await Promise.all([
+      memberApi.getTaxonomyCategories(),
+      entryId ? memberApi.getProgrammeEntry(entryId as string) : Promise.resolve(null),
+      entryId ? memberApi.getGeography(entryId as string) : Promise.resolve(null),
+    ])
+
     cats.forEach((cat: any) => {
       cat.subcategories?.forEach((sub: any) => {
         sub.items?.forEach((item: any) => {
@@ -118,15 +125,9 @@ onMounted(async () => {
         })
       })
     })
-  } catch (err) {
-    console.error('Failed to load taxonomy metadata:', err)
-  }
 
-  const entryId = route.query.id
-  if (entryId) {
-    try {
-      const response = await memberApi.getProgrammeEntry(entryId as string)
-      const entry = response.data.data
+    if (entryId && entryResult) {
+      const entry = entryResult.data.data
 
       section1Data.value = {
         id: entry.id,
@@ -144,7 +145,6 @@ onMounted(async () => {
         verifiedDate: entry.verified_date || '',
         isUnverified: !!entry.is_unverified,
       }
-
 
       const selectedCodes = entry.activities?.map((a: any) => dbIdToCodeMap[a.activity_item_id] || a.code).filter(Boolean) || []
       const primaryCodes = entry.activities?.filter((a: any) => a.is_primary).map((a: any) => dbIdToCodeMap[a.activity_item_id] || a.code).filter(Boolean) || []
@@ -170,9 +170,9 @@ onMounted(async () => {
         inclusions: inclusionsMap,
         educationLevels: educationLevelsMap
       }
-      try {
-        const geographyResponse = await memberApi.getGeography(entryId as string)
-        const resLocations = geographyResponse.data.data || []
+
+      if (geoResult) {
+        const resLocations = geoResult.data.data || []
         const resProvinceIds: number[] = []
         const resDistricts: Record<number, number[]> = {}
         const resOtherCountries: string[] = []
@@ -195,19 +195,21 @@ onMounted(async () => {
           districts: resDistricts,
           otherCountries: resOtherCountries.join(', ')
         }
-      } catch {
-        section3Data.value = {
-          provinceIds: [],
-          districts: {},
-          otherCountries: '',
-        }
+      } else {
+        section3Data.value = { provinceIds: [], districts: {}, otherCountries: '' }
       }
+
       section4Data.value = entry.government_agreements || []
       saveStatus.value = 'saved'
-    } catch (err: any) {
+    }
+  } catch (err: any) {
+    console.error('Failed to load entry data:', err)
+    if (entryId) {
       toast.error('Failed to load the programme entry data.')
     }
-  } else {
+  }
+
+  if (!entryId) {
     const savedDraft = sessionStorage.getItem('new_programme_entry_draft')
 
     if (savedDraft) {
