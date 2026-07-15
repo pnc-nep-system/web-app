@@ -56,15 +56,9 @@ const router = createRouter({
   ],
 })
 
-<<<<<<< HEAD
-router.beforeEach(async (to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('authToken')
-  const authStore = useAuthStore()
-=======
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   const isAuthenticated = authStore.isAuthenticated
->>>>>>> 0baea147829107158aa36361503425506349bd87
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     return { name: 'login' }
@@ -81,44 +75,22 @@ router.beforeEach(async (to) => {
       }
     }
 
-<<<<<<< HEAD
     // Role-based authorization check
-    if (to.meta.roles) {
-      const allowedRoles = to.meta.roles as string[]
-      const userRole = (authStore.currentUser as any)?.role || localStorage.getItem('userRole')
-      if (!allowedRoles.includes(userRole)) {
-        next({ name: 'forbidden' })
-        return
-      }
-=======
     const allowedRoles = to.meta.roles as string[] | undefined
     if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
-      return { name: 'dashboard' }
->>>>>>> 0baea147829107158aa36361503425506349bd87
+      return { name: 'forbidden' }
     }
   }
 
   if (to.name === 'login' && isAuthenticated) {
-<<<<<<< HEAD
-    const userRole = localStorage.getItem('userRole') || (authStore.currentUser as any)?.role
-    if (userRole === 'nep_admin') {
-      next({ name: 'admin-users' })
-    } else {
-      next({ name: 'dashboard' })
+    if (authStore.userRole === 'nep_admin') {
+      return { name: 'admin-users' }
     }
-  } else if ((to.path === '/dashboard' || to.name === 'dashboard') && isAuthenticated) {
-    const userRole = localStorage.getItem('userRole') || (authStore.currentUser as any)?.role
-    if (userRole === 'nep_admin') {
-      next({ name: 'admin-users' })
-    } else {
-      next()
-    }
-  } else {
-    next()
-=======
-    // All roles use the same dashboard; title changes based on role
     return { name: 'dashboard' }
->>>>>>> 0baea147829107158aa36361503425506349bd87
+  } else if ((to.path === '/dashboard' || to.name === 'dashboard') && isAuthenticated) {
+    if (authStore.userRole === 'nep_admin') {
+      return { name: 'admin-users' }
+    }
   }
 
   return true
