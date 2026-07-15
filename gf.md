@@ -62,7 +62,7 @@ v-for="item in sub.items"
 :key="item.code"
 v-memo="[item.id, item.code, item.label, item.status, item.version, item.usedCount, renameForm.key]"
 Commit message:
-perf: add v-memo directives to taxonomy tree to skip re-rendering unchanged rows
+
 Step 6: Add build optimization to vite config
 Files: vite.config.ts
 Changes:
