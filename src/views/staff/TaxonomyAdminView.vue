@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import AppShell from '@/components/AppShell.vue'
 import Badge from '@/components/common/BaseBadge.vue'
 import ConfirmModal from '@/components/shared/ConfirmDialog.vue'
@@ -25,6 +25,12 @@ const toast = useToast()
 const tab = ref<'items' | 'other'>('items')
 
 const searchQuery = ref('')
+const searchInput = ref('')
+let searchDebounce: ReturnType<typeof setTimeout> | null = null
+watch(searchInput, (val) => {
+  if (searchDebounce) clearTimeout(searchDebounce)
+  searchDebounce = setTimeout(() => { searchQuery.value = val }, 300)
+})
 const statusFilter = ref<'all' | 'active' | 'deprecated'>('all')
 
 // Accordion collapse/expand states
@@ -317,7 +323,7 @@ async function dismiss(entry: OtherQueueEntry) {
               </svg>
             </span>
             <input
-              v-model="searchQuery"
+              v-model="searchInput"
               type="text"
               placeholder="Search directory by code or keyword..."
               class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 placeholder-slate-400 text-slate-700 bg-white"
