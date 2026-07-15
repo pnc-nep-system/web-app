@@ -18,6 +18,7 @@ export interface ProgrammeIdentity {
   isUnverified?: boolean
   activities?: Activity[]
   provinces?: string[]
+  lastUpdated?: string
 }
 
 export interface Province {

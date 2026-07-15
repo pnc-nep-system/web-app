@@ -42,6 +42,17 @@ const router = createRouter({
       component: () => import('@/views/member/NewEntryView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/admin/users',
+      name: 'admin-users',
+      component: () => import('@/views/admin/UserManagementView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/403',
+      name: 'forbidden',
+      component: () => import('@/views/errors/403.vue'),
+    },
   ],
 })
 
@@ -64,15 +75,22 @@ router.beforeEach(async (to) => {
       }
     }
 
+    // Role-based authorization check
     const allowedRoles = to.meta.roles as string[] | undefined
     if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
-      return { name: 'dashboard' }
+      return { name: 'forbidden' }
     }
   }
 
   if (to.name === 'login' && isAuthenticated) {
-    // All roles use the same dashboard; title changes based on role
+    if (authStore.userRole === 'nep_admin') {
+      return { name: 'admin-users' }
+    }
     return { name: 'dashboard' }
+  } else if ((to.path === '/dashboard' || to.name === 'dashboard') && isAuthenticated) {
+    if (authStore.userRole === 'nep_admin') {
+      return { name: 'admin-users' }
+    }
   }
 
   return true

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { memberApi } from '@/api/member.api'
+import { BUDGET_BANDS } from '@/constants/programme'
 import type { ProgrammeIdentity } from '@/types/programme'
 
 export interface EntryWithStatus extends ProgrammeIdentity {
@@ -20,6 +21,10 @@ export const useEntriesStore = defineStore('entries', () => {
     }))
   )
 
+  function statusOf(entry: ProgrammeIdentity): 'verified' | 'unverified' {
+    return entry.isUnverified ? 'unverified' : 'verified'
+  }
+
   async function fetchEntries(organisationId: number | string) {
     loading.value = true
     try {
@@ -32,17 +37,20 @@ export const useEntriesStore = defineStore('entries', () => {
           endYear: e.end_year || null,
           isOngoing: !!e.ongoing,
           fteStaff: e.fte_staff ? parseFloat(e.fte_staff) : null,
-          budgetBand: null,
+          budgetBand: e.budget_band_id ? BUDGET_BANDS[e.budget_band_id - 1] || null : null,
           directBeneficiaries: e.direct_beneficiaries || null,
           indirectBeneficiaries: e.indirect_beneficiaries || null,
           method: e.method || '',
           verifiedDate: e.verified_date || '',
           isUnverified: !!e.is_unverified,
+          provinces: e.provinces || [],
+          activities: e.activities || [],
+          lastUpdated: e.updated_at || '',
         }))
     } finally {
         loading.value = false
     }
   }
 
-  return { items, loading, entriesWithStatus, fetchEntries }
+  return { items, loading, entriesWithStatus, statusOf, fetchEntries }
 })

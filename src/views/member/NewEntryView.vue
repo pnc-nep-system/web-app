@@ -270,6 +270,7 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
   if (!loadingAlreadySet) {
     isSaving.value = true
   }
+  captureCurrentStepData()
   saveStatus.value = 'saving'
   errors.value = {}
   clearSubmissionResult()
@@ -521,6 +522,8 @@ async function saveAndExit(loadingAlreadySet = false) {
 function captureCurrentStepData() {
   if (currentStep.value === 2 && activitiesFormRef.value) {
     section2Data.value = activitiesFormRef.value.getData()
+  } else if (currentStep.value === 3 && geographicFormRef.value) {
+    section3Data.value = geographicFormRef.value.getData()
   } else if (currentStep.value === 4 && agreementsFormRef.value) {
     section4Data.value = agreementsFormRef.value.getData()
   }

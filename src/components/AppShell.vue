@@ -7,15 +7,17 @@ const auth = useAuthStore()
 const isSidebarOpen = ref(false)
 
 const navItems = computed(() => {
-  const items = [{ to: '/dashboard', label: 'Dashboard', icon: 'dashboard' }]
-
   if (auth.userRole === 'nep_admin') {
-    items.push({ to: '/admin/taxonomy', label: 'Taxonomy', icon: 'list' })
-  } else {
-    items.push({ to: '/account', label: 'Organisation profile', icon: 'building' })
+    return [
+      { to: '/admin/users', label: 'User Management', icon: 'users' },
+      { to: '/admin/taxonomy', label: 'Taxonomy', icon: 'list' },
+    ]
   }
 
-  return items
+  return [
+    { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { to: '/account', label: 'Organisation Profile', icon: 'building' },
+  ]
 })
 
 // Derive a human-friendly title from the stored role
