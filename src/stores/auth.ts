@@ -3,15 +3,13 @@ import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
 
 export const useAuthStore = defineStore('auth', () => {
-
   const isLoggedIn = ref<boolean>(sessionStorage.getItem('isLoggedIn') === 'true')
-  const currentUserId = ref<string | null>(null)
+  const currentUserId = ref<string | null>(sessionStorage.getItem('currentUserId'))
   const currentUser = ref<Record<string, unknown> | null>(null)
   const authError = ref('')
   const networkError = ref('')
   const fieldErrors = ref<Record<string, string[]>>({})
   const loading = ref(false)
-
   const userRole = ref<string>(sessionStorage.getItem('userRole') ?? '')
 
   const isAuthenticated = computed(() => isLoggedIn.value)
@@ -22,29 +20,44 @@ export const useAuthStore = defineStore('auth', () => {
     fieldErrors.value = {}
   }
 
+  function rememberUser(user: Record<string, unknown> | null) {
+    currentUser.value = user
+    userRole.value = typeof user?.role === 'string' ? user.role : ''
+    currentUserId.value = user?.id ? String(user.id) : null
+    isLoggedIn.value = Boolean(user)
+
+    if (user) {
+      sessionStorage.setItem('isLoggedIn', 'true')
+      sessionStorage.setItem('userRole', userRole.value)
+      if (currentUserId.value) {
+        sessionStorage.setItem('currentUserId', currentUserId.value)
+      }
+    } else {
+      sessionStorage.removeItem('isLoggedIn')
+      sessionStorage.removeItem('userRole')
+      sessionStorage.removeItem('currentUserId')
+    }
+  }
+
+  function clearAuthState(redirectToLogin = false) {
+    rememberUser(null)
+
+    if (redirectToLogin && window.location.pathname !== '/login') {
+      window.location.assign('/login')
+    }
+  }
+
   async function login(email: string, password: string) {
     loading.value = true
     clearErrors()
 
     try {
-      // 1. Get the CSRF cookie first (Laravel Sanctum Requirement)
       await authApi.getCsrfCookie()
 
-      // 2. Perform the actual login
       const response = await authApi.login({ email, password })
-      // API returns: { message, user: { id, name, email, role, ... } }
       const { user } = response.data
 
-      isLoggedIn.value = true
-      userRole.value = user?.role || 'user'
-      currentUser.value = user ?? null
-
-      sessionStorage.setItem('isLoggedIn', 'true')
-      sessionStorage.setItem('userRole', userRole.value)
-
-      if (user?.id) {
-        currentUserId.value = user.id
-      }
+      rememberUser(user ?? null)
 
       loading.value = false
       return true
@@ -63,7 +76,7 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
       const res = axiosError.response
-      // Network / server unreachable — no response object
+
       if (
         !res ||
         axiosError.code === 'ERR_NETWORK' ||
@@ -74,7 +87,7 @@ export const useAuthStore = defineStore('auth', () => {
           'Unable to connect to the server. Please check your internet connection or try again later.'
         return false
       }
-      // HTTP 401 — invalid credentials
+
       if (res.status === 401) {
         authError.value = 'Invalid email or password.'
         return false
@@ -86,41 +99,33 @@ export const useAuthStore = defineStore('auth', () => {
         return false
       }
 
-      authError.value =
-        res.data?.message ?? 'Something went wrong on database. Please try again.'
+      authError.value = res.data?.message ?? 'Something went wrong on database. Please try again.'
       return false
     }
   }
 
-  function logout() {
-    isLoggedIn.value = false
-    currentUserId.value = null
-    currentUser.value = null
-    userRole.value = ''
-    sessionStorage.removeItem('isLoggedIn')
-    sessionStorage.removeItem('userRole')
-    authApi.logout().catch((err) => console.error('Failed to notify backend on logout:', err))
-    window.location.href = '/login'
+  async function logout() {
+    try {
+      await authApi.logout()
+    } catch (err) {
+      console.error('Failed to notify backend on logout:', err)
+    } finally {
+      clearAuthState(true)
+    }
   }
 
   async function fetchCurrentUser() {
-    if (!isAuthenticated.value) return null
+    if (loading.value) return currentUser.value
+
     loading.value = true
     try {
       const response = await authApi.getUser()
       const user = response.data.data || response.data
-      currentUser.value = user
-      userRole.value = user?.role || userRole.value
-      if (user?.role) {
-        sessionStorage.setItem('userRole', userRole.value)
-      }
-      if (user?.id) {
-        currentUserId.value = user.id
-      }
+      rememberUser(user ?? null)
       return user
     } catch (error) {
       console.error('Failed to fetch current user profile:', error)
-      logout()
+      clearAuthState(false)
       throw error
     } finally {
       loading.value = false
@@ -139,6 +144,7 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     login,
     logout,
+    clearAuthState,
     clearErrors,
     fetchCurrentUser,
   }

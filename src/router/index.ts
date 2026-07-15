@@ -70,7 +70,7 @@ router.beforeEach(async (to) => {
         await authStore.fetchCurrentUser()
       } catch (err) {
         console.error('Error fetching user profile in router guard:', err)
-        authStore.logout()
+        authStore.clearAuthState(false)
         return { name: 'login' }
       }
     }
@@ -97,3 +97,4 @@ router.beforeEach(async (to) => {
 })
 
 export default router
+
