@@ -4,7 +4,7 @@ import { authApi } from '@/api/auth.api'
 
 export const useAuthStore = defineStore('auth', () => {
 
-  const token = ref<string | null>(sessionStorage.getItem('authToken'))
+  const isLoggedIn = ref<boolean>(sessionStorage.getItem('isLoggedIn') === 'true')
   const currentUserId = ref<string | null>(null)
   const currentUser = ref<Record<string, unknown> | null>(null)
   const authError = ref('')
@@ -14,7 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const userRole = ref<string>(sessionStorage.getItem('userRole') ?? '')
 
-  const isAuthenticated = computed(() => !!token.value)
+  const isAuthenticated = computed(() => isLoggedIn.value)
 
   function clearErrors() {
     authError.value = ''
@@ -27,15 +27,19 @@ export const useAuthStore = defineStore('auth', () => {
     clearErrors()
 
     try {
-      const response = await authApi.login({ email, password })
-      // API returns: { message, token, user: { id, name, email, role, ... } }
-      const { token: newToken, user } = response.data
+      // 1. Get the CSRF cookie first (Laravel Sanctum Requirement)
+      await authApi.getCsrfCookie()
 
-      token.value = newToken || 'default_token'
+      // 2. Perform the actual login
+      const response = await authApi.login({ email, password })
+      // API returns: { message, user: { id, name, email, role, ... } }
+      const { user } = response.data
+
+      isLoggedIn.value = true
       userRole.value = user?.role || 'user'
       currentUser.value = user ?? null
 
-      sessionStorage.setItem('authToken', token.value)
+      sessionStorage.setItem('isLoggedIn', 'true')
       sessionStorage.setItem('userRole', userRole.value)
 
       if (user?.id) {
@@ -89,12 +93,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function logout() {
-    token.value = null
+    isLoggedIn.value = false
     currentUserId.value = null
     currentUser.value = null
     userRole.value = ''
-    sessionStorage.removeItem('authToken')
+    sessionStorage.removeItem('isLoggedIn')
     sessionStorage.removeItem('userRole')
+    authApi.logout().catch((err) => console.error('Failed to notify backend on logout:', err))
     window.location.href = '/login'
   }
 
@@ -123,7 +128,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
-    token,
+    isLoggedIn,
     currentUserId,
     currentUser,
     authError,
