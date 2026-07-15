@@ -14,6 +14,10 @@ export default defineConfig({
   ],
   build: {
     sourcemap: false,
+    minify: 'esbuild',
+    esbuild: {
+      drop: ['console', 'debugger'],
+    },
     rollupOptions: {
       output: {
         manualChunks: {
