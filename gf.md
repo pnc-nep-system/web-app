@@ -45,7 +45,7 @@ export async function connectRealtimeForRole(role?: string) {
   // ... rest stays the same
 }
 Commit message:
-perf: lazy-load pusher-js and laravel-echo to reduce initial bundle size by ~60KB
+
 Step 5: Add v-memo to taxonomy tree table rows
 Files: src/views/staff/TaxonomyAdminView.vue
 Changes:

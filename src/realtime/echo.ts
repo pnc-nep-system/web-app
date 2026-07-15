@@ -1,20 +1,13 @@
-import Echo from "laravel-echo";
-import Pusher from "pusher-js";
-
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
 const apiRootUrl = apiBaseUrl.replace(/\/api\/?$/, "");
 
-let echo: Echo<"reverb"> | null = null;
+let echo: any | null = null;
 
-declare global {
-  interface Window {
-    Pusher: typeof Pusher;
-    Echo?: Echo<"reverb">;
-  }
-}
-
-export function getEcho() {
+export async function getEcho() {
   if (echo) return echo;
+
+  const Echo = (await import("laravel-echo")).default;
+  const Pusher = (await import("pusher-js")).default;
 
   window.Pusher = Pusher;
 

@@ -9,12 +9,12 @@ interface OtherQueueCreatedPayload {
   programme_entry_id?: number
 }
 
-export function connectRealtimeForRole(role?: string) {
+export async function connectRealtimeForRole(role?: string) {
   if (role !== 'nep_admin' && role !== 'nep_coordinator') return
   if (subscribed) return
 
   const taxonomy = useTaxonomyStore()
-  const echo = getEcho()
+  const echo = await getEcho()
 
   echo.private('nep-admin')
     .listen('.other.queue.created', (payload: OtherQueueCreatedPayload) => {
