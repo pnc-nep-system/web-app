@@ -41,6 +41,8 @@ const {
   isLoading,
   isSaving,
   searchQuery,
+  roleFilter,
+  statusFilter,
   currentPage,
   lastPage,
   totalItems,
@@ -51,12 +53,14 @@ const {
   createUser,
   updateUser,
   deactivateUser,
+  reactivateUser,
+  resetCredentials,
 } = useUsers()
 
 // ─── Debounced Search ─────────────────────────────────────────────────────────
 
 let searchTimeout: ReturnType<typeof setTimeout>
-watch(searchQuery, () => {
+watch([searchQuery, roleFilter, statusFilter, perPage], () => {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     fetchUsers(1)
@@ -128,6 +132,14 @@ async function handleDeactivateConfirm() {
   }
 }
 
+async function handleReactivateUser(user: User) {
+  await reactivateUser(user.id)
+}
+
+async function handleResetCredentials(user: User) {
+  await resetCredentials(user.id)
+}
+
 // ─── Pagination helpers ───────────────────────────────────────────────────────
 
 /** Generate a smart page range (max 5 buttons, with ellipsis-like gaps) */
@@ -135,14 +147,19 @@ function pageRange(): number[] {
   if (lastPage.value <= 5) {
     return Array.from({ length: lastPage.value }, (_, i) => i + 1)
   }
+
   const pages = new Set<number>()
   pages.add(1)
   pages.add(lastPage.value)
+
   for (let i = Math.max(2, currentPage.value - 1); i <= Math.min(lastPage.value - 1, currentPage.value + 1); i++) {
     pages.add(i)
   }
+
   return [...pages].sort((a, b) => a - b)
 }
+
+const paginationPages = (): number[] => pageRange()
 </script>
 
 <template>
@@ -179,18 +196,42 @@ function pageRange(): number[] {
       </div>
     </div>
 
-    <!-- ── Search ─────────────────────────────────────────────────────────── -->
-    <div class="search-container">
-      <span class="search-icon">
-        <BaseIcon name="search" :size="15" />
-      </span>
-      <input
-        id="user-search"
-        v-model="searchQuery"
-        type="text"
-        placeholder="Search by name or email…"
-        class="search-input"
-      />
+    <!-- ── Search + Filters ───────────────────────────────────────────────── -->
+    <div class="toolbar-row">
+      <div class="search-container">
+        <span class="search-icon">
+          <BaseIcon name="search" :size="15" />
+        </span>
+        <input
+          id="user-search"
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search by name or email…"
+          class="search-input"
+        />
+      </div>
+
+      <div class="filter-group">
+        <select id="user-role-filter" v-model="roleFilter" class="filter-select">
+          <option value="">All roles</option>
+          <option value="nep_admin">NEP Admin</option>
+          <option value="nep_coordinator">Coordinator</option>
+          <option value="member_org">Member Organisation</option>
+        </select>
+
+        <select id="user-status-filter" v-model="statusFilter" class="filter-select">
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+
+        <select id="user-per-page-filter" v-model.number="perPage" class="filter-select">
+          <option :value="10">10 per page</option>
+          <option :value="25">25 per page</option>
+          <option :value="50">50 per page</option>
+          <option :value="100">100 per page</option>
+        </select>
+      </div>
     </div>
 
     <!-- ── User List Table ────────────────────────────────────────────────── -->
@@ -201,6 +242,8 @@ function pageRange(): number[] {
         @view="openViewModal"
         @edit="openEditModal"
         @deactivate="openDeactivateModal"
+        @reactivate="handleReactivateUser"
+        @resetCredentials="handleResetCredentials"
       />
 
       <!-- Pagination footer -->
@@ -220,8 +263,8 @@ function pageRange(): number[] {
           >
             ‹ Prev
           </button>
-          <template v-for="(p, idx) in pageRange()" :key="p">
-            <span v-if="idx > 0 && p - pageRange()[idx - 1] > 1" class="pg-ellipsis">…</span>
+          <template v-for="(p, idx) in paginationPages()" :key="p">
+            <span v-if="idx > 0 && p - (paginationPages()[idx - 1] ?? p) > 1" class="pg-ellipsis">…</span>
             <button
               class="pg-btn"
               :class="{ active: p === currentPage }"
@@ -320,11 +363,18 @@ function pageRange(): number[] {
   font-weight: 700;
 }
 
-/* ── Search ── */
+/* ── Search + Filters ── */
+.toolbar-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
 .search-container {
   position: relative;
   max-width: 360px;
-  margin-bottom: 16px;
+  flex: 1 1 280px;
 }
 .search-icon {
   position: absolute;
@@ -335,7 +385,7 @@ function pageRange(): number[] {
   pointer-events: none;
   display: flex;
 }
-.search-input {
+ .search-input {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -344,6 +394,20 @@ function pageRange(): number[] {
   color: var(--ink-900);
   background: var(--card);
   transition: all 0.15s ease;
+}
+.filter-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-select {
+  min-width: 150px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--ink-700);
 }
 .search-input:focus {
   outline: none;

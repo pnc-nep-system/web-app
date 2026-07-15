@@ -13,6 +13,8 @@ const emit = defineEmits<{
   view: [user: User]
   edit: [user: User]
   deactivate: [user: User]
+  reactivate: [user: User]
+  resetCredentials: [user: User]
 }>()
 
 /** Human-readable role labels */
@@ -165,6 +167,21 @@ function formatDate(iso: string): string {
                 >
                   <BaseIcon name="lock" :size="14" />
                 </button>
+                <button
+                  v-else
+                  class="action-btn"
+                  title="Reactivate account"
+                  @click="emit('reactivate', user)"
+                >
+                  <BaseIcon name="refresh" :size="14" />
+                </button>
+                <button
+                  class="action-btn"
+                  title="Reset credentials"
+                  @click="emit('resetCredentials', user)"
+                >
+                  <BaseIcon name="key" :size="14" />
+                </button>
               </div>
             </td>
           </tr>
@@ -209,6 +226,16 @@ function formatDate(iso: string): string {
               @click="emit('deactivate', user)"
             >
               <BaseIcon name="lock" :size="13" /> Deactivate
+            </button>
+            <button
+              v-else
+              class="btn btn-secondary btn-sm"
+              @click="emit('reactivate', user)"
+            >
+              <BaseIcon name="refresh" :size="13" /> Reactivate
+            </button>
+            <button class="btn btn-secondary btn-sm" @click="emit('resetCredentials', user)">
+              <BaseIcon name="key" :size="13" /> Reset
             </button>
           </div>
         </div>

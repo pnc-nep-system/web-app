@@ -33,11 +33,12 @@ const ROLE_OPTIONS: { value: UserRole; label: string; desc: string }[] = [
 const name = ref('')
 const email = ref('')
 const role = ref<UserRole>('member_org')
+const status = ref<'active' | 'inactive'>('active')
 const organisationId = ref<number | null>(null)
 const password = ref('')
 const showPassword = ref(false)
 
-const clientErrors = ref<Partial<Record<'name' | 'email' | 'role' | 'password' | 'organisation_id', string>>>({})
+const clientErrors = ref<Partial<Record<'name' | 'email' | 'role' | 'status' | 'password' | 'organisation_id', string>>>({})
 
 const isEditMode = computed(() => !!props.editUser)
 const title = computed(() => (isEditMode.value ? 'Edit User' : 'Create User'))
@@ -80,6 +81,7 @@ watch(
       name.value = props.editUser.name
       email.value = props.editUser.email
       role.value = props.editUser.role
+      status.value = props.editUser.status
       organisationId.value = props.editUser.organisation_id
     }
   },
@@ -89,6 +91,7 @@ function resetForm() {
   name.value = ''
   email.value = ''
   role.value = 'member_org'
+  status.value = 'active'
   organisationId.value = null
   password.value = ''
   showPassword.value = false
@@ -107,17 +110,14 @@ function validate(): boolean {
     clientErrors.value.email = 'Enter a valid email address.'
   }
   if (!role.value) clientErrors.value.role = 'Role is required.'
-  
+  if (!status.value) clientErrors.value.status = 'Status is required.'
+
   if (role.value === 'member_org' && !organisationId.value) {
     clientErrors.value.organisation_id = 'Organisation is required for member users.'
   }
 
-  if (!isEditMode.value) {
-    if (!password.value.trim()) {
-      clientErrors.value.password = 'Password is required.'
-    } else if (password.value.length < 8) {
-      clientErrors.value.password = 'Password must be at least 8 characters.'
-    }
+  if (!isEditMode.value && password.value.trim() && password.value.length < 8) {
+    clientErrors.value.password = 'Password must be at least 8 characters.'
   }
 
   return Object.keys(clientErrors.value).length === 0
@@ -133,6 +133,7 @@ function handleSubmit() {
       name: name.value.trim(),
       email: email.value.trim(),
       role: role.value,
+      status: status.value,
       organisation_id: role.value === 'member_org' ? organisationId.value : null,
     }
     emit('submit', payload)
@@ -217,6 +218,20 @@ function handleSubmit() {
             <BaseIcon name="alert" :size="11" />{{ errors.role }}
           </p>
         </div>
+
+        <!-- Status (edit only) -->
+        <Transition v-if="isEditMode" name="slide">
+          <div class="form-field">
+            <label for="um-status">Status</label>
+            <select id="um-status" v-model="status" :class="{ 'has-error': errors.status }">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <p v-if="errors.status" class="field-error">
+              <BaseIcon name="alert" :size="11" />{{ errors.status }}
+            </p>
+          </div>
+        </Transition>
 
         <!-- Organisation (Only visible/relevant for Coordinator and Member Org, required for Member Org) -->
         <Transition name="slide">

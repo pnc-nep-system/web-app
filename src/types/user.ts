@@ -20,7 +20,7 @@ export interface User {
 export interface CreateUserPayload {
   name: string
   email: string
-  password: string
+  password?: string
   role: UserRole
   organisation_id: number | null
 }
@@ -30,6 +30,14 @@ export interface UpdateUserPayload {
   email: string
   role: UserRole
   organisation_id: number | null
+  password?: string
+  status?: UserStatus
+}
+
+export interface AdminUserActionResponse {
+  message: string
+  user?: User
+  temporary_password?: string
 }
 
 /** Shape returned by the API list endpoint */

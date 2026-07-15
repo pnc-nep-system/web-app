@@ -13,9 +13,11 @@ export function useUsers() {
   const organisations = ref<OrganisationOption[]>([])
   const isLoading = ref(false)
   const isSaving = ref(false)
-  
+
   // Search and Pagination State
   const searchQuery = ref('')
+  const roleFilter = ref('')
+  const statusFilter = ref('')
   const currentPage = ref(1)
   const lastPage = ref(1)
   const totalItems = ref(0)
@@ -44,9 +46,13 @@ export function useUsers() {
     isLoading.value = true
     clearErrors()
     try {
-      const res = await userService.getUsers(page, searchQuery.value)
+      const res = await userService.getUsers(page, searchQuery.value, {
+        role: roleFilter.value || undefined,
+        status: statusFilter.value || undefined,
+        per_page: perPage.value,
+      })
       const payload = res.data
-      
+
       users.value = payload.data ?? []
       currentPage.value = payload.current_page ?? 1
       lastPage.value = payload.last_page ?? 1
@@ -68,9 +74,14 @@ export function useUsers() {
     isSaving.value = true
     clearErrors()
     try {
-      await userService.createUser(payload)
-      toast.success('User created successfully.')
-      // Refresh user list and reset to page 1 to see the new user
+      const response = await userService.createUser(payload)
+      const tempPassword = response.data.temporary_password
+
+      toast.success(response.data.message ?? 'User created successfully.')
+      if (tempPassword) {
+        toast.info(`Temporary password: ${tempPassword}`, 10000)
+      }
+
       await fetchUsers(1)
       return true
     } catch (err: any) {
@@ -91,9 +102,8 @@ export function useUsers() {
     isSaving.value = true
     clearErrors()
     try {
-      await userService.updateUser(id, payload)
-      toast.success('User updated successfully.')
-      // Refresh current page to preserve page and search results
+      const response = await userService.updateUser(id, payload)
+      toast.success(response.data.message ?? 'User updated successfully.')
       await fetchUsers(currentPage.value)
       return true
     } catch (err: any) {
@@ -113,9 +123,8 @@ export function useUsers() {
   async function deactivateUser(id: number): Promise<boolean> {
     isSaving.value = true
     try {
-      await userService.deactivateUser(id)
-      toast.success('User deactivated successfully.')
-      // Refresh current page
+      const response = await userService.deactivateUser(id)
+      toast.success(response.data.message ?? 'User deactivated successfully.')
       await fetchUsers(currentPage.value)
       return true
     } catch (err: any) {
@@ -130,12 +139,52 @@ export function useUsers() {
     }
   }
 
+  /** Reactivate a user account. Returns true on success. */
+  async function reactivateUser(id: number): Promise<boolean> {
+    isSaving.value = true
+    try {
+      const response = await userService.reactivateUser(id)
+      toast.success(response.data.message ?? 'User reactivated successfully.')
+      await fetchUsers(currentPage.value)
+      return true
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? 'Failed to reactivate user.')
+      return false
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  /** Reset a user's credentials and revoke current tokens. */
+  async function resetCredentials(id: number): Promise<boolean> {
+    isSaving.value = true
+    try {
+      const response = await userService.resetCredentials(id)
+      const tempPassword = response.data.temporary_password
+
+      toast.success(response.data.message ?? 'Credentials reset successfully.')
+      if (tempPassword) {
+        toast.info(`Temporary password: ${tempPassword}`, 10000)
+      }
+
+      await fetchUsers(currentPage.value)
+      return true
+    } catch (err: any) {
+      toast.error(err.response?.data?.message ?? 'Failed to reset credentials.')
+      return false
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   return {
     users,
     organisations,
     isLoading,
     isSaving,
     searchQuery,
+    roleFilter,
+    statusFilter,
     currentPage,
     lastPage,
     totalItems,
@@ -147,6 +196,8 @@ export function useUsers() {
     createUser,
     updateUser,
     deactivateUser,
+    reactivateUser,
+    resetCredentials,
   }
 }
 
