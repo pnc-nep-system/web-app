@@ -62,8 +62,7 @@ const emit = defineEmits<{
 
 onMounted(async () => {
   try {
-    const res = await memberApi.getTaxonomyCategories()
-    categories.value = res.data
+    categories.value = await memberApi.getTaxonomyCategories()
   } catch (err) {
     console.error('Failed to load categories', err)
   } finally {
@@ -622,3 +621,4 @@ function subcategoryCount(code: string): number {
 
   </div>
 </template>
+

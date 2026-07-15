@@ -109,8 +109,7 @@ function showSubmissionResult(type: 'success' | 'error', message: string) {
 
 onMounted(async () => {
   try {
-    const taxRes = await memberApi.getTaxonomyCategories()
-    const cats = taxRes.data || []
+    const cats = await memberApi.getTaxonomyCategories()
     cats.forEach((cat: any) => {
       cat.subcategories?.forEach((sub: any) => {
         sub.items?.forEach((item: any) => {

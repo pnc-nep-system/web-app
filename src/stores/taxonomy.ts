@@ -104,15 +104,23 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
     otherQueue.value.filter((entry) => entry.status === 'pending'),
   )
 
-  async function fetchTaxonomy() {
+  async function fetchTaxonomy(options: { force?: boolean } = {}) {
+    if (categories.value.length && !options.force) {
+      await fetchOtherQueue()
+      return
+    }
+
     loading.value = true
-    const cached = readCache()
+    const cached = options.force ? [] : readCache()
     if (cached.length) {
       categories.value = cached
+      await fetchOtherQueue()
+      loading.value = false
+      return
     }
 
     try {
-      categories.value = normaliseCategories(await taxonomyApi.list())
+      categories.value = normaliseCategories(await taxonomyApi.list(options))
       writeCache(categories.value)
     } catch {
       if (!categories.value.length) {
@@ -122,6 +130,26 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
       await fetchOtherQueue()
       loading.value = false
     }
+  }
+
+  async function refreshTaxonomy() {
+    await fetchTaxonomy({ force: true })
+  }
+
+  function upsertOtherQueueEntry(entry: OtherQueueEntry) {
+    const index = otherQueue.value.findIndex((item) => item.id === entry.id)
+
+    if (index >= 0) {
+      otherQueue.value[index] = {
+        ...otherQueue.value[index],
+        ...entry,
+        frequency: Math.max(otherQueue.value[index]?.frequency ?? 1, entry.frequency),
+      }
+    } else {
+      otherQueue.value.unshift(entry)
+    }
+
+    writeOtherQueueCache(otherQueue.value)
   }
 
   async function addItem(payload: AddTaxonomyItemPayload) {
@@ -304,7 +332,9 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
     pendingOtherEntries,
     loading,
     fetchTaxonomy,
+    refreshTaxonomy,
     fetchOtherQueue,
+    upsertOtherQueueEntry,
     addItem,
     setItemStatus,
     renameEntry,
@@ -451,3 +481,4 @@ function normaliseStatus(status?: TaxonomyItemStatus, isActive = true): Taxonomy
 function toApiNodeType(kind: TaxonomyAdminNodeKind): TaxonomyNodeType {
   return kind === 'subcategory' ? 'subCategory' : kind
 }
+

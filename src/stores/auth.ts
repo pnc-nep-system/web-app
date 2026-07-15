@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
+import { connectRealtimeForRole, disconnectRealtime } from '@/realtime'
 
 export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref<boolean>(sessionStorage.getItem('isLoggedIn') === 'true')
@@ -32,7 +33,9 @@ export const useAuthStore = defineStore('auth', () => {
       if (currentUserId.value) {
         sessionStorage.setItem('currentUserId', currentUserId.value)
       }
+      connectRealtimeForRole(userRole.value)
     } else {
+      disconnectRealtime()
       sessionStorage.removeItem('isLoggedIn')
       sessionStorage.removeItem('userRole')
       sessionStorage.removeItem('currentUserId')
@@ -149,3 +152,4 @@ export const useAuthStore = defineStore('auth', () => {
     fetchCurrentUser,
   }
 })
+

@@ -23,19 +23,81 @@ export interface OtherQueuePayload {
   subcategory_label?: string
 }
 
+const TAXONOMY_CACHE_KEY = 'nep_taxonomy_categories_cache_v1'
+const TAXONOMY_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+let taxonomyRequest: Promise<Category[]> | null = null
+
+interface CachePayload<T> {
+  savedAt: number
+  data: T
+}
+
 function unwrapData<T>(response: { data: T | { data: T } }): T {
   const body = response.data as T | { data: T }
   return typeof body === 'object' && body !== null && 'data' in body ? body.data : (body as T)
 }
 
+function readTaxonomyCache(): Category[] | null {
+  try {
+    const raw = localStorage.getItem(TAXONOMY_CACHE_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as CachePayload<Category[]> | Category[]
+
+    if (Array.isArray(parsed)) {
+      return parsed
+    }
+
+    if (!Array.isArray(parsed.data)) return null
+
+    const isFresh = Date.now() - parsed.savedAt < TAXONOMY_CACHE_TTL_MS
+    return isFresh ? parsed.data : null
+  } catch {
+    return null
+  }
+}
+
+function writeTaxonomyCache(data: Category[]) {
+  localStorage.setItem(
+    TAXONOMY_CACHE_KEY,
+    JSON.stringify({
+      savedAt: Date.now(),
+      data,
+    } satisfies CachePayload<Category[]>),
+  )
+}
+
+export function invalidateTaxonomyCache() {
+  taxonomyRequest = null
+  localStorage.removeItem(TAXONOMY_CACHE_KEY)
+}
+
 export const taxonomyApi = {
-  async list() {
-    const response = await api.get<Category[] | { data: Category[] }>('/taxonomy/categories')
-    return unwrapData<Category[]>(response)
+  async list(options: { force?: boolean } = {}) {
+    if (!options.force) {
+      const cached = readTaxonomyCache()
+      if (cached) return cached
+
+      if (taxonomyRequest) return taxonomyRequest
+    }
+
+    taxonomyRequest = api
+      .get<Category[] | { data: Category[] }>('/taxonomy/categories')
+      .then((response) => {
+        const categories = unwrapData<Category[]>(response)
+        writeTaxonomyCache(categories)
+        return categories
+      })
+      .finally(() => {
+        taxonomyRequest = null
+      })
+
+    return taxonomyRequest
   },
 
   async createCategory(payload: TaxonomyCreatePayload) {
     const response = await api.post<Category | { data: Category }>('/taxonomy/categories', payload)
+    invalidateTaxonomyCache()
     return unwrapData<Category>(response)
   },
 
@@ -44,11 +106,13 @@ export const taxonomyApi = {
       '/taxonomy/subcategories',
       payload,
     )
+    invalidateTaxonomyCache()
     return unwrapData<SubCategory>(response)
   },
 
   async createItem(payload: TaxonomyCreatePayload) {
     const response = await api.post<TaxonomyItem | { data: TaxonomyItem }>('/taxonomy/items', payload)
+    invalidateTaxonomyCache()
     return unwrapData<TaxonomyItem>(response)
   },
 
@@ -63,6 +127,7 @@ export const taxonomyApi = {
       path,
       payload,
     )
+    invalidateTaxonomyCache()
     return unwrapData<Category | SubCategory | TaxonomyItem>(response)
   },
 
@@ -77,6 +142,7 @@ export const taxonomyApi = {
       path,
       { is_active: false },
     )
+    invalidateTaxonomyCache()
     return unwrapData<Category | SubCategory | TaxonomyItem>(response)
   },
 
