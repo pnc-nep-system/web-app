@@ -188,23 +188,14 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
-import { useAuthStore } from '@/stores/auth'
 import { useEntriesStore } from '@/stores/entries.store'
 import { monthsSince, formatRelativeTime } from '@/utils/date'
 import type { ProgrammeIdentity } from '@/types/programme'
 
 const router = useRouter()
-const auth = useAuthStore()
 const entries = useEntriesStore()
 
-onMounted(async () => {
-  if (!auth.currentUser) {
-    try {
-      await auth.fetchCurrentUser()
-    } catch (e) {
-      console.error('Error fetching current user:', e)
-    }
-  }
+onMounted(() => {
   entries.switchTab('draft')
 })
 
