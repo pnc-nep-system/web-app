@@ -36,6 +36,12 @@ export const memberApi = {
   getGeography(id: number | string) {
     return api.get(`/programme-entries/${id}/geography`);
   },
+  getDraftProgrammeEntries(page = 1) {
+    return api.get(`/programme-entries/draft?page=${page}`);
+  },
+  getSubmittedProgrammeEntries(page = 1) {
+    return api.get(`/programme-entries/submitted?page=${page}`);
+  },
   getTaxonomyCategories() {
     return taxonomyApi.list();
   }
