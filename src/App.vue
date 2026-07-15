@@ -3,7 +3,9 @@ import ToastHost from '@/components/ToastHost.vue'
 </script>
 
 <template>
-  <RouterView />
+  <KeepAlive>
+    <RouterView />
+  </KeepAlive>
   <ToastHost />
 </template>
 
