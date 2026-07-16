@@ -251,6 +251,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         if (locationData.length) {
           const resProvinceIds: number[] = []
           const resDistricts: Record<number, number[]> = {}
+          const resCommunes: Record<number, number[]> = {}
+          const resVillages: Record<number, number[]> = {}
           const resOtherCountries: string[] = []
           locationData.forEach((loc: any) => {
             if (loc.country) {
@@ -261,18 +263,36 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
               }
               if (loc.district_id) {
                 const distArray = resDistricts[loc.province_id] || []
-                distArray.push(loc.district_id)
+                if (!distArray.includes(loc.district_id)) {
+                  distArray.push(loc.district_id)
+                }
                 resDistricts[loc.province_id] = distArray
+              }
+              if (loc.commune_id) {
+                const commArray = resCommunes[loc.district_id] || []
+                if (!commArray.includes(loc.commune_id)) {
+                  commArray.push(loc.commune_id)
+                }
+                resCommunes[loc.district_id] = commArray
+              }
+              if (loc.village_id) {
+                const villArray = resVillages[loc.commune_id] || []
+                if (!villArray.includes(loc.village_id)) {
+                  villArray.push(loc.village_id)
+                }
+                resVillages[loc.commune_id] = villArray
               }
             }
           })
           section3Data.value = {
             provinceIds: resProvinceIds,
             districts: resDistricts,
+            communes: resCommunes,
+            villages: resVillages,
             otherCountries: resOtherCountries.join(', ')
           }
         } else {
-          section3Data.value = { provinceIds: [], districts: {}, otherCountries: '' }
+          section3Data.value = { provinceIds: [], districts: {}, communes: {}, villages: {}, otherCountries: '' }
         }
 
         geographyStore.initFromPayload(section3Data.value)
@@ -302,7 +322,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           currentStep.value = draft.currentStep || 1
           section1Data.value = draft.section1Data
           section2Data.value = draft.section2Data
-          section3Data.value = draft.section3Data || { provinceIds: [], districts: {}, otherCountries: '' }
+          section3Data.value = draft.section3Data || { provinceIds: [], districts: {}, communes: {}, villages: {}, otherCountries: '' }
           section4Data.value = draft.section4Data || []
           keywordsStore.initKeywords(draft.keywordsData || [])
           
@@ -390,6 +410,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         : []
       const geographyPayload = {
         provinces: provincesPayload,
+        communes: geographicData?.communes || {},
+        villages: geographicData?.villages || {},
         other_countries: otherCountriesArray
       }
 
@@ -445,6 +467,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       const resLocations = geographyResponse.data.data || []
       const resProvinceIds: number[] = []
       const resDistricts: Record<number, number[]> = {}
+      const resCommunes: Record<number, number[]> = {}
+      const resVillages: Record<number, number[]> = {}
       const resOtherCountries: string[] = []
       resLocations.forEach((loc: any) => {
         if (loc.country) {
@@ -455,16 +479,35 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           }
           if (loc.district_id) {
             const distArray = resDistricts[loc.province_id] || []
-            distArray.push(loc.district_id)
+            if (!distArray.includes(loc.district_id)) {
+              distArray.push(loc.district_id)
+            }
             resDistricts[loc.province_id] = distArray
+          }
+          if (loc.commune_id) {
+            const commArray = resCommunes[loc.district_id] || []
+            if (!commArray.includes(loc.commune_id)) {
+              commArray.push(loc.commune_id)
+            }
+            resCommunes[loc.district_id] = commArray
+          }
+          if (loc.village_id) {
+            const villArray = resVillages[loc.commune_id] || []
+            if (!villArray.includes(loc.village_id)) {
+              villArray.push(loc.village_id)
+            }
+            resVillages[loc.commune_id] = villArray
           }
         }
       })
       section3Data.value = {
         provinceIds: resProvinceIds,
         districts: resDistricts,
+        communes: resCommunes,
+        villages: resVillages,
         otherCountries: resOtherCountries.join(', ')
       }
+      geographyStore.initFromPayload(section3Data.value)
 
       if (activitiesResponse) {
         const resActivities = activitiesResponse.data.data || []

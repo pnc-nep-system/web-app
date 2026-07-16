@@ -52,7 +52,7 @@ onMounted(() => {
     <div class="p-8 bg-white rounded-xl shadow-sm border border-gray-100 select-none">
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Section 3: Geographic coverage</h3>
         <p class="text-sm text-gray-500 mb-6">
-            Select the provinces and districts where this programme operates.
+            Select the provinces, districts, communes, and villages where this programme operates.
         </p>
 
         <!-- Loading state -->
@@ -88,12 +88,12 @@ onMounted(() => {
                 </label>
             </div>
 
-            <!-- District section -->
+            <!-- District / Commune / Village sections -->
             <template v-if="store.provinceIds.length">
                 <div class="h-px bg-gray-200 my-4"></div>
-                <label class="block text-xs font-semibold text-gray-700 mb-2.5">Select districts for each province (optional)</label>
 
-                <div v-for="pid in store.provinceIds" :key="pid" class="mb-4">
+                <div v-for="pid in store.provinceIds" :key="pid" class="mb-6">
+                    <!-- Province header + toggle districts -->
                     <div class="flex items-center justify-between text-[13px] font-semibold text-gray-700 mb-2">
                         <span>{{ store.provinceNameById[pid] || `Province #${pid}` }}</span>
                         <button
@@ -117,33 +117,130 @@ onMounted(() => {
                         </button>
                     </div>
 
-                    <!-- District loading -->
-                    <div v-if="store.loadingDistricts.has(pid)" v-show="store.expandedProvinces.has(pid)"
-                        class="flex items-center gap-2 text-xs text-gray-400 py-2">
-                        <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none"
-                            viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                            <path class="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Loading districts…
-                    </div>
-
                     <!-- District pills -->
-                    <div v-else-if="store.districtsCache[pid]?.length" v-show="store.expandedProvinces.has(pid)" class="flex flex-wrap gap-2 mb-5">
-                        <label v-for="d in store.districtsCache[pid]" :key="d.id"
-                            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-all select-none"
-                            :class="store.districts[pid]?.includes(d.id)
-                                ? 'bg-teal-800 text-white border-teal-800 hover:bg-teal-700 hover:border-teal-700'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:bg-teal-50'">
-                            <input type="checkbox" :checked="store.districts[pid]?.includes(d.id)"
-                                @change="store.toggleDistrict(pid, d.id)" class="hidden" />
-                            {{ d.name }}
-                        </label>
-                    </div>
+                    <div v-if="store.expandedProvinces.has(pid)">
+                        <!-- Loading districts -->
+                        <div v-if="store.loadingDistricts.has(pid)" class="flex items-center gap-2 text-xs text-gray-400 py-2">
+                            <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Loading districts…
+                        </div>
 
-                    <div v-else v-show="store.expandedProvinces.has(pid)" class="text-xs text-gray-400 py-1">No districts
-                        available</div>
+                        <div v-else-if="store.districtsCache[pid]?.length" class="flex flex-wrap gap-2 mb-3">
+                            <label v-for="d in store.districtsCache[pid]" :key="d.id"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer border transition-all select-none"
+                                :class="store.districts[pid]?.includes(d.id)
+                                    ? 'bg-teal-800 text-white border-teal-800 hover:bg-teal-700 hover:border-teal-700'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:border-teal-400 hover:bg-teal-50'">
+                                <input type="checkbox" :checked="store.districts[pid]?.includes(d.id)"
+                                    @change="store.toggleDistrict(pid, d.id)" class="hidden" />
+                                {{ d.name }}
+                            </label>
+                        </div>
+
+                        <div v-else class="text-xs text-gray-400 py-1">No districts available</div>
+
+                        <!-- Communes under each selected district -->
+                        <div v-for="did in (store.districts[pid] || [])" :key="did" class="ml-6 mb-3 border-l-2 border-gray-100 pl-4">
+                            <div class="flex items-center justify-between text-[12px] font-semibold text-gray-600 mb-1.5">
+                                <span>{{ store.districtNameById[did] || `District #${did}` }}</span>
+                                <button
+                                    class="inline-flex items-center gap-1 text-[11px] font-medium text-teal-600 bg-transparent border border-teal-200 rounded-md px-2 py-0.5 cursor-pointer transition-all hover:bg-teal-50"
+                                    @click="store.toggleCommuneVisibility(did)">
+                                    <template v-if="store.expandedDistricts.has(did)">
+                                        Hide communes
+                                        <svg height="14" viewBox="0 -960 960 960" width="14" fill="currentColor">
+                                            <path d="M480-345 240-585l56-56 184 183 184-183 56 56-240 240Z"/>
+                                        </svg>
+                                    </template>
+                                    <template v-else>
+                                        Select communes
+                                        <template v-if="store.communes[did]?.length">
+                                            ({{ store.communes[did].length }} selected)
+                                        </template>
+                                        <svg height="14" viewBox="0 -960 960 960" width="14" fill="currentColor">
+                                            <path d="M480-528 296-344l-56-56 240-240 240 240-56 56-184-184Z"/>
+                                        </svg>
+                                    </template>
+                                </button>
+                            </div>
+
+                            <!-- Commune pills -->
+                            <div v-if="store.expandedDistricts.has(did)">
+                                <div v-if="store.loadingCommunes.has(did)" class="flex items-center gap-2 text-xs text-gray-400 py-1">
+                                    <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                        <path class="opacity-75" fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    Loading communes…
+                                </div>
+
+                                <div v-else-if="store.communesCache[did]?.length" class="flex flex-wrap gap-1.5 mb-2">
+                                    <label v-for="c in store.communesCache[did]" :key="c.id"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium cursor-pointer border transition-all select-none"
+                                        :class="store.communes[did]?.includes(c.id)
+                                            ? 'bg-teal-700 text-white border-teal-700'
+                                            : 'bg-white text-gray-500 border-gray-200 hover:border-teal-400 hover:bg-teal-50'">
+                                        <input type="checkbox" :checked="store.communes[did]?.includes(c.id)"
+                                            @change="store.toggleCommune(did, c.id)" class="hidden" />
+                                        {{ c.name }}
+                                    </label>
+                                </div>
+
+                                <div v-else class="text-xs text-gray-400 py-0.5">No communes available</div>
+
+                                <!-- Villages under each selected commune -->
+                                <div v-for="cid in (store.communes[did] || [])" :key="cid" class="ml-5 mb-2 border-l-2 border-gray-100 pl-3">
+                                    <div class="flex items-center justify-between text-[11px] font-semibold text-gray-500 mb-1">
+                                        <span>{{ store.communeNameById[cid] || `Commune #${cid}` }}</span>
+                                        <button
+                                            class="inline-flex items-center gap-1 text-[10px] font-medium text-teal-500 bg-transparent border border-teal-200 rounded-md px-1.5 py-0.5 cursor-pointer transition-all hover:bg-teal-50"
+                                            @click="store.toggleVillageVisibility(cid)">
+                                            <template v-if="store.expandedCommunes.has(cid)">
+                                                Hide villages
+                                            </template>
+                                            <template v-else>
+                                                Select villages
+                                                <template v-if="store.villages[cid]?.length">
+                                                    ({{ store.villages[cid].length }} selected)
+                                                </template>
+                                            </template>
+                                        </button>
+                                    </div>
+
+                                    <!-- Village pills -->
+                                    <div v-if="store.expandedCommunes.has(cid)">
+                                        <div v-if="store.loadingVillages.has(cid)" class="flex items-center gap-2 text-xs text-gray-400 py-1">
+                                            <svg class="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                                                <path class="opacity-75" fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                            </svg>
+                                            Loading villages…
+                                        </div>
+
+                                        <div v-else-if="store.villagesCache[cid]?.length" class="flex flex-wrap gap-1">
+                                            <label v-for="v in store.villagesCache[cid]" :key="v.id"
+                                                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium cursor-pointer border transition-all select-none"
+                                                :class="store.villages[cid]?.includes(v.id)
+                                                    ? 'bg-teal-600 text-white border-teal-600'
+                                                    : 'bg-white text-gray-400 border-gray-200 hover:border-teal-400 hover:bg-teal-50'">
+                                                <input type="checkbox" :checked="store.villages[cid]?.includes(v.id)"
+                                                    @change="store.toggleVillage(cid, v.id)" class="hidden" />
+                                                {{ v.name }}
+                                            </label>
+                                        </div>
+
+                                        <div v-else class="text-xs text-gray-400 py-0.5">No villages available</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </template>
 

@@ -1,6 +1,6 @@
 import api from './axios';
 import { taxonomyApi } from './taxonomy.api';
-import type { ProgrammeIdentity, Province, District } from '@/types/programme'
+import type { ProgrammeIdentity, Province, District, Commune, Village } from '@/types/programme'
 
 export const memberApi = {
   listProgrammeEntries(organisationId: number | string) {
@@ -20,6 +20,12 @@ export const memberApi = {
   },
   getDistricts(provinceId: number) {
     return api.get<{ data: District[] }>(`/provinces/${provinceId}/districts`);
+  },
+  getCommunes(districtId: number) {
+    return api.get<{ data: Commune[] }>(`/districts/${districtId}/communes`);
+  },
+  getVillages(communeId: number) {
+    return api.get<{ data: Village[] }>(`/communes/${communeId}/villages`);
   },
   getMapEntries() {
     return api.get('/map/entries');
