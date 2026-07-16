@@ -111,20 +111,10 @@ onMounted(async () => {
   const entryId = route.query.id
 
   try {
-    const [cats, entryResult, geoResult] = await Promise.all([
-      memberApi.getTaxonomyCategories(),
+    const [entryResult, geoResult] = await Promise.all([
       entryId ? memberApi.getProgrammeEntry(entryId as string) : Promise.resolve(null),
       entryId ? memberApi.getGeography(entryId as string) : Promise.resolve(null),
     ])
-
-    cats.forEach((cat: any) => {
-      cat.subcategories?.forEach((sub: any) => {
-        sub.items?.forEach((item: any) => {
-          dbIdToCodeMap[item.id] = item.code
-          taxonomyMap[item.code] = item.id
-        })
-      })
-    })
 
     if (entryId && entryResult) {
       const entry = entryResult.data.data
@@ -146,6 +136,7 @@ onMounted(async () => {
         isUnverified: !!entry.is_unverified,
       }
 
+      await ensureTaxonomyMap()
       const selectedCodes = entry.activities?.map((a: any) => dbIdToCodeMap[a.activity_item_id] || a.code).filter(Boolean) || []
       const primaryCodes = entry.activities?.filter((a: any) => a.is_primary).map((a: any) => dbIdToCodeMap[a.activity_item_id] || a.code).filter(Boolean) || []
 
@@ -227,6 +218,19 @@ onMounted(async () => {
     }
   }
 })
+
+async function ensureTaxonomyMap() {
+  if (Object.keys(taxonomyMap).length > 0) return
+  const cats = await memberApi.getTaxonomyCategories()
+  cats.forEach((cat: any) => {
+    cat.subcategories?.forEach((sub: any) => {
+      sub.items?.forEach((item: any) => {
+        dbIdToCodeMap[item.id] = item.code
+        taxonomyMap[item.code] = item.id
+      })
+    })
+  })
+}
 
 function clearError(field: string) {
   if (errors.value[field]) {
@@ -352,6 +356,9 @@ async function saveEntry(exitAfterSave: boolean, loadingAlreadySet = false): Pro
     }
 
     // 3. Activities
+    if (activitiesData?.selected?.length) {
+      await ensureTaxonomyMap()
+    }
     const mappedActivities = activitiesData ? activitiesData.selected.map((code: string) => {
       const dbId = taxonomyMap[code] || 1
       const levels = activitiesData.educationLevels?.[code] || []
