@@ -43,11 +43,19 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function clearAuthState(redirectToLogin = false) {
-    rememberUser(null)
-
     if (redirectToLogin && window.location.pathname !== '/login') {
+      sessionStorage.removeItem('isLoggedIn')
+      sessionStorage.removeItem('userRole')
+      sessionStorage.removeItem('currentUserId')
+      try {
+        disconnectRealtime()
+      } catch (err) {
+        console.error('Failed to disconnect realtime:', err)
+      }
       window.location.assign('/login')
+      return
     }
+    rememberUser(null)
   }
 
   async function login(email: string, password: string) {
@@ -108,13 +116,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
-    try {
-      await authApi.logout()
-    } catch (err) {
+    // Fire backend logout call in the background without awaiting it
+    authApi.logout().catch((err) => {
       console.error('Failed to notify backend on logout:', err)
-    } finally {
-      clearAuthState(true)
-    }
+    })
+    
+    // Immediately log out on the frontend and redirect
+    clearAuthState(true)
   }
 
   async function fetchCurrentUser() {

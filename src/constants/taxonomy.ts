@@ -118,3 +118,15 @@ export const mockTaxonomies: Category[] = [
     ]
   }
 ];
+
+export const GROUPS_CONFIG = [
+  { name: 'Disability', allowsA: true },
+  { name: 'Gender', allowsA: true },
+  { name: 'LGBTIQ+', allowsA: false },
+  { name: 'Ethnicity/language', allowsA: true },
+  { name: 'Displacement', allowsA: false },
+  { name: 'Migrant families', allowsA: false },
+  { name: 'Statelessness', allowsA: false },
+  { name: 'Other', allowsA: true }
+] as const;
+
