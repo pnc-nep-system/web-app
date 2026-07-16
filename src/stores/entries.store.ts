@@ -37,9 +37,12 @@ function mapEntry(e: any): ProgrammeIdentity {
     method: e.method || '',
     verifiedDate: e.verified_date || '',
     isUnverified: !!e.is_unverified,
-    provinces: e.provinces || [],
-    activities: e.activities || [],
-    lastUpdated: e.updated_at || '',
+    provinces: (e.locations || []).map((loc: any) => loc.province?.province_name).filter(Boolean),
+    activities: (e.activities || []).map((a: any) => ({
+      code: a.activity_item?.code || '',
+      primary: !!a.is_primary,
+    })).filter(a => a.code),
+    lastUpdated: e.last_updated_at || e.updated_at || '',
   }
 }
 
