@@ -42,7 +42,6 @@ const taxonomy = store.taxonomy
       <div
         v-for="cat in store.filteredCategories"
         :key="cat.code"
-        v-memo="[cat.code, cat.label, store.isCategoryExpanded(cat.code), store.filteredCategories.length]"
         class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
       >
         <!-- Category Header -->
@@ -99,7 +98,6 @@ const taxonomy = store.taxonomy
           <div
             v-for="sub in cat.subcategories"
             :key="sub.code"
-            v-memo="[sub.code, sub.label, sub.items.length, store.isSubcategoryExpanded(sub.code)]"
             class="overflow-hidden"
           >
             <!-- Subcategory Header Row -->
@@ -168,7 +166,6 @@ const taxonomy = store.taxonomy
                   <tr
                     v-for="item in sub.items"
                     :key="item.code"
-                    v-memo="[item.id, item.code, item.label, item.status, item.version, item.usedCount, store.renameForm.key]"
                     class="hover:bg-slate-100/40 transition-colors"
                   >
                     <td class="px-4 py-2.5 text-xs font-bold font-mono text-slate-550">{{ item.code }}</td>
