@@ -34,7 +34,40 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   const isSaving = ref(false)
   const errors = ref<Record<string, string[]>>({})
   const saveStatus = ref<'unsaved' | 'saving' | 'saved'>('unsaved')
-  const completedSteps = ref<Set<number>>(new Set())
+  const completedSteps = computed(() => {
+    const completed = new Set<number>()
+
+    // Step 1: identity
+    if (section1Data.value?.name?.trim() && section1Data.value?.startYear) {
+      completed.add(1)
+    }
+
+    // Step 2: activities
+    const selectedList = section2Data.value?.selected || []
+    if (selectedList.length > 0) {
+      completed.add(2)
+    }
+
+    // Step 3: geographic coverage
+    const provincesList = section3Data.value?.provinceIds || []
+    if (provincesList.length > 0 || section3Data.value?.otherCountries) {
+      completed.add(3)
+    }
+
+    // Step 4: agreements
+    const agreements = section4Data.value || []
+    const isAgreementsValid = agreements.every((a: any) =>
+      a.counterpart_agency?.trim() !== '' &&
+      a.nature?.trim() !== '' &&
+      a.status?.trim() !== '' &&
+      a.institution_name?.trim() !== ''
+    )
+    if (isAgreementsValid && (agreements.length > 0 || currentStep.value > 4)) {
+      completed.add(4)
+    }
+
+    return completed
+  })
   const submissionResult = ref<{ type: 'success' | 'error'; message: string } | null>(null)
   let resultTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -56,7 +89,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   ]
 
   // --- Getters ---
-  const pageTitle = computed(() => section1Data.value.name.trim() || 'New programme entry')
+  const pageTitle = computed(() => section1Data.value?.name?.trim() || 'New programme entry')
   const progressPercent = computed(() => (currentStep.value / 5) * 100)
 
   const saveLabel = computed(() => {
@@ -68,23 +101,42 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   const currentStepTitle = computed(() => steps[currentStep.value - 1]?.title || '')
   
   const maxAllowedStep = computed(() => {
-    if (section1Data.value.id) {
+    if (section1Data.value?.id) {
       return 5
     }
-    if (!section1Data.value.name?.trim() || !section1Data.value.startYear) {
+    if (!section1Data.value?.name?.trim() || !section1Data.value?.startYear) {
       return 1
     }
-    let maxCompleted = 1
-    completedSteps.value.forEach(step => {
-      if (step > maxCompleted) {
-        maxCompleted = step
-      }
-    })
-    return Math.max(maxCompleted + 1, currentStep.value + 1)
+    
+    // Step 2 (Activities)
+    const selectedList = section2Data.value?.selected || []
+    if (selectedList.length === 0) {
+      return 2
+    }
+    
+    // Step 3 (Geographic coverage)
+    const provincesList = section3Data.value?.provinceIds || []
+    if (provincesList.length === 0 && !section3Data.value?.otherCountries) {
+      return 3
+    }
+    
+    // Step 4 (Agreements)
+    const agreements = section4Data.value || []
+    const isAgreementsValid = agreements.every((a: any) =>
+      a.counterpart_agency?.trim() !== '' &&
+      a.nature?.trim() !== '' &&
+      a.status?.trim() !== '' &&
+      a.institution_name?.trim() !== ''
+    )
+    if (!isAgreementsValid) {
+      return 4
+    }
+    
+    return 5
   })
 
   const isNavigationRestricted = computed(() => {
-    return !section1Data.value.id && (!section1Data.value.name?.trim() || !section1Data.value.startYear)
+    return !section1Data.value?.id && (!section1Data.value?.name?.trim() || !section1Data.value?.startYear)
   })
   
   const stepperProgressPercent = computed(() => ((currentStep.value - 1) / (steps.length - 1)) * 100)
@@ -162,7 +214,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     agreementsStore.reset()
     keywordsStore.reset()
     currentStep.value = 1
-    completedSteps.value = new Set()
     errors.value = {}
     saveStatus.value = 'unsaved'
     clearSubmissionResult()
@@ -262,20 +313,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
         section4Data.value = entry.government_agreements || []
 
-        // Dynamically populate completedSteps based on existing section data
-        const completed = new Set<number>()
-        completed.add(1)
-        if (selectedCodes && selectedCodes.length > 0) {
-          completed.add(2)
-        }
-        if ((section3Data.value.provinceIds && section3Data.value.provinceIds.length > 0) || section3Data.value.otherCountries) {
-          completed.add(3)
-        }
-        if (section4Data.value && section4Data.value.length > 0) {
-          completed.add(4)
-        }
-        completedSteps.value = completed
-
         saveStatus.value = 'saved'
       }
     } catch (err: any) {
@@ -297,20 +334,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           section3Data.value = draft.section3Data || { provinceIds: [], districts: {}, otherCountries: '' }
           section4Data.value = draft.section4Data || []
           keywordsStore.initKeywords(draft.keywordsData || [])
-          
-          // Re-populate completedSteps based on loaded draft sections
-          const completed = new Set<number>()
-          completed.add(1)
-          if (section2Data.value && section2Data.value.selected && section2Data.value.selected.length > 0) {
-            completed.add(2)
-          }
-          if (section3Data.value && ((section3Data.value.provinceIds && section3Data.value.provinceIds.length > 0) || section3Data.value.otherCountries)) {
-            completed.add(3)
-          }
-          if (section4Data.value && section4Data.value.length > 0) {
-            completed.add(4)
-          }
-          completedSteps.value = completed
           
           toast.success('Resumed from saved draft.')
         } catch {
@@ -546,6 +569,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     }
   }
 
+
   function validateCurrentStep(): boolean {
     if (currentStep.value === 1) {
       const isValid = identityFormRef.value?.validate?.()
@@ -604,9 +628,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   function goBack() {
     syncRefsToStore()
     if (currentStep.value > 1) {
-      const next = new Set(completedSteps.value)
-      next.delete(currentStep.value - 1)
-      completedSteps.value = next
       currentStep.value--
     }
   }
@@ -627,13 +648,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       return false
     }
     
-    // Mark preceding steps as completed
-    const next = new Set(completedSteps.value)
-    for (let i = 1; i < stepNumber; i++) {
-      next.add(i)
-    }
-    completedSteps.value = next
-    
     currentStep.value = stepNumber
     return true
   }
@@ -653,8 +667,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       keywordsData: keywordsData.value,
     }
     sessionStorage.setItem('new_programme_entry_draft', JSON.stringify(draft))
-
-    completedSteps.value = new Set([...completedSteps.value, currentStep.value])
 
     if (currentStep.value < 5) {
       currentStep.value++

@@ -13,7 +13,13 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   const educationLevels = ref<Record<string, number[]>>({})
   const collapsedItems = ref<Set<string>>(new Set())
   const showError = ref(false)
-  const section2Data = ref<any>(undefined)
+  const section2Data = ref<any>({
+    selected: [],
+    primary: [],
+    aiText: '',
+    inclusions: {},
+    educationLevels: {}
+  })
 
   watch([selected, primary, aiText, inclusions, educationLevels], () => {
     section2Data.value = {
