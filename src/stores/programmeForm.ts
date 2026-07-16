@@ -247,12 +247,12 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           educationLevels: educationLevelsMap
         }
 
-        if (geoResult) {
-          const resLocations = geoResult.data.data || []
+        const locationData = geoResult?.data?.data || entry.locations || []
+        if (locationData.length) {
           const resProvinceIds: number[] = []
           const resDistricts: Record<number, number[]> = {}
           const resOtherCountries: string[] = []
-          resLocations.forEach((loc: any) => {
+          locationData.forEach((loc: any) => {
             if (loc.country) {
               resOtherCountries.push(loc.country)
             } else if (loc.province_id) {
@@ -275,7 +275,14 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           section3Data.value = { provinceIds: [], districts: {}, otherCountries: '' }
         }
 
+        geographyStore.initFromPayload(section3Data.value)
+
         section4Data.value = entry.government_agreements || []
+
+        if (entry.keywords?.length) {
+          const keywordList = entry.keywords.map((k: any) => k.keyword).filter(Boolean)
+          keywordsStore.initKeywords(keywordList)
+        }
 
         saveStatus.value = 'saved'
       }
