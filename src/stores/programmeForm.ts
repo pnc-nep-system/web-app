@@ -62,7 +62,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       a.status?.trim() !== '' &&
       a.institution_name?.trim() !== ''
     )
-    if (isAgreementsValid && (agreements.length > 0 || currentStep.value > 4)) {
+    if (isAgreementsValid && agreements.length > 0) {
       completed.add(4)
     }
 
@@ -99,45 +99,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   })
 
   const currentStepTitle = computed(() => steps[currentStep.value - 1]?.title || '')
-  
-  const maxAllowedStep = computed(() => {
-    if (section1Data.value?.id) {
-      return 5
-    }
-    if (!section1Data.value?.name?.trim() || !section1Data.value?.startYear) {
-      return 1
-    }
-    
-    // Step 2 (Activities)
-    const selectedList = section2Data.value?.selected || []
-    if (selectedList.length === 0) {
-      return 2
-    }
-    
-    // Step 3 (Geographic coverage)
-    const provincesList = section3Data.value?.provinceIds || []
-    if (provincesList.length === 0 && !section3Data.value?.otherCountries) {
-      return 3
-    }
-    
-    // Step 4 (Agreements)
-    const agreements = section4Data.value || []
-    const isAgreementsValid = agreements.every((a: any) =>
-      a.counterpart_agency?.trim() !== '' &&
-      a.nature?.trim() !== '' &&
-      a.status?.trim() !== '' &&
-      a.institution_name?.trim() !== ''
-    )
-    if (!isAgreementsValid) {
-      return 4
-    }
-    
-    return 5
-  })
-
-  const isNavigationRestricted = computed(() => {
-    return !section1Data.value?.id && (!section1Data.value?.name?.trim() || !section1Data.value?.startYear)
-  })
   
   const stepperProgressPercent = computed(() => ((currentStep.value - 1) / (steps.length - 1)) * 100)
   const stepWidthPercent = computed(() => 100 / steps.length)
@@ -604,7 +565,12 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
   async function saveAndExit(isSubmit = false, loadingAlreadySet = false): Promise<boolean> {
     syncRefsToStore()
+
     if (isSubmit) {
+      if (!identityStore.validate()) {
+        toast.error('Step 1 (Programme identity) has incomplete required fields.')
+        return false
+      }
       if (!validateCurrentStep()) return false
 
       if (currentStep.value === 5) {
@@ -621,6 +587,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           return false
         }
       }
+    } else {
+      if (!section1Data.value.name?.trim() || !section1Data.value.startYear) {
+        toast.error('Please complete Step 1 (Programme name and Start year) before saving.')
+        return false
+      }
     }
     return await saveEntry(true, isSubmit, loadingAlreadySet)
   }
@@ -634,20 +605,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
   function goToStep(stepNumber: number) {
     syncRefsToStore()
-    
-    // If they are on Step 1 and trying to navigate to another step, they must have filled in name and start year
-    if (currentStep.value === 1 && stepNumber > 1) {
-      if (!section1Data.value.name?.trim() || !section1Data.value.startYear) {
-        toast.error('Please fill in the Programme identity (Name and Start year) before navigating to other steps.')
-        return false
-      }
-    }
-    
-    if (stepNumber > maxAllowedStep.value) {
-      toast.error('Please complete the previous sections in order.')
-      return false
-    }
-    
     currentStep.value = stepNumber
     return true
   }
@@ -708,8 +665,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     saveLabel,
     section1Valid,
     currentStepTitle,
-    maxAllowedStep,
-    isNavigationRestricted,
     stepperProgressPercent,
     stepWidthPercent,
     isFinalStep,
