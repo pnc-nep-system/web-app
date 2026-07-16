@@ -20,6 +20,12 @@ const authStore = useAuthStore()
 watch(email, () => { emailError.value = '' })
 watch(password, () => { passwordError.value = '' })
 
+async function quickLogin(e: string, p: string) {
+  email.value = e
+  password.value = p
+  await submit()
+}
+
 async function submit() {
   emailError.value = ''
   passwordError.value = ''
@@ -121,6 +127,34 @@ async function submit() {
       >
         {{ authStore.loading ? 'Signing in…' : 'Sign in' }}
       </BaseButton>
+
+      <!-- Developer Quick Login Panel -->
+      <div class="mt-6 border-t border-slate-100 pt-6">
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Developer Quick Sign In</p>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            @click="quickLogin('admin@example.com', 'password')"
+            class="px-3 py-2 text-xs font-semibold bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer border border-indigo-100/50 shadow-xs text-center"
+          >
+            Admin
+          </button>
+          <button
+            type="button"
+            @click="quickLogin('coordinator@example.com', 'password')"
+            class="px-3 py-2 text-xs font-semibold bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer border border-emerald-100/50 shadow-xs text-center"
+          >
+            Coordinator
+          </button>
+          <button
+            type="button"
+            @click="quickLogin('orgadmin@example.com', 'password')"
+            class="px-3 py-2 text-xs font-semibold bg-teal-50 text-teal-700 rounded-lg hover:bg-teal-100 transition-colors cursor-pointer border border-teal-100/50 shadow-xs text-center"
+          >
+            Member
+          </button>
+        </div>
+      </div>
        <!-- Network / Server Error Banner -->
     <div
       v-if="authStore.networkError"
