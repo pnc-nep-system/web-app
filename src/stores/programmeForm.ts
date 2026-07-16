@@ -579,12 +579,13 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   async function saveAndExit(isSubmit = false, loadingAlreadySet = false): Promise<boolean> {
     syncRefsToStore()
 
-    if (isSubmit) {
-      if (completedSteps.value.size < 5) {
-        const remaining = 5 - completedSteps.value.size
-        toast.error(`Complete all 5 steps before submitting. ${remaining} step${remaining > 1 ? 's' : ''} remaining.`)
-        return false
-      }
+      if (isSubmit) {
+        const requiredSteps = new Set([1, 2, 3, 5])
+        const missing = [...requiredSteps].filter(s => !completedSteps.value.has(s))
+        if (missing.length > 0) {
+          toast.error('Complete steps 1, 2, 3, and 5 before submitting. Step 4 (Agreements) is optional.')
+          return false
+        }
 
       if (keywordsError.value) {
         toast.error('Please remove duplicate keywords before saving.')

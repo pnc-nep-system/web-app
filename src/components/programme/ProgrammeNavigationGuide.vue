@@ -8,7 +8,7 @@
     <div>
       <p class="font-semibold mb-0.5 text-blue-950">Guidance</p>
       <p class="leading-relaxed opacity-90">
-        Step 1 complete — you can save drafts. Complete all 5 steps to submit.
+        Step 1 complete — you can save drafts. Complete steps 1, 2, 3, and 5 to submit. Step 4 (Agreements) is optional.
       </p>
     </div>
   </div>
