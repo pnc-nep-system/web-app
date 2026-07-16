@@ -17,7 +17,12 @@ const store = useProgrammeAgreementsStore()
 watch(
   () => props.modelValue,
   (val) => {
-    store.initFromPayload(val)
+    if (val) {
+      const current = store.getData()
+      if (JSON.stringify(val) !== JSON.stringify(current)) {
+        store.initFromPayload(val)
+      }
+    }
   },
   { immediate: true, deep: true }
 )

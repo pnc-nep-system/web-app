@@ -7,14 +7,10 @@ import * as InclusionHelpers from '@/utils/inclusionHelpers'
 export const useProgrammeActivitiesStore = defineStore('programmeActivities', () => {
   // State
   const aiText = ref('')
-  const openCategories = ref<Set<string>>(new Set())
-  const openSubcategories = ref<Set<string>>(new Set())
   const selected = ref<Set<string>>(new Set())
   const primary = ref<Set<string>>(new Set())
   const inclusions = ref<Record<string, ActivityInclusion>>({})
   const educationLevels = ref<Record<string, number[]>>({})
-  const categories = ref<any[]>([])
-  const isLoading = ref(true)
   const collapsedItems = ref<Set<string>>(new Set())
   const showError = ref(false)
   const section2Data = ref<any>(undefined)
@@ -30,16 +26,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   }, { deep: true })
 
   // Actions
-  async function loadCategories() {
-    isLoading.value = true
-    try {
-      categories.value = await memberApi.getTaxonomyCategories()
-    } catch (err) {
-      console.error('Failed to load categories', err)
-    } finally {
-      isLoading.value = false
-    }
-  }
+
 
   function initFromPayload(val: any) {
     selected.value = new Set()
@@ -50,6 +37,8 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     collapsedItems.value = new Set()
 
     if (val) {
+      let nextInclusions: Record<string, any> = {}
+      let nextEdLevels: Record<string, any> = {}
       if (Array.isArray(val.selected)) {
         selected.value = new Set(val.selected)
       }
@@ -60,19 +49,21 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
         aiText.value = val.aiText
       }
       if (val.inclusions && typeof val.inclusions === 'object') {
-        inclusions.value = { ...val.inclusions }
+        nextInclusions = { ...val.inclusions }
       }
       if (val.educationLevels && typeof val.educationLevels === 'object') {
-        educationLevels.value = { ...val.educationLevels }
+        nextEdLevels = { ...val.educationLevels }
       }
       selected.value.forEach(code => {
-        if (!inclusions.value[code]) {
-          inclusions.value[code] = { hasInclusion: false, dimensions: [] }
+        if (!nextInclusions[code]) {
+          nextInclusions[code] = { hasInclusion: false, dimensions: [] }
         }
-        if (!educationLevels.value[code]) {
-          educationLevels.value[code] = []
+        if (!nextEdLevels[code]) {
+          nextEdLevels[code] = []
         }
       })
+      inclusions.value = nextInclusions
+      educationLevels.value = nextEdLevels
     }
   }
 
@@ -104,21 +95,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     inclusions.value = InclusionHelpers.updateInclusionToggle(inclusions.value, itemCode, hasInclusion)
   }
 
-  function toggleCategory(code: string) {
-    if (openCategories.value.has(code)) {
-      openCategories.value.delete(code)
-    } else {
-      openCategories.value.add(code)
-    }
-  }
 
-  function toggleSubcategory(code: string) {
-    if (openSubcategories.value.has(code)) {
-      openSubcategories.value.delete(code)
-    } else {
-      openSubcategories.value.add(code)
-    }
-  }
 
   function toggleItem(code: string) {
     const nextSelected = new Set(selected.value)
@@ -128,13 +105,29 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     if (nextSelected.has(code)) {
       nextSelected.delete(code)
       nextPrimary.delete(code)
-      delete inclusions.value[code]
-      delete educationLevels.value[code]
+      
+      const nextInclusions = { ...inclusions.value }
+      delete nextInclusions[code]
+      inclusions.value = nextInclusions
+      
+      const nextEdLevels = { ...educationLevels.value }
+      delete nextEdLevels[code]
+      educationLevels.value = nextEdLevels
+      
       nextCollapsed.delete(code)
     } else {
       nextSelected.add(code)
-      inclusions.value[code] = { hasInclusion: false, dimensions: [] }
-      educationLevels.value[code] = []
+      
+      inclusions.value = {
+        ...inclusions.value,
+        [code]: { hasInclusion: false, dimensions: [] }
+      }
+      
+      educationLevels.value = {
+        ...educationLevels.value,
+        [code]: []
+      }
+      
       nextCollapsed.delete(code)
     }
     
@@ -164,32 +157,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     primary.value = nextPrimary
   }
 
-  function categoryCount(code: string): number {
-    const cat = categories.value.find(c => c.code === code)
-    if (!cat) return 0
-    let count = 0
-    cat.subcategories?.forEach((sub: any) => {
-      sub.items?.forEach((i: any) => {
-        if (selected.value.has(i.code)) {
-          count++
-        }
-      })
-    })
-    return count
-  }
 
-  function subcategoryCount(code: string): number {
-    let sub: any = null
-    for (const cat of categories.value) {
-      const found = cat.subcategories?.find((s: any) => s.code === code)
-      if (found) {
-        sub = found
-        break
-      }
-    }
-    if (!sub) return 0
-    return sub.items?.filter((i: any) => selected.value.has(i.code)).length || 0
-  }
 
   function suggestActivities() {
     // Placeholder
@@ -221,20 +189,22 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     showError.value = false
   }
 
+  function setEducationLevels(code: string, levels: number[]) {
+    educationLevels.value = {
+      ...educationLevels.value,
+      [code]: levels
+    }
+  }
+
   return {
     aiText,
-    openCategories,
-    openSubcategories,
     selected,
     primary,
     inclusions,
     educationLevels,
-    categories,
-    isLoading,
     collapsedItems,
     showError,
     section2Data,
-    loadCategories,
     initFromPayload,
     isGroupSelected,
     getGroupType,
@@ -243,16 +213,13 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     setGroupType,
     setGroupOtherText,
     updateInclusionToggle,
-    toggleCategory,
-    toggleSubcategory,
     toggleItem,
     toggleItemCollapse,
     setActivityImportance,
-    categoryCount,
-    subcategoryCount,
     suggestActivities,
     validate,
     getData,
     reset,
+    setEducationLevels,
   }
 })

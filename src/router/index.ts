@@ -53,6 +53,10 @@ const router = createRouter({
       name: 'forbidden',
       component: () => import('@/views/errors/403.vue'),
     },
+    {
+      path: '/account',
+      redirect: '/dashboard',
+    },
   ],
 })
 

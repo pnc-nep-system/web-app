@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import KpiCard from '@/components/KpiCard.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -8,17 +8,26 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import { useEntriesStore } from '@/stores/entries.store'
 
+import { useProgrammeFormStore } from '@/stores/programmeForm'
+
 const router = useRouter()
 const route = useRoute()
 const entries = useEntriesStore()
+const formStore = useProgrammeFormStore()
 
 function clearDraft() {
   sessionStorage.removeItem('new_programme_entry_draft')
+  formStore.resetAll()
 }
 
 onMounted(() => {
   const tab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
-  entries.switchTab(tab)
+  entries.switchTab(tab, true)
+})
+
+onActivated(() => {
+  const tab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
+  entries.switchTab(tab, true)
 })
 </script>
 

@@ -1,22 +1,29 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
 import EducationLevelSelector from './EducationLevelSelector.vue'
+import InclusionForm from './InclusionForm.vue'
 import { useProgrammeActivitiesStore } from '@/stores/programmeActivities'
-import { GROUPS_CONFIG } from '@/constants/taxonomy'
+import { useCategoriesStore } from '@/stores/categories'
 
 const props = defineProps<{
   modelValue?: { selected: string[]; primary: string[]; aiText: string; inclusions?: any; educationLevels?: any }
 }>()
 
 const store = useProgrammeActivitiesStore()
+const accordion = useCategoriesStore()
 
 onMounted(async () => {
-  await store.loadCategories()
+  await accordion.loadCategories()
 })
 
 watch(() => props.modelValue, (val) => {
-  store.initFromPayload(val)
-}, { immediate: true })
+  if (val) {
+    const current = store.getData()
+    if (JSON.stringify(val) !== JSON.stringify(current)) {
+      store.initFromPayload(val)
+    }
+  }
+}, { immediate: true, deep: true })
 
 function validate() {
   return store.validate()
@@ -77,7 +84,7 @@ defineExpose({ validate, getData })
     </p>
 
     <!-- Loading Spinner -->
-    <div v-if="store.isLoading" class="flex flex-col items-center justify-center py-12 bg-white rounded-xl border border-gray-100 shadow-sm">
+    <div v-if="accordion.isLoading" class="flex flex-col items-center justify-center py-12 bg-white rounded-xl border border-gray-100 shadow-sm">
       <svg class="animate-spin h-8 w-8 text-teal-800 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -88,7 +95,7 @@ defineExpose({ validate, getData })
     <!-- B1–B9 Accordions -->
     <div v-else class="space-y-3">
       <div
-        v-for="cat in store.categories"
+        v-for="cat in accordion.categories"
         :key="cat.code"
         class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden"
       >
@@ -96,22 +103,22 @@ defineExpose({ validate, getData })
         <button
           type="button"
           class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors bg-slate-50/50 cursor-pointer select-none"
-          @click="store.toggleCategory(cat.code)"
+          @click="accordion.toggleCategory(cat.code)"
         >
           <div class="flex items-center gap-3">
             <span class="text-sm font-bold text-slate-800">{{ cat.code }} · {{ cat.label }}</span>
             <!-- Selection badge -->
             <span
-              v-if="store.categoryCount(cat.code) > 0"
+              v-if="accordion.categoryCount(cat.code) > 0"
               class="inline-flex items-center justify-center h-5 min-w-[1.25rem] px-1.5 rounded-full text-[10px] font-bold bg-teal-800 text-white shadow-sm"
             >
-              {{ store.categoryCount(cat.code) }}
+              {{ accordion.categoryCount(cat.code) }}
             </span>
           </div>
           <!-- Chevron -->
           <svg
             class="w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200"
-            :class="store.openCategories.has(cat.code) ? 'rotate-180' : ''"
+            :class="accordion.openCategories.has(cat.code) ? 'rotate-180' : ''"
             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
           >
             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
@@ -119,7 +126,7 @@ defineExpose({ validate, getData })
         </button>
 
         <!-- Category Body (Subcategories List) -->
-        <div v-if="store.openCategories.has(cat.code)" class="border-t border-gray-100 px-5 py-4 space-y-3 bg-slate-50/10 animate-fade-in">
+        <div v-if="accordion.openCategories.has(cat.code)" class="border-t border-gray-100 px-5 py-4 space-y-3 bg-slate-50/10 animate-fade-in">
           <div
             v-for="sub in cat.subcategories"
             :key="sub.code"
@@ -129,21 +136,21 @@ defineExpose({ validate, getData })
             <button
               type="button"
               class="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50/80 transition-colors bg-slate-50/30 cursor-pointer select-none"
-              @click="store.toggleSubcategory(sub.code)"
+              @click="accordion.toggleSubcategory(sub.code)"
             >
               <div class="flex items-center gap-3">
                 <span class="text-xs font-bold text-slate-700">{{ sub.code }} · {{ sub.label }}</span>
                 <!-- Selection badge -->
                 <span
-                  v-if="store.subcategoryCount(sub.code) > 0"
+                  v-if="accordion.subcategoryCount(sub.code) > 0"
                   class="inline-flex items-center justify-center h-4.5 min-w-[1.125rem] px-1 rounded-full text-[9px] font-bold bg-teal-600 text-white shadow-sm"
                 >
-                  {{ store.subcategoryCount(sub.code) }}
+                  {{ accordion.subcategoryCount(sub.code) }}
                 </span>
               </div>
               <svg
                 class="w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform duration-200"
-                :class="store.openSubcategories.has(sub.code) ? 'rotate-180' : ''"
+                :class="accordion.openSubcategories.has(sub.code) ? 'rotate-180' : ''"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
               >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
@@ -151,11 +158,11 @@ defineExpose({ validate, getData })
             </button>
 
             <!-- Subcategory Body (Items List) -->
-            <div v-if="store.openSubcategories.has(sub.code)" class="border-t border-slate-100 px-4 py-4 space-y-3 bg-slate-50/10 animate-fade-in">
+            <div v-if="accordion.openSubcategories.has(sub.code)" class="border-t border-slate-100 px-4 py-4 space-y-3 bg-slate-50/10 animate-fade-in">
               <div
                 v-for="item in sub.items"
                 :key="item.code"
-                class="bg-white rounded-xl border p-4 transition-all duration-300 cursor-pointer select-none"
+                class="bg-white rounded-xl border p-4 transition-colors duration-200 cursor-pointer select-none"
                 :class="store.selected.has(item.code) ? 'border-teal-700 shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/20'"
                 @click="store.toggleItem(item.code)"
               >
@@ -190,7 +197,7 @@ defineExpose({ validate, getData })
                   </div>
                   
                   <!-- Primary/secondary importance toggle + collapse arrow — only visible when checked -->
-                  <div v-if="store.selected.has(item.code)" class="flex items-center gap-2 animate-fade-in shrink-0 select-none" @click.stop>
+                  <div v-if="store.selected.has(item.code)" class="flex items-center gap-2 animate-fade-in shrink-0 select-none">
                     <!-- Primary/secondary importance toggle -->
                     <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100">
                       <button
@@ -244,117 +251,12 @@ defineExpose({ validate, getData })
                     <span class="text-xs font-bold text-slate-800 block mb-2">Education Levels</span>
                     <EducationLevelSelector
                       :model-value="store.educationLevels[item.code] || []"
-                      @update:model-value="(val) => store.educationLevels[item.code] = val"
+                      @update:model-value="(val) => store.setEducationLevels(item.code, val)"
                     />
                   </div>
 
-                  <!-- Yes/No Toggle -->
-                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-slate-100 pt-4">
-                    <span class="text-xs font-bold text-slate-800">Specific inclusion focus?</span>
-                    <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100">
-                      <button
-                        type="button"
-                        @click="store.updateInclusionToggle(item.code, true)"
-                        class="px-4 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer"
-                        :class="store.inclusions[item.code]?.hasInclusion ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        @click="store.updateInclusionToggle(item.code, false)"
-                        class="px-4 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer"
-                        :class="!store.inclusions[item.code]?.hasInclusion ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'"
-                      >
-                        No
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Group & Type Selection (conditionally visible when toggled "yes") -->
-                  <div v-if="store.inclusions[item.code]?.hasInclusion" class="space-y-3 border-t border-slate-100 pt-4 animate-fade-in">
-                    <span class="text-[11px] font-bold text-slate-500 block">Target Groups & Inclusion Types (Type A: Inclusive design | Type B: Targeted programme)</span>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      <div 
-                        v-for="group in GROUPS_CONFIG" 
-                        :key="group.name"
-                        class="border border-slate-100 rounded-lg p-2.5 bg-slate-50/50 flex flex-col gap-1.5"
-                      >
-                        <!-- Group Checkbox -->
-                        <div 
-                          @click="store.toggleGroupSelection(item.code, group.name)" 
-                          class="inline-flex items-center text-xs font-bold text-slate-700 cursor-pointer select-none group/groupitem"
-                        >
-                          <input
-                            type="checkbox"
-                            :checked="store.isGroupSelected(item.code, group.name)"
-                            class="sr-only"
-                          />
-                          <!-- Custom Checkbox -->
-                          <div
-                            class="h-4 w-4 rounded border flex items-center justify-center transition-all duration-200 mr-2 shrink-0"
-                            :class="store.isGroupSelected(item.code, group.name)
-                              ? 'border-teal-700 bg-teal-700 text-white shadow-sm'
-                              : 'border-slate-350 bg-white group-hover/groupitem:border-slate-400'"
-                          >
-                            <svg v-if="store.isGroupSelected(item.code, group.name)" class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3.5">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                          <span>{{ group.name }}</span>
-                        </div>
-
-                        <!-- Type Selection (Visible only when Group Checkbox is checked) -->
-                        <div v-if="store.isGroupSelected(item.code, group.name)" class="pl-6 flex flex-col gap-1.5 border-l-2 border-teal-50 ml-2 animate-fade-in">
-                          <!-- Type A / Type B options -->
-                          <div class="flex gap-4">
-                            <label 
-                              v-if="group.allowsA" 
-                              class="inline-flex items-center text-xs font-semibold text-slate-500 cursor-pointer select-none"
-                              @click.stop
-                            >
-                              <input
-                                type="radio"
-                                :name="`type-${item.code}-${group.name}`"
-                                value="A"
-                                :checked="store.getGroupType(item.code, group.name) === 'A'"
-                                @change="store.setGroupType(item.code, group.name, 'A')"
-                                class="h-3.5 w-3.5 border-slate-300 text-teal-700 focus:ring-teal-500 mr-1.5 cursor-pointer"
-                              />
-                              Type A
-                            </label>
-                            
-                            <label 
-                              class="inline-flex items-center text-xs font-semibold text-slate-500 cursor-pointer select-none"
-                              @click.stop
-                            >
-                              <input
-                                type="radio"
-                                :name="`type-${item.code}-${group.name}`"
-                                value="B"
-                                :checked="store.getGroupType(item.code, group.name) === 'B'"
-                                @change="store.setGroupType(item.code, group.name, 'B')"
-                                class="h-3.5 w-3.5 border-slate-300 text-teal-700 focus:ring-teal-500 mr-1.5 cursor-pointer"
-                              />
-                              Type B
-                            </label>
-                          </div>
-
-                          <!-- Text input for 'Other' -->
-                          <div v-if="group.name === 'Other'" class="mt-1" @click.stop>
-                            <input
-                              type="text"
-                              placeholder="Specify other focus..."
-                              :value="store.getGroupOtherText(item.code)"
-                              @input="store.setGroupOtherText(item.code, ($event.target as HTMLInputElement).value)"
-                              class="w-full px-2.5 py-1 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-teal-500 text-gray-700 placeholder-gray-400"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <!-- Inclusion Focus -->
+                  <InclusionForm :item-code="item.code" />
                 </div>
               </div>
             </div>

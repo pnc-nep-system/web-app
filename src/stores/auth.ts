@@ -63,7 +63,10 @@ export const useAuthStore = defineStore('auth', () => {
     clearErrors()
 
     try {
-      await authApi.getCsrfCookie()
+      const hasCsrfToken = document.cookie.split(';').some(c => c.trim().startsWith('XSRF-TOKEN='))
+      if (!hasCsrfToken) {
+        await authApi.getCsrfCookie()
+      }
 
       const response = await authApi.login({ email, password })
       const { user } = response.data

@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import AppShell from '@/components/AppShell.vue'
 import ProgrammeWizard from '@/components/programme/ProgrammeWizard.vue'
+import { useProgrammeFormStore } from '@/stores/programmeForm'
+
+const store = useProgrammeFormStore()
 
 function clearDraft() {
   sessionStorage.removeItem('new_programme_entry_draft')
+  store.resetAll()
 }
 </script>
 

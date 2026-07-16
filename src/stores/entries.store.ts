@@ -134,11 +134,11 @@ export const useEntriesStore = defineStore('entries', () => {
     }
   }
 
-  async function switchTab(tab: 'draft' | 'submitted') {
+  async function switchTab(tab: 'draft' | 'submitted', force = false) {
     activeTab.value = tab
-    if (tab === 'draft' && draftItems.value.length === 0) {
+    if (tab === 'draft' && (draftItems.value.length === 0 || force)) {
       await fetchDraftEntries()
-    } else if (tab === 'submitted' && submittedItems.value.length === 0) {
+    } else if (tab === 'submitted' && (submittedItems.value.length === 0 || force)) {
       await fetchSubmittedEntries()
     }
   }

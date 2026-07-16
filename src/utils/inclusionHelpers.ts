@@ -24,10 +24,10 @@ export function getGroupOtherText(inclusions: Record<string, ActivityInclusion>,
 export function toggleGroupSelection(inclusions: Record<string, ActivityInclusion>, itemCode: string, groupName: InclusionGroup): Record<string, ActivityInclusion> {
   const inc = inclusions[itemCode]
   if (!inc) return inclusions
-  
+
   const dimensions = [...inc.dimensions]
   const idx = dimensions.findIndex(d => d.group === groupName)
-  
+
   if (idx === -1) {
     const allowsA = GROUPS_CONFIG.find(g => g.name === groupName)?.allowsA ?? false
     dimensions.push({
@@ -38,7 +38,7 @@ export function toggleGroupSelection(inclusions: Record<string, ActivityInclusio
   } else {
     dimensions.splice(idx, 1)
   }
-  
+
   return {
     ...inclusions,
     [itemCode]: {
@@ -51,10 +51,10 @@ export function toggleGroupSelection(inclusions: Record<string, ActivityInclusio
 export function setGroupType(inclusions: Record<string, ActivityInclusion>, itemCode: string, groupName: InclusionGroup, type: 'A' | 'B'): Record<string, ActivityInclusion> {
   const inc = inclusions[itemCode]
   if (!inc) return inclusions
-  
+
   const dimensions = [...inc.dimensions]
   const idx = dimensions.findIndex(d => d.group === groupName)
-  
+
   if (idx !== -1) {
     const dim = dimensions[idx]
     if (dim) {
@@ -64,7 +64,7 @@ export function setGroupType(inclusions: Record<string, ActivityInclusion>, item
       }
     }
   }
-  
+
   return {
     ...inclusions,
     [itemCode]: {
@@ -77,10 +77,10 @@ export function setGroupType(inclusions: Record<string, ActivityInclusion>, item
 export function setGroupOtherText(inclusions: Record<string, ActivityInclusion>, itemCode: string, otherText: string): Record<string, ActivityInclusion> {
   const inc = inclusions[itemCode]
   if (!inc) return inclusions
-  
+
   const dimensions = [...inc.dimensions]
   const idx = dimensions.findIndex(d => d.group === 'Other')
-  
+
   if (idx !== -1) {
     const dim = dimensions[idx]
     if (dim) {
@@ -90,7 +90,7 @@ export function setGroupOtherText(inclusions: Record<string, ActivityInclusion>,
       }
     }
   }
-  
+
   return {
     ...inclusions,
     [itemCode]: {
@@ -103,7 +103,7 @@ export function setGroupOtherText(inclusions: Record<string, ActivityInclusion>,
 export function updateInclusionToggle(inclusions: Record<string, ActivityInclusion>, itemCode: string, hasInclusion: boolean): Record<string, ActivityInclusion> {
   const inc = inclusions[itemCode]
   if (!inc) return inclusions
-  
+
   return {
     ...inclusions,
     [itemCode]: {

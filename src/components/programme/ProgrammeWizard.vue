@@ -16,11 +16,12 @@ import { useProgrammeFormStore } from '@/stores/programmeForm'
 const route = useRoute()
 const store = useProgrammeFormStore()
 
-// Re-initialize store when route query ID changes (e.g. from editing to creating new entry)
+// Re-initialize store when route changes
 watch(
-  () => route.query.id,
-  async (newId) => {
-    await store.initializeForm(newId ? String(newId) : null)
+  () => route.fullPath,
+  async () => {
+    const entryId = route.query.id ? String(route.query.id) : null
+    await store.initializeForm(entryId)
   }
 )
 

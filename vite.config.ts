@@ -10,19 +10,25 @@ export default defineConfig({
   plugins: [
     vue(),
     tailwindcss(),
-    ...(process.env.NODE_ENV === 'development' ? [vueDevTools()] : []),
+    vueDevTools()
   ],
+  esbuild: {
+    drop: ['console', 'debugger'],
+  } as any,
   build: {
     sourcemap: false,
     minify: 'esbuild',
-    esbuild: {
-      drop: ['console', 'debugger'],
-    },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-vue': ['vue', 'vue-router', 'pinia'],
-          'vendor-http': ['axios'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('vue') || id.includes('vue-router') || id.includes('pinia')) {
+              return 'vendor-vue'
+            }
+            if (id.includes('axios')) {
+              return 'vendor-http'
+            }
+          }
         },
       },
     },
