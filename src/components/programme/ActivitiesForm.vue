@@ -301,7 +301,7 @@ function subcategoryCount(code: string): number {
     </div>
 
     <!-- AI-assisted completion panel -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div v-if="false" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
       <div class="flex items-center gap-2 mb-3">
         <!-- Lightning bolt icon -->
         <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
