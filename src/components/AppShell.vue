@@ -114,18 +114,23 @@ function logout() {
         </RouterLink>
       </nav>
 
-      <div class="p-4 border-t border-white/10 flex items-center gap-3 shrink-0">
+      <div class="p-4 border-t border-white/10 flex items-center gap-3 shrink-0 select-none">
         <div
-          class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold shrink-0"
+          class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold text-white shrink-0"
         >
           {{ displayName.slice(0, 2).toUpperCase() }}
         </div>
-        <div class="overflow-hidden leading-tight">
-          <b class="text-xs block truncate w-24">{{ displayName }}</b>
-          <span class="text-[10px] text-white/50">{{ roleLabel }}</span>
+        <div class="overflow-hidden leading-tight flex-grow">
+          <b class="text-xs block truncate w-24 text-white font-semibold">{{ displayName }}</b>
+          <span class="text-[10px] text-white/50 block mt-0.5">{{ roleLabel }}</span>
         </div>
-        <button @click="logout" class="ml-auto text-white/50 hover:text-white transition-colors">
-          <BaseIcon name="logout" />
+        <button 
+          @click="logout" 
+          class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+          style="min-width: 36px; min-height: 36px;"
+          title="Log out"
+        >
+          <BaseIcon name="logout" size="18" />
         </button>
       </div>
     </aside>

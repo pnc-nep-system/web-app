@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { watch } from 'vue'
+import { useProgrammeKeywordsStore } from '@/stores/programmeKeywords'
 
 const props = withDefaults(
   defineProps<{
@@ -14,51 +15,17 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: string[]): void
 }>()
 
-const keyword1 = ref('')
-const keyword2 = ref('')
-const keyword3 = ref('')
-const keyword4 = ref('')
-const keyword5 = ref('')
-
-onMounted(() => {
-  if (props.modelValue && props.modelValue.length > 0) {
-    keyword1.value = props.modelValue[0] || ''
-    keyword2.value = props.modelValue[1] || ''
-    keyword3.value = props.modelValue[2] || ''
-    keyword4.value = props.modelValue[3] || ''
-    keyword5.value = props.modelValue[4] || ''
-  }
-})
-
-watch([keyword1, keyword2, keyword3, keyword4, keyword5], () => {
-  const newKeywords = [
-    keyword1.value.trim(),
-    keyword2.value.trim(),
-    keyword3.value.trim(),
-    keyword4.value.trim(),
-    keyword5.value.trim()
-  ].filter(k => k !== '')
-  
-  emit('update:modelValue', newKeywords)
-})
+const store = useProgrammeKeywordsStore()
 
 watch(() => props.modelValue, (newVal) => {
-  const currentLocal = [
-    keyword1.value.trim(),
-    keyword2.value.trim(),
-    keyword3.value.trim(),
-    keyword4.value.trim(),
-    keyword5.value.trim()
-  ].filter(k => k !== '')
-  
-  if (JSON.stringify(newVal) !== JSON.stringify(currentLocal)) {
-    keyword1.value = newVal[0] || ''
-    keyword2.value = newVal[1] || ''
-    keyword3.value = newVal[2] || ''
-    keyword4.value = newVal[3] || ''
-    keyword5.value = newVal[4] || ''
+  if (JSON.stringify(newVal) !== JSON.stringify(store.keywordsData)) {
+    store.initKeywords(newVal || [])
   }
-}, { deep: true })
+}, { deep: true, immediate: true })
+
+watch(store.keywordsData, (newVal) => {
+  emit('update:modelValue', newVal)
+})
 </script>
 
 <template>
@@ -77,7 +44,7 @@ watch(() => props.modelValue, (newVal) => {
           </label>
           <input
             id="keyword1"
-            v-model="keyword1"
+            v-model="store.keyword1"
             type="text"
             class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
@@ -88,7 +55,7 @@ watch(() => props.modelValue, (newVal) => {
           </label>
           <input
             id="keyword2"
-            v-model="keyword2"
+            v-model="store.keyword2"
             type="text"
             class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
@@ -99,7 +66,7 @@ watch(() => props.modelValue, (newVal) => {
           </label>
           <input
             id="keyword3"
-            v-model="keyword3"
+            v-model="store.keyword3"
             type="text"
             class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
@@ -110,7 +77,7 @@ watch(() => props.modelValue, (newVal) => {
           </label>
           <input
             id="keyword4"
-            v-model="keyword4"
+            v-model="store.keyword4"
             type="text"
             class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />
@@ -121,7 +88,7 @@ watch(() => props.modelValue, (newVal) => {
           </label>
           <input
             id="keyword5"
-            v-model="keyword5"
+            v-model="store.keyword5"
             type="text"
             class="block w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors sm:text-sm"
           />

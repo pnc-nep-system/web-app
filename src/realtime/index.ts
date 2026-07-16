@@ -33,7 +33,14 @@ export async function connectRealtimeForRole(role?: string) {
 export function disconnectRealtime() {
   if (!subscribed) return
 
-  getEcho().leave('private-nep-admin')
+  const globalEcho = (window as any).Echo
+  if (globalEcho) {
+    try {
+      globalEcho.leave('private-nep-admin')
+    } catch (err) {
+      console.error('Failed to leave realtime channel:', err)
+    }
+  }
   disconnectEcho()
   subscribed = false
 }

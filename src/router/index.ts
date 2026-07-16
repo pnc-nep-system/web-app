@@ -39,7 +39,7 @@ const router = createRouter({
     {
       path: '/entries/new',
       name: 'entry-new',
-      component: () => import('@/views/member/NewEntryView.vue'),
+      component: () => import('@/views/programme/NewEntryView.vue'),
       meta: { requiresAuth: true },
     },
     {

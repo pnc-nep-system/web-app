@@ -4,9 +4,17 @@ import { memberApi } from '@/api/member.api'
 import { BUDGET_BANDS } from '@/constants/programme'
 import type { ProgrammeIdentity } from '@/types/programme'
 
+import { monthsSince, formatRelativeTime } from '@/utils/date'
+
 export interface EntryWithStatus extends ProgrammeIdentity {
   status: string
   statusVariant: 'warning' | 'success'
+  unverifiedLabel: string
+  provincesDisplay: string
+  hasMoreProvinces: boolean
+  moreProvincesCount: number
+  primaryCodes: string[]
+  relativeLastUpdated: string
 }
 
 export interface PaginationMeta {
@@ -61,11 +69,22 @@ export const useEntriesStore = defineStore('entries', () => {
   )
 
   const entriesWithStatus = computed<EntryWithStatus[]>(() =>
-    currentItems.value.map(entry => ({
-      ...entry,
-      status: entry.isUnverified ? 'Unverified' : 'Verified',
-      statusVariant: entry.isUnverified ? 'warning' : 'success' as const,
-    }))
+    currentItems.value.map(entry => {
+      const provinces = entry.provinces || []
+      const primaryActivities = entry.activities?.filter(a => a.primary).map(a => a.code) || []
+
+      return {
+        ...entry,
+        status: entry.isUnverified ? 'Unverified' : 'Verified',
+        statusVariant: entry.isUnverified ? 'warning' : 'success' as const,
+        unverifiedLabel: `Unverified — ${monthsSince(entry.lastUpdated)} months`,
+        provincesDisplay: provinces.slice(0, 2).join(', '),
+        hasMoreProvinces: provinces.length > 2,
+        moreProvincesCount: provinces.length - 2,
+        primaryCodes: primaryActivities,
+        relativeLastUpdated: formatRelativeTime(entry.lastUpdated) || '—',
+      }
+    })
   )
 
   const verifiedCount = computed(() => currentItems.value.filter(e => !e.isUnverified).length)
@@ -124,6 +143,25 @@ export const useEntriesStore = defineStore('entries', () => {
     }
   }
 
+  function goToPage(page: number) {
+    if (activeTab.value === 'draft') {
+      fetchDraftEntries(page)
+    } else {
+      fetchSubmittedEntries(page)
+    }
+  }
+
+  function retry() {
+    const page = activeTab.value === 'draft'
+      ? draftPagination.value.currentPage
+      : submittedPagination.value.currentPage
+    if (activeTab.value === 'draft') {
+      fetchDraftEntries(page)
+    } else {
+      fetchSubmittedEntries(page)
+    }
+  }
+
   return {
     activeTab,
     draftItems,
@@ -145,5 +183,7 @@ export const useEntriesStore = defineStore('entries', () => {
     fetchDraftEntries,
     fetchSubmittedEntries,
     switchTab,
+    goToPage,
+    retry,
   }
 })
