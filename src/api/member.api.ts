@@ -42,6 +42,9 @@ export const memberApi = {
   getSubmittedProgrammeEntries(page = 1) {
     return api.get(`/programme-entries/submitted?page=${page}`);
   },
+  saveKeywords(id: number | string, keywords: string[]) {
+    return api.put(`/programme-entries/${id}/keywords`, { keywords });
+  },
   getTaxonomyCategories() {
     return taxonomyApi.list();
   }

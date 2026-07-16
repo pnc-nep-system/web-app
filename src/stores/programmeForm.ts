@@ -66,6 +66,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       completed.add(4)
     }
 
+    // Step 5: keywords
+    if (keywordsData.value.length > 0) {
+      completed.add(5)
+    }
+
     return completed
   })
   const submissionResult = ref<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -413,11 +418,16 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       const activitiesPromise = mappedActivities.length > 0
         ? memberApi.saveActivities(savedId, mappedActivities)
         : Promise.resolve(null)
+      const keywordsList = keywordsData.value
+      const keywordsPromise = keywordsList.length > 0
+        ? memberApi.saveKeywords(savedId, keywordsList)
+        : Promise.resolve(null)
 
       const [agreementsResponse, geographyResponse, activitiesResponse] = await Promise.all([
         agreementsPromise,
         geographyPromise,
-        activitiesPromise
+        activitiesPromise,
+        keywordsPromise,
       ])
 
       section4Data.value = agreementsResponse.data.data || []
@@ -574,12 +584,10 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       if (!validateCurrentStep()) return false
 
       if (currentStep.value === 5) {
-        if (keywordsData.value.length === 0) {
-          keywordsError.value = 'You must add at least one keyword before saving.'
-          toast.error('Please add at least one keyword.')
+        if (keywordsError.value) {
+          toast.error('Please remove duplicate keywords before saving.')
           return false
         }
-        keywordsError.value = null
 
         const authStore = useAuthStore()
         if (!authStore.currentUser?.is_profile_complete) {
