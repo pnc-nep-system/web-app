@@ -6,6 +6,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
+import DashboardGuidance from '@/components/programme/DashboardGuidance.vue'
 import { useEntriesStore } from '@/stores/entries.store'
 
 import { useProgrammeFormStore } from '@/stores/programmeForm'
@@ -195,4 +196,6 @@ onActivated(() => {
       </div>
     </div>
   </div>
+
+  <DashboardGuidance />
 </template>
