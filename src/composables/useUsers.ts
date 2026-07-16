@@ -1,5 +1,6 @@
 import { ref } from 'vue'
-import { userService, type OrganisationOption } from '@/api/user.service'
+import { userService } from '@/api/user.service'
+import { type OrganisationOption } from '@/api/organisation.service'
 import { useToast } from '@/utils/toast'
 import type { User, CreateUserPayload, UpdateUserPayload } from '@/types/user'
 
