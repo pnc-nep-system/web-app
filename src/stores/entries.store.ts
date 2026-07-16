@@ -165,6 +165,11 @@ export const useEntriesStore = defineStore('entries', () => {
     }
   }
 
+  function forOrganisation(orgId: number | null) {
+    if (!orgId) return []
+    return [...draftItems.value, ...submittedItems.value]
+  }
+
   return {
     activeTab,
     draftItems,
@@ -188,5 +193,6 @@ export const useEntriesStore = defineStore('entries', () => {
     switchTab,
     goToPage,
     retry,
+    forOrganisation,
   }
 })

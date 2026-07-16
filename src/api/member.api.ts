@@ -47,7 +47,13 @@ export const memberApi = {
   },
   getTaxonomyCategories() {
     return taxonomyApi.list();
-  }
+  },
+  getMyOrganisation() {
+    return api.get('/organisations/me');
+  },
+  updateMyOrganisation(payload: { contact_name?: string; email?: string }) {
+    return api.patch('/organisations/me', payload);
+  },
 };
 
 
