@@ -4,8 +4,6 @@ import router from '@/router'
 import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
 import { BUDGET_BANDS } from '@/constants/programme'
-import { useAuthStore } from './auth'
-
 import { useProgrammeIdentityStore } from './programmeIdentity'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 import { useProgrammeGeographyStore } from './programmeGeography'
@@ -331,7 +329,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         ongoing: section1Data.value.isOngoing,
         method: section1Data.value.method || null,
         verified_date: section1Data.value.verifiedDate || null,
-        activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
         province_ids: section3Data.value.provinceIds,
         district_ids: section3Data.value.districts,
         other_countries: section3Data.value.otherCountries,
@@ -390,28 +387,34 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       }
 
       // 3. Activities
-      const mappedActivities = activitiesData ? activitiesData.selected.map((code: string) => {
-        const dbId = taxonomyMap.value[code] || 1
-        const levels = activitiesData.educationLevels?.[code] || []
-        const inc = activitiesData.inclusions?.[code]
-
-        const payloadAct: any = {
-          activity_item_id: dbId,
-          is_primary: activitiesData.primary.includes(code),
-          education_level_ids: levels.length > 0 ? levels : [1],
-          source: 'human_entered'
-        }
-
-        if (inc && inc.hasInclusion && inc.dimensions && inc.dimensions.length > 0) {
-          const dim = inc.dimensions[0]
-          if (dim) {
-            payloadAct.inclusion_group = dim.group
-            payloadAct.inclusion_type = dim.type
+      const mappedActivities = activitiesData ? activitiesData.selected
+        .map((code: string) => {
+          const dbId = taxonomyMap.value[code]
+          if (!dbId) {
+            console.warn(`[saveEntry] No taxonomy mapping found for code: ${code}, skipping`)
+            return null
           }
-        }
+          const levels = activitiesData.educationLevels?.[code] || []
+          const inc = activitiesData.inclusions?.[code]
 
-        return payloadAct
-      }) : []
+          const payloadAct: any = {
+            activity_item_id: dbId,
+            is_primary: activitiesData.primary.includes(code),
+            education_level_ids: levels.length > 0 ? levels : [1],
+            source: 'human_entered'
+          }
+
+          if (inc && inc.hasInclusion && inc.dimensions && inc.dimensions.length > 0) {
+            const dim = inc.dimensions[0]
+            if (dim) {
+              payloadAct.inclusion_group = dim.group
+              payloadAct.inclusion_type = dim.type
+            }
+          }
+
+          return payloadAct
+        })
+        .filter(Boolean) : []
 
       const agreementsPromise = memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
       const geographyPromise = memberApi.saveGeography(savedId, geographyPayload)
@@ -577,23 +580,15 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     syncRefsToStore()
 
     if (isSubmit) {
-      if (!identityStore.validate()) {
-        toast.error('Step 1 (Programme identity) has incomplete required fields.')
+      if (completedSteps.value.size < 5) {
+        const remaining = 5 - completedSteps.value.size
+        toast.error(`Complete all 5 steps before submitting. ${remaining} step${remaining > 1 ? 's' : ''} remaining.`)
         return false
       }
-      if (!validateCurrentStep()) return false
 
-      if (currentStep.value === 5) {
-        if (keywordsError.value) {
-          toast.error('Please remove duplicate keywords before saving.')
-          return false
-        }
-
-        const authStore = useAuthStore()
-        if (!authStore.currentUser?.is_profile_complete) {
-          toast.error("You haven't completed Organisation profile yet")
-          return false
-        }
+      if (keywordsError.value) {
+        toast.error('Please remove duplicate keywords before saving.')
+        return false
       }
     } else {
       if (!section1Data.value.name?.trim() || !section1Data.value.startYear) {
