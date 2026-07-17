@@ -4,6 +4,7 @@ import router from '@/router'
 import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
 import { BUDGET_BANDS } from '@/constants/programme'
+import { useCategoriesStore } from './categories'
 import { useProgrammeIdentityStore } from './programmeIdentity'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 import { useProgrammeGeographyStore } from './programmeGeography'
@@ -30,6 +31,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   // --- State ---
   const currentStep = ref(1)
   const isSaving = ref(false)
+  const isInitializing = ref(false)
   const errors = ref<Record<string, string[]>>({})
   const saveStatus = ref<'unsaved' | 'saving' | 'saved'>('unsaved')
   const completedSteps = computed(() => {
@@ -203,15 +205,27 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     clearSubmissionResult()
   }
 
-  // --- Actions ---
+  let _initPromise: Promise<void> | null = null
+  let _initId: string | null = null
+
   async function initializeForm(entryId: string | null) {
-    resetAll()
-    try {
-      const [cats, entryResult, geoResult] = await Promise.all([
-        memberApi.getTaxonomyCategories(),
-        entryId ? memberApi.getProgrammeEntry(entryId) : Promise.resolve(null),
-        entryId ? memberApi.getGeography(entryId) : Promise.resolve(null),
-      ])
+    if (_initPromise && _initId === entryId) {
+      return _initPromise
+    }
+
+    _initId = entryId
+    _initPromise = (async () => {
+      isInitializing.value = true
+      resetAll()
+      try {
+        const catsStore = useCategoriesStore()
+        await catsStore.loadCategories()
+        const cats = catsStore.categories
+
+        const [entryResult, geoResult] = await Promise.all([
+          entryId ? memberApi.getProgrammeEntry(entryId) : Promise.resolve(null),
+          entryId ? memberApi.getGeography(entryId) : Promise.resolve(null),
+        ])
 
       cats.forEach((cat: any) => {
         cat.subcategories?.forEach((sub: any) => {
@@ -223,7 +237,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       })
 
       if (entryId && entryResult) {
-        const entry = entryResult.data.data
+        const entry = entryResult.data.data || entryResult.data
 
         section1Data.value = {
           id: entry.id,
@@ -267,7 +281,9 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           educationLevels: educationLevelsMap
         }
 
-        const locationData = geoResult?.data?.data || entry.locations || []
+        let tempSection3Data = { provinceIds: [] as number[], districts: {} as Record<number, number[]>, communes: {} as Record<number, number[]>, villages: {} as Record<number, number[]>, otherCountries: '' }
+
+        const locationData = geoResult?.data?.data || (Array.isArray(geoResult?.data) ? geoResult.data : null) || entry.locations || []
         if (locationData.length) {
           const resProvinceIds: number[] = []
           const resDistricts: Record<number, number[]> = {}
@@ -304,18 +320,16 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
               }
             }
           })
-          section3Data.value = {
+          tempSection3Data = {
             provinceIds: resProvinceIds,
             districts: resDistricts,
             communes: resCommunes,
             villages: resVillages,
             otherCountries: resOtherCountries.join(', ')
           }
-        } else {
-          section3Data.value = { provinceIds: [], districts: {}, communes: {}, villages: {}, otherCountries: '' }
         }
 
-        geographyStore.initFromPayload(section3Data.value)
+        geographyStore.initFromPayload(tempSection3Data)
 
         section4Data.value = entry.government_agreements || []
 
@@ -342,7 +356,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           currentStep.value = draft.currentStep || 1
           section1Data.value = draft.section1Data
           section2Data.value = draft.section2Data
-          section3Data.value = draft.section3Data || { provinceIds: [], districts: {}, communes: {}, villages: {}, otherCountries: '' }
+          geographyStore.initFromPayload(draft.section3Data || { provinceIds: [], districts: {}, communes: {}, villages: {}, otherCountries: '' })
           section4Data.value = draft.section4Data || []
           keywordsStore.initKeywords(draft.keywordsData || [])
           
@@ -350,6 +364,16 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         } catch {
           console.error('Failed to parse draft data')
         }
+      }
+    }
+    })()
+
+    try {
+      await _initPromise
+    } finally {
+      isInitializing.value = false
+      if (_initId === entryId) {
+        _initPromise = null
       }
     }
   }
@@ -527,14 +551,14 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           }
         }
       })
-      section3Data.value = {
+      const tempSection3Data = {
         provinceIds: resProvinceIds,
         districts: resDistricts,
         communes: resCommunes,
         villages: resVillages,
         otherCountries: resOtherCountries.join(', ')
       }
-      geographyStore.initFromPayload(section3Data.value)
+      geographyStore.initFromPayload(tempSection3Data)
 
       if (activitiesResponse) {
         const resActivities = activitiesResponse.data.data || []
@@ -747,6 +771,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     // computed
     pageTitle,
     progressPercent,
+    isInitializing,
     saveLabel,
     section1Valid,
     currentStepTitle,
@@ -769,5 +794,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     clearError,
     clearSubmissionResult,
     resetAll,
+    initializeForm,
   }
 })
