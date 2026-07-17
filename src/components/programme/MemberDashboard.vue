@@ -8,17 +8,11 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import { useEntriesStore } from '@/stores/entries.store'
 
-import { useProgrammeFormStore } from '@/stores/programmeForm'
+import NewEntryButton from '@/components/programme/NewEntryButton.vue'
 
 const router = useRouter()
 const route = useRoute()
 const entries = useEntriesStore()
-const formStore = useProgrammeFormStore()
-
-function clearDraft() {
-  sessionStorage.removeItem('new_programme_entry_draft')
-  formStore.resetAll()
-}
 
 onMounted(() => {
   const tab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
@@ -99,12 +93,7 @@ onActivated(() => {
         :message="entries.activeTab === 'draft' ? 'You haven\'t created any draft programme entries yet.' : 'No programme entries have been submitted yet.'"
       >
         <template #action>
-          <RouterLink to="/entries/new"
-            @click="clearDraft"
-            class="inline-flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            style="color: white !important;">
-            <span class="text-white" style="color: white !important;">+ New programme entry</span>
-          </RouterLink>
+          <NewEntryButton />
         </template>
       </EmptyState>
     </div>
