@@ -160,8 +160,6 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     const idx = provinceIds.value.indexOf(provinceId)
     if (idx === -1) {
       provinceIds.value.push(provinceId)
-      // Auto-expand the newly selected province and collapse others
-      toggleDistrictVisibility(provinceId)
     } else {
       provinceIds.value.splice(idx, 1)
       const districtIds = districts.value[provinceId] || []
@@ -171,10 +169,9 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
         delete communes.value[did]
       })
       delete districts.value[provinceId]
-      // Collapse if it was expanded
-      if (expandedProvinces.value.has(provinceId)) {
-        expandedProvinces.value.delete(provinceId)
-      }
+      const next = new Set(expandedProvinces.value)
+      next.delete(provinceId)
+      expandedProvinces.value = next
     }
   }
 
@@ -194,16 +191,15 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     const arr = districts.value[provinceId] ?? []
     const idx = arr.indexOf(districtId)
     if (idx === -1) {
-      arr.push(districtId)
-      // Auto-expand district to show communes and collapse others
-      toggleCommuneVisibility(districtId)
+      districts.value = { ...districts.value, [provinceId]: [...arr, districtId] }
     } else {
       const communeIds = communes.value[districtId] || []
       communeIds.forEach(cid => delete villages.value[cid])
       delete communes.value[districtId]
-      if (expandedDistricts.value.has(districtId)) {
-        expandedDistricts.value.delete(districtId)
-      }
+      const next = new Set(expandedDistricts.value)
+      next.delete(districtId)
+      expandedDistricts.value = next
+      districts.value = { ...districts.value, [provinceId]: arr.filter(id => id !== districtId) }
     }
   }
 
@@ -223,14 +219,13 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     const arr = communes.value[districtId] ?? []
     const idx = arr.indexOf(communeId)
     if (idx === -1) {
-      arr.push(communeId)
-      // Auto-expand commune to show villages and collapse others
-      toggleVillageVisibility(communeId)
+      communes.value = { ...communes.value, [districtId]: [...arr, communeId] }
     } else {
       delete villages.value[communeId]
-      if (expandedCommunes.value.has(communeId)) {
-        expandedCommunes.value.delete(communeId)
-      }
+      const next = new Set(expandedCommunes.value)
+      next.delete(communeId)
+      expandedCommunes.value = next
+      communes.value = { ...communes.value, [districtId]: arr.filter(id => id !== communeId) }
     }
   }
 

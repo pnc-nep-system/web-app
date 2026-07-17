@@ -354,6 +354,13 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     }
   }
 
+  let _isSavingRoute = false
+  let _onSaveRouteUpdate: (() => void) | null = null
+
+  function onSaveRouteUpdate(cb: () => void) {
+    _onSaveRouteUpdate = cb
+  }
+
   async function saveEntry(exitAfterSave: boolean, isSubmit = false, loadingAlreadySet = false): Promise<boolean> {
     if (isSaving.value && !loadingAlreadySet) return false
     if (!loadingAlreadySet) {
@@ -561,7 +568,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       toast.success(successMsg)
 
       const currentQuery = router.currentRoute.value.query
-      await router.replace({ query: { ...currentQuery, id: String(savedId) } })
+      const currentId = currentQuery.id ? String(currentQuery.id) : null
+      if (currentId !== String(savedId)) {
+        _onSaveRouteUpdate?.()
+        await router.replace({ query: { ...currentQuery, id: String(savedId) } })
+      }
 
       if (exitAfterSave) {
         const destTab = isSubmit ? 'submitted' : 'draft'
@@ -747,8 +758,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     continueButtonText,
     currentSectionProgress,
     hasCompletedAllRequired,
-    // actions
-    initializeForm,
+    onSaveRouteUpdate,
     saveEntry,
     saveDraftAndExit,
     saveAndExit,

@@ -17,6 +17,7 @@ const route = useRoute()
 const store = useProgrammeFormStore()
 
 let mountedId: string | null = null
+let _skipNextIdWatch = false
 
 onMounted(async () => {
   mountedId = route.query.id ? String(route.query.id) : null
@@ -26,6 +27,11 @@ onMounted(async () => {
 watch(
   () => route.query.id,
   async (newId) => {
+    if (_skipNextIdWatch) {
+      _skipNextIdWatch = false
+      mountedId = newId ? String(newId) : null
+      return
+    }
     const entryId = newId ? String(newId) : null
     if (entryId === mountedId) return
     mountedId = entryId
