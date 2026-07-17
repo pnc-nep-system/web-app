@@ -7,11 +7,13 @@ import NewEntryButton from '@/components/programme/NewEntryButton.vue'
 <template>
   <AppShell>
     <template #header>
-      <span class="text-gray-400">NEP</span>
-      <span class="mx-1.5 text-gray-300">›</span>
-      <span class="text-gray-700 font-medium">Dashboard</span>
+      <div class="flex items-center min-w-0 truncate">
+        <span class="text-gray-400">NEP</span>
+        <span class="mx-1.5 text-gray-300">›</span>
+        <span class="text-gray-700 font-medium truncate">Dashboard</span>
+      </div>
 
-      <div class="ml-auto">
+      <div class="ml-auto shrink-0 pl-2">
         <NewEntryButton />
       </div>
     </template>

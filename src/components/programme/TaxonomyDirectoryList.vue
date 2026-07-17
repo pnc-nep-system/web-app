@@ -24,13 +24,12 @@ const taxonomy = store.taxonomy
         />
       </div>
 
-      <!-- Status select filter -->
       <div class="sm:w-48">
         <select
           v-model="store.statusFilter"
           class="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-slate-700 bg-white"
         >
-          <option value="all">All Activities (Active &amp; Dep)</option>
+          <option value="all">All Activities</option>
           <option value="active">Active Only</option>
           <option value="deprecated">Deprecated Only</option>
         </select>

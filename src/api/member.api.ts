@@ -1,6 +1,6 @@
 import api from './axios';
 import { taxonomyApi } from './taxonomy.api';
-import type { ProgrammeIdentity, Province, District } from '@/types/programme'
+import type { ProgrammeIdentity, Province, District, Commune, Village } from '@/types/programme'
 
 export const memberApi = {
   listProgrammeEntries(organisationId: number | string) {
@@ -20,6 +20,12 @@ export const memberApi = {
   },
   getDistricts(provinceId: number) {
     return api.get<{ data: District[] }>(`/provinces/${provinceId}/districts`);
+  },
+  getCommunes(districtId: number) {
+    return api.get<{ data: Commune[] }>(`/districts/${districtId}/communes`);
+  },
+  getVillages(communeId: number) {
+    return api.get<{ data: Village[] }>(`/communes/${communeId}/villages`);
   },
   getMapEntries() {
     return api.get('/map/entries');
@@ -42,9 +48,18 @@ export const memberApi = {
   getSubmittedProgrammeEntries(page = 1) {
     return api.get(`/programme-entries/submitted?page=${page}`);
   },
+  saveKeywords(id: number | string, keywords: string[]) {
+    return api.put(`/programme-entries/${id}/keywords`, { keywords });
+  },
   getTaxonomyCategories() {
     return taxonomyApi.list();
-  }
+  },
+  getMyOrganisation() {
+    return api.get('/organisations/me');
+  },
+  updateMyOrganisation(payload: { contact_name?: string; email?: string }) {
+    return api.patch('/organisations/me', payload);
+  },
 };
 
 

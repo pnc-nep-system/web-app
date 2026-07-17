@@ -55,13 +55,33 @@ export const useProgrammeAgreementsStore = defineStore('programmeAgreements', ()
   }
 
   function validateSilent(): boolean {
-    return agreements.value.every(
-      a =>
+    return agreements.value.every(a => {
+      const firstThreeCompleted = !!(
         a.counterpart_agency.trim() !== '' &&
         a.nature.trim() !== '' &&
-        a.status.trim() !== '' &&
-        a.institution_name.trim() !== ''
-    )
+        a.status.trim() !== ''
+      )
+      const hasInstitution = a.institution_name.trim() !== ''
+
+      // If the first three are completed, the last (institution details) is required.
+      if (firstThreeCompleted) {
+        return hasInstitution
+      }
+
+      // If they started filling the row, they must fill all fields.
+      const isPartiallyFilled = !!(
+        a.counterpart_agency.trim() !== '' ||
+        a.nature.trim() !== '' ||
+        a.status.trim() !== '' ||
+        hasInstitution
+      )
+      if (isPartiallyFilled) {
+        return false
+      }
+
+      // Completely empty row is valid
+      return true
+    })
   }
 
   function validate(): boolean {

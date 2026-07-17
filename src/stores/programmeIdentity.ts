@@ -30,6 +30,19 @@ export const useProgrammeIdentityStore = defineStore('programmeIdentity', () => 
 
   const isEndYearDisabled = computed(() => section1Data.value.isOngoing)
 
+  const isSection1Complete = computed(() => {
+    const d = section1Data.value
+    return !!(
+      d.name?.trim() &&
+      d.startYear !== null && d.startYear >= YEAR_MIN && d.startYear <= YEAR_MAX &&
+      (d.isOngoing || (d.endYear !== null && d.endYear >= YEAR_MIN && d.endYear <= YEAR_MAX && d.endYear > d.startYear)) &&
+      d.fteStaff !== null && d.fteStaff >= 0 &&
+      d.budgetBand &&
+      d.directBeneficiaries !== null && d.directBeneficiaries >= 0 &&
+      d.indirectBeneficiaries !== null && d.indirectBeneficiaries >= 0
+    )
+  })
+
   function initFromPayload(val: ProgrammeIdentity | undefined) {
     if (val) {
       section1Data.value = {
@@ -106,88 +119,50 @@ export const useProgrammeIdentityStore = defineStore('programmeIdentity', () => 
 
     if (!d.name.trim()) {
       e.name = 'Programme name is required.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     }
 
     if (d.startYear === null || d.startYear === undefined || (d.startYear as any) === '') {
       e.startYear = 'Start year is required.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     } else if (d.startYear < YEAR_MIN || d.startYear > YEAR_MAX) {
       e.startYear = `Start year must be between ${YEAR_MIN} and ${YEAR_MAX}.`
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     }
 
     if (!d.isOngoing) {
       if (d.endYear === null || d.endYear === undefined || (d.endYear as any) === '') {
         e.endYear = 'End year is required, or check "Ongoing".'
-        clientErrors.value = e
-        section1Valid.value = false
-        return false
       } else if (d.endYear < YEAR_MIN || d.endYear > YEAR_MAX) {
         e.endYear = `End year must be between ${YEAR_MIN} and ${YEAR_MAX}.`
-        clientErrors.value = e
-        section1Valid.value = false
-        return false
       } else if (d.startYear !== null && d.endYear <= d.startYear) {
         e.endYear = 'End year must be greater than start year.'
-        clientErrors.value = e
-        section1Valid.value = false
-        return false
       }
     }
 
     if (d.fteStaff === null || d.fteStaff === undefined || (d.fteStaff as any) === '') {
       e.fteStaff = 'Number of staff is required.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     } else if (d.fteStaff < 0) {
       e.fteStaff = 'Number of staff cannot be negative.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     }
 
     if (!d.budgetBand) {
       e.budgetBand = 'Please select a budget band.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     }
 
     if (d.directBeneficiaries === null || d.directBeneficiaries === undefined || (d.directBeneficiaries as any) === '') {
       e.directBeneficiaries = 'Direct beneficiaries count is required.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     } else if (d.directBeneficiaries < 0) {
       e.directBeneficiaries = 'Direct beneficiaries cannot be negative.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     }
 
     if (d.indirectBeneficiaries === null || d.indirectBeneficiaries === undefined || (d.indirectBeneficiaries as any) === '') {
       e.indirectBeneficiaries = 'Indirect beneficiaries count is required.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     } else if (d.indirectBeneficiaries < 0) {
       e.indirectBeneficiaries = 'Indirect beneficiaries cannot be negative.'
-      clientErrors.value = e
-      section1Valid.value = false
-      return false
     }
 
-    clientErrors.value = {}
-    section1Valid.value = true
-    return true
+    clientErrors.value = e
+    const isValid = Object.keys(e).length === 0
+    section1Valid.value = isValid
+    return isValid
   }
 
   function reset() {
@@ -216,6 +191,7 @@ export const useProgrammeIdentityStore = defineStore('programmeIdentity', () => 
     touched,
     endYearMin,
     isEndYearDisabled,
+    isSection1Complete,
     initFromPayload,
     touch,
     fieldError,

@@ -9,7 +9,7 @@ import ProgrammeWizard from '@/components/programme/ProgrammeWizard.vue'
     <template #header>
       <span class="text-gray-400">NEP</span>
       <span class="mx-1.5 text-gray-300">›</span>
-      <span class="text-gray-700 font-medium">New programme entry</span>
+      <span class="text-gray-700 font-medium truncate">New programme entry</span>
     </template>
 
     <ProgrammeWizard />

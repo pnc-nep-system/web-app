@@ -6,6 +6,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
+import DashboardGuidance from '@/components/programme/DashboardGuidance.vue'
 import { useEntriesStore } from '@/stores/entries.store'
 
 import NewEntryButton from '@/components/programme/NewEntryButton.vue'
@@ -43,12 +44,12 @@ onActivated(() => {
     <div class="flex gap-1 bg-gray-100 p-1 rounded-lg">
       <button
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'draft' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
-        @click="entries.switchTab('draft')">
+        @click="entries.switchTab('draft', true)">
         Draft
       </button>
       <button
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'submitted' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
-        @click="entries.switchTab('submitted')">
+        @click="entries.switchTab('submitted', true)">
         Submitted
       </button>
     </div>
@@ -99,69 +100,107 @@ onActivated(() => {
     </div>
 
     <!-- Entries list -->
-    <div v-else class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-gray-100 text-xs font-medium text-gray-400 uppercase tracking-wider">
-            <th class="text-left px-5 py-3">Programme</th>
-            <th class="text-left px-5 py-3">Status</th>
-            <th class="text-left px-5 py-3">Coverage</th>
-            <th class="text-left px-5 py-3">Primary activities</th>
-            <th class="text-left px-5 py-3">Last updated</th>
-            <th class="text-left px-5 py-3">Action</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-for="(entry, index) in entries.entriesWithStatus" :key="entry.id ?? index"
-            class="hover:bg-gray-50 transition-colors cursor-pointer"
-            @click="router.push(`/entries/new?id=${entry.id}`)">
-            <td class="px-5 py-3.5">
-              <div class="text-sm font-medium text-gray-800">{{ entry.name || 'Untitled' }}</div>
-              <div class="text-xs text-gray-400 mt-0.5">
+    <template v-else>
+      <!-- Desktop Table View (visible on sm and up) -->
+      <div class="hidden sm:block overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-100 text-xs font-medium text-gray-400 uppercase tracking-wider">
+              <th class="text-left px-5 py-3">Programme</th>
+              <th class="text-left px-5 py-3">Status</th>
+              <th class="text-left px-5 py-3 hidden sm:table-cell">Coverage</th>
+              <th class="text-left px-5 py-3 hidden md:table-cell">Primary activities</th>
+              <th class="text-left px-5 py-3 hidden sm:table-cell">Last updated</th>
+              <th class="text-left px-5 py-3">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr v-for="(entry, index) in entries.entriesWithStatus" :key="entry.id ?? index"
+              class="hover:bg-gray-50 transition-colors cursor-pointer"
+              @click="router.push(`/entries/new?id=${entry.id}`)">
+              <td class="px-5 py-3.5">
+                <div class="text-sm font-medium text-gray-800">{{ entry.name || 'Untitled' }}</div>
+                <div class="text-xs text-gray-400 mt-0.5">
+                  {{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}
+                  <span v-if="entry.budgetBand"> · {{ entry.budgetBand }}</span>
+                </div>
+              </td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-1.5">
+                  <StatusBadge v-if="entry.status === 'Verified'" label="Verified" variant="success" />
+                  <StatusBadge v-else :label="entry.unverifiedLabel" variant="warning" />
+                </div>
+              </td>
+              <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell">
+                <template v-if="entry.provinces && entry.provinces.length">
+                  {{ entry.provincesDisplay }}
+                  <span v-if="entry.hasMoreProvinces" class="text-gray-400"> +{{ entry.moreProvincesCount }}</span>
+                </template>
+                <span v-else class="text-gray-300">—</span>
+              </td>
+              <td class="px-5 py-3.5 hidden md:table-cell">
+                <div class="flex flex-wrap gap-1">
+                  <BaseBadge v-for="code in entry.primaryCodes" :key="code" tone="teal">{{ code }}</BaseBadge>
+                  <span v-if="!entry.primaryCodes.length" class="text-xs text-gray-300">—</span>
+                </div>
+              </td>
+              <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">
+                {{ entry.relativeLastUpdated }}
+              </td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-1.5" @click.stop>
+                  <button v-if="entry.status === 'Unverified'"
+                    class="px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors whitespace-nowrap">
+                    Still current
+                  </button>
+                  <button
+                    class="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap"
+                    @click="router.push(`/entries/new?id=${entry.id}`)">
+                    Open →
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Card View (visible on screens < sm) -->
+      <div class="sm:hidden divide-y divide-gray-100">
+        <div v-for="(entry, index) in entries.entriesWithStatus" :key="entry.id ?? index"
+          @click="router.push(`/entries/new?id=${entry.id}`)"
+          class="p-4 hover:bg-gray-50/50 transition-colors cursor-pointer space-y-3"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <h4 class="text-sm font-bold text-gray-800 truncate">{{ entry.name || 'Untitled' }}</h4>
+              <p class="text-xs text-gray-400 mt-0.5">
                 {{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}
                 <span v-if="entry.budgetBand"> · {{ entry.budgetBand }}</span>
-              </div>
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-1.5">
-                <StatusBadge v-if="entry.status === 'Verified'" label="Verified" variant="success" />
-                <StatusBadge v-else :label="entry.unverifiedLabel" variant="warning" />
-              </div>
-            </td>
-            <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell">
-              <template v-if="entry.provinces && entry.provinces.length">
-                {{ entry.provincesDisplay }}
-                <span v-if="entry.hasMoreProvinces" class="text-gray-400"> +{{ entry.moreProvincesCount }}</span>
-              </template>
-              <span v-else class="text-gray-300">—</span>
-            </td>
-            <td class="px-5 py-3.5 hidden md:table-cell">
-              <div class="flex flex-wrap gap-1">
-                <BaseBadge v-for="code in entry.primaryCodes" :key="code" tone="teal">{{ code }}</BaseBadge>
-                <span v-if="!entry.primaryCodes.length" class="text-xs text-gray-300">—</span>
-              </div>
-            </td>
-            <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">
-              {{ entry.relativeLastUpdated }}
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-1.5" @click.stop>
-                <button v-if="entry.status === 'Unverified'"
-                  class="px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors whitespace-nowrap">
-                  Still current
-                </button>
-                <button
-                  class="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap"
-                  @click="router.push(`/entries/new?id=${entry.id}`)">
-                  Open →
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              </p>
+            </div>
+            <StatusBadge v-slot v-if="entry.status === 'Verified'" label="Verified" variant="success" />
+            <StatusBadge v-else :label="entry.unverifiedLabel" variant="warning" />
+          </div>
 
-      <!-- Pagination -->
+          <div class="flex items-center justify-between gap-4 text-xs text-gray-400">
+            <div>Updated {{ entry.relativeLastUpdated }}</div>
+            <div class="flex items-center gap-1.5" @click.stop>
+              <button v-if="entry.status === 'Unverified'"
+                class="px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors whitespace-nowrap cursor-pointer">
+                Still current
+              </button>
+              <button
+                class="px-2.5 py-1 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap cursor-pointer"
+                @click="router.push(`/entries/new?id=${entry.id}`)">
+                Open →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination (visible on both) -->
       <div v-if="entries.currentPagination.lastPage > 1"
         class="flex items-center justify-between px-5 py-3 border-t border-gray-100">
         <span class="text-xs text-gray-500">
@@ -182,6 +221,8 @@ onActivated(() => {
           </button>
         </div>
       </div>
-    </div>
+    </template>
   </div>
+
+  <DashboardGuidance />
 </template>

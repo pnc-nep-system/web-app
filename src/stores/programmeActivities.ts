@@ -133,6 +133,10 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
         [code]: []
       }
 
+      // Collapse all other items, only expand this one
+      for (const otherCode of nextSelected) {
+        nextCollapsed.add(otherCode)
+      }
       nextCollapsed.delete(code)
     }
 
@@ -144,6 +148,10 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   function toggleItemCollapse(code: string) {
     const nextCollapsed = new Set(collapsedItems.value)
     if (nextCollapsed.has(code)) {
+      // Expanding it -> collapse all other items first
+      for (const otherCode of selected.value) {
+        nextCollapsed.add(otherCode)
+      }
       nextCollapsed.delete(code)
     } else {
       nextCollapsed.add(code)

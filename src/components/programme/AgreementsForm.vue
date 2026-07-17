@@ -66,20 +66,13 @@ defineExpose({ validate, getData })
               :id="`counterpart-${index}`"
               v-model="agreement.counterpart_agency"
               @change="emitUpdate"
-              class="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white shadow-sm transition-all"
-              :class="store.showInlineErrors && !agreement.counterpart_agency ? 'border-red-350 bg-red-50/30 focus:ring-red-500 focus:border-red-500' : 'border-gray-200'"
+              class="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white shadow-sm transition-all border-gray-200"
             >
               <option value="" disabled>Select counterpart...</option>
               <option v-for="c in store.COUNTERPARTS" :key="c.value" :value="c.value">
                 {{ c.label }}
               </option>
             </select>
-            <span v-if="store.showInlineErrors && !agreement.counterpart_agency" class="text-[11px] text-red-600 mt-1.5 flex items-center gap-1 font-semibold">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732-4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              Counterpart is required.
-            </span>
           </div>
 
           <!-- Nature Dropdown -->
@@ -91,20 +84,13 @@ defineExpose({ validate, getData })
               :id="`nature-${index}`"
               v-model="agreement.nature"
               @change="emitUpdate"
-              class="w-full pl-3 pr-8 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white shadow-sm transition-all"
-              :class="store.showInlineErrors && !agreement.nature ? 'border-red-300 bg-red-50/30 focus:ring-red-500 focus:border-red-500' : 'border-gray-200'"
+              class="w-full pl-3 pr-8 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white shadow-sm transition-all border-gray-200"
             >
               <option value="" disabled>Select nature...</option>
               <option v-for="n in store.NATURES" :key="n.value" :value="n.value">
                 {{ n.label }}
               </option>
             </select>
-            <span v-if="store.showInlineErrors && !agreement.nature" class="text-[11px] text-red-600 mt-1.5 flex items-center gap-1 font-semibold">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732-4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              Nature is required.
-            </span>
           </div>
 
           <!-- Status Dropdown -->
@@ -116,20 +102,13 @@ defineExpose({ validate, getData })
               :id="`status-${index}`"
               v-model="agreement.status"
               @change="emitUpdate"
-              class="w-full pl-3 pr-8 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white shadow-sm transition-all"
-              :class="store.showInlineErrors && !agreement.status ? 'border-red-300 bg-red-50/30 focus:ring-red-500 focus:border-red-500' : 'border-gray-200'"
+              class="w-full pl-3 pr-8 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 bg-white shadow-sm transition-all border-gray-200"
             >
               <option value="" disabled>Select status...</option>
               <option v-for="s in store.STATUSES" :key="s.value" :value="s.value">
                 {{ s.label }}
               </option>
             </select>
-            <span v-if="store.showInlineErrors && !agreement.status" class="text-[11px] text-red-600 mt-1.5 flex items-center gap-1 font-semibold">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732-4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              Status is required.
-            </span>
           </div>
 
           <!-- Remove Button -->
@@ -149,7 +128,7 @@ defineExpose({ validate, getData })
           <!-- Institution Details (Text Input) -->
           <div class="col-span-12 w-full border-t border-gray-100/80 pt-3.5 mt-1">
             <label :for="`institution-${index}`" class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
-              Institution details
+              Institution details <span v-if="agreement.counterpart_agency && agreement.nature && agreement.status" class="text-red-500">*</span>
             </label>
             <input
               :id="`institution-${index}`"
@@ -158,11 +137,15 @@ defineExpose({ validate, getData })
               @input="emitUpdate"
               placeholder="e.g. Kampong Cham Provincial Office of Education"
               class="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-gray-700 placeholder-gray-400 shadow-sm transition-all bg-white"
-              :class="store.showInlineErrors && !agreement.institution_name.trim() ? 'border-red-300 bg-red-50/30 focus:ring-red-500 focus:border-red-500' : 'border-gray-200'"
+              :class="store.showInlineErrors && agreement.counterpart_agency && agreement.nature && agreement.status && !agreement.institution_name.trim() ? 'border-red-300 bg-red-50/30 focus:ring-red-500 focus:border-red-500' : 'border-gray-200'"
             />
-            <span v-if="store.showInlineErrors && !agreement.institution_name.trim()" class="text-[11px] text-red-600 mt-1.5 flex items-center gap-1 font-semibold">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732-4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <span v-if="store.showInlineErrors && agreement.counterpart_agency && agreement.nature && agreement.status && !agreement.institution_name.trim()" class="text-[11px] text-red-600 mt-1.5 flex items-center gap-1 font-semibold">
+              <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clip-rule="evenodd"
+                />
               </svg>
               Institution details are required.
             </span>
