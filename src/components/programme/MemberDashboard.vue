@@ -6,6 +6,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
+import DashboardGuidance from '@/components/programme/DashboardGuidance.vue'
 import { useEntriesStore } from '@/stores/entries.store'
 
 import { useProgrammeFormStore } from '@/stores/programmeForm'
@@ -49,12 +50,12 @@ onActivated(() => {
     <div class="flex gap-1 bg-gray-100 p-1 rounded-lg">
       <button
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'draft' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
-        @click="entries.switchTab('draft')">
+        @click="entries.switchTab('draft', true)">
         Draft
       </button>
       <button
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'submitted' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
-        @click="entries.switchTab('submitted')">
+        @click="entries.switchTab('submitted', true)">
         Submitted
       </button>
     </div>
@@ -195,4 +196,6 @@ onActivated(() => {
       </div>
     </div>
   </div>
+
+  <DashboardGuidance />
 </template>

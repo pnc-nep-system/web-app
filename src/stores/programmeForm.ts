@@ -4,8 +4,6 @@ import router from '@/router'
 import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
 import { BUDGET_BANDS } from '@/constants/programme'
-import { useAuthStore } from './auth'
-
 import { useProgrammeIdentityStore } from './programmeIdentity'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 import { useProgrammeGeographyStore } from './programmeGeography'
@@ -62,8 +60,13 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       a.status?.trim() !== '' &&
       a.institution_name?.trim() !== ''
     )
-    if (isAgreementsValid && (agreements.length > 0 || currentStep.value > 4)) {
+    if (isAgreementsValid && agreements.length > 0) {
       completed.add(4)
+    }
+
+    // Step 5: keywords
+    if (keywordsData.value.length > 0) {
+      completed.add(5)
     }
 
     return completed
@@ -99,45 +102,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   })
 
   const currentStepTitle = computed(() => steps[currentStep.value - 1]?.title || '')
-  
-  const maxAllowedStep = computed(() => {
-    if (section1Data.value?.id) {
-      return 5
-    }
-    if (!section1Data.value?.name?.trim() || !section1Data.value?.startYear) {
-      return 1
-    }
-    
-    // Step 2 (Activities)
-    const selectedList = section2Data.value?.selected || []
-    if (selectedList.length === 0) {
-      return 2
-    }
-    
-    // Step 3 (Geographic coverage)
-    const provincesList = section3Data.value?.provinceIds || []
-    if (provincesList.length === 0 && !section3Data.value?.otherCountries) {
-      return 3
-    }
-    
-    // Step 4 (Agreements)
-    const agreements = section4Data.value || []
-    const isAgreementsValid = agreements.every((a: any) =>
-      a.counterpart_agency?.trim() !== '' &&
-      a.nature?.trim() !== '' &&
-      a.status?.trim() !== '' &&
-      a.institution_name?.trim() !== ''
-    )
-    if (!isAgreementsValid) {
-      return 4
-    }
-    
-    return 5
-  })
-
-  const isNavigationRestricted = computed(() => {
-    return !section1Data.value?.id && (!section1Data.value?.name?.trim() || !section1Data.value?.startYear)
-  })
   
   const stepperProgressPercent = computed(() => ((currentStep.value - 1) / (steps.length - 1)) * 100)
   const stepWidthPercent = computed(() => 100 / steps.length)
@@ -283,12 +247,14 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           educationLevels: educationLevelsMap
         }
 
-        if (geoResult) {
-          const resLocations = geoResult.data.data || []
+        const locationData = geoResult?.data?.data || entry.locations || []
+        if (locationData.length) {
           const resProvinceIds: number[] = []
           const resDistricts: Record<number, number[]> = {}
+          const resCommunes: Record<number, number[]> = {}
+          const resVillages: Record<number, number[]> = {}
           const resOtherCountries: string[] = []
-          resLocations.forEach((loc: any) => {
+          locationData.forEach((loc: any) => {
             if (loc.country) {
               resOtherCountries.push(loc.country)
             } else if (loc.province_id) {
@@ -297,21 +263,46 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
               }
               if (loc.district_id) {
                 const distArray = resDistricts[loc.province_id] || []
-                distArray.push(loc.district_id)
+                if (!distArray.includes(loc.district_id)) {
+                  distArray.push(loc.district_id)
+                }
                 resDistricts[loc.province_id] = distArray
+              }
+              if (loc.commune_id) {
+                const commArray = resCommunes[loc.district_id] || []
+                if (!commArray.includes(loc.commune_id)) {
+                  commArray.push(loc.commune_id)
+                }
+                resCommunes[loc.district_id] = commArray
+              }
+              if (loc.village_id) {
+                const villArray = resVillages[loc.commune_id] || []
+                if (!villArray.includes(loc.village_id)) {
+                  villArray.push(loc.village_id)
+                }
+                resVillages[loc.commune_id] = villArray
               }
             }
           })
           section3Data.value = {
             provinceIds: resProvinceIds,
             districts: resDistricts,
+            communes: resCommunes,
+            villages: resVillages,
             otherCountries: resOtherCountries.join(', ')
           }
         } else {
-          section3Data.value = { provinceIds: [], districts: {}, otherCountries: '' }
+          section3Data.value = { provinceIds: [], districts: {}, communes: {}, villages: {}, otherCountries: '' }
         }
 
+        geographyStore.initFromPayload(section3Data.value)
+
         section4Data.value = entry.government_agreements || []
+
+        if (entry.keywords?.length) {
+          const keywordList = entry.keywords.map((k: any) => k.keyword).filter(Boolean)
+          keywordsStore.initKeywords(keywordList)
+        }
 
         saveStatus.value = 'saved'
       }
@@ -331,7 +322,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           currentStep.value = draft.currentStep || 1
           section1Data.value = draft.section1Data
           section2Data.value = draft.section2Data
-          section3Data.value = draft.section3Data || { provinceIds: [], districts: {}, otherCountries: '' }
+          section3Data.value = draft.section3Data || { provinceIds: [], districts: {}, communes: {}, villages: {}, otherCountries: '' }
           section4Data.value = draft.section4Data || []
           keywordsStore.initKeywords(draft.keywordsData || [])
           
@@ -365,7 +356,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         ongoing: section1Data.value.isOngoing,
         method: section1Data.value.method || null,
         verified_date: section1Data.value.verifiedDate || null,
-        activities: activitiesData ? activitiesData.selected.map((id: string) => ({ code: id, primary: activitiesData.primary.includes(id) })) : [],
         province_ids: section3Data.value.provinceIds,
         district_ids: section3Data.value.districts,
         other_countries: section3Data.value.otherCountries,
@@ -420,43 +410,56 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         : []
       const geographyPayload = {
         provinces: provincesPayload,
+        communes: geographicData?.communes || {},
+        villages: geographicData?.villages || {},
         other_countries: otherCountriesArray
       }
 
       // 3. Activities
-      const mappedActivities = activitiesData ? activitiesData.selected.map((code: string) => {
-        const dbId = taxonomyMap.value[code] || 1
-        const levels = activitiesData.educationLevels?.[code] || []
-        const inc = activitiesData.inclusions?.[code]
-
-        const payloadAct: any = {
-          activity_item_id: dbId,
-          is_primary: activitiesData.primary.includes(code),
-          education_level_ids: levels.length > 0 ? levels : [1],
-          source: 'human_entered'
-        }
-
-        if (inc && inc.hasInclusion && inc.dimensions && inc.dimensions.length > 0) {
-          const dim = inc.dimensions[0]
-          if (dim) {
-            payloadAct.inclusion_group = dim.group
-            payloadAct.inclusion_type = dim.type
+      const mappedActivities = activitiesData ? activitiesData.selected
+        .map((code: string) => {
+          const dbId = taxonomyMap.value[code]
+          if (!dbId) {
+            console.warn(`[saveEntry] No taxonomy mapping found for code: ${code}, skipping`)
+            return null
           }
-        }
+          const levels = activitiesData.educationLevels?.[code] || []
+          const inc = activitiesData.inclusions?.[code]
 
-        return payloadAct
-      }) : []
+          const payloadAct: any = {
+            activity_item_id: dbId,
+            is_primary: activitiesData.primary.includes(code),
+            education_level_ids: levels.length > 0 ? levels : [1],
+            source: 'human_entered'
+          }
+
+          if (inc && inc.hasInclusion && inc.dimensions && inc.dimensions.length > 0) {
+            const dim = inc.dimensions[0]
+            if (dim) {
+              payloadAct.inclusion_group = dim.group
+              payloadAct.inclusion_type = dim.type
+            }
+          }
+
+          return payloadAct
+        })
+        .filter(Boolean) : []
 
       const agreementsPromise = memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
       const geographyPromise = memberApi.saveGeography(savedId, geographyPayload)
       const activitiesPromise = mappedActivities.length > 0
         ? memberApi.saveActivities(savedId, mappedActivities)
         : Promise.resolve(null)
+      const keywordsList = keywordsData.value
+      const keywordsPromise = keywordsList.length > 0
+        ? memberApi.saveKeywords(savedId, keywordsList)
+        : Promise.resolve(null)
 
       const [agreementsResponse, geographyResponse, activitiesResponse] = await Promise.all([
         agreementsPromise,
         geographyPromise,
-        activitiesPromise
+        activitiesPromise,
+        keywordsPromise,
       ])
 
       section4Data.value = agreementsResponse.data.data || []
@@ -464,6 +467,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       const resLocations = geographyResponse.data.data || []
       const resProvinceIds: number[] = []
       const resDistricts: Record<number, number[]> = {}
+      const resCommunes: Record<number, number[]> = {}
+      const resVillages: Record<number, number[]> = {}
       const resOtherCountries: string[] = []
       resLocations.forEach((loc: any) => {
         if (loc.country) {
@@ -474,16 +479,35 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           }
           if (loc.district_id) {
             const distArray = resDistricts[loc.province_id] || []
-            distArray.push(loc.district_id)
+            if (!distArray.includes(loc.district_id)) {
+              distArray.push(loc.district_id)
+            }
             resDistricts[loc.province_id] = distArray
+          }
+          if (loc.commune_id) {
+            const commArray = resCommunes[loc.district_id] || []
+            if (!commArray.includes(loc.commune_id)) {
+              commArray.push(loc.commune_id)
+            }
+            resCommunes[loc.district_id] = commArray
+          }
+          if (loc.village_id) {
+            const villArray = resVillages[loc.commune_id] || []
+            if (!villArray.includes(loc.village_id)) {
+              villArray.push(loc.village_id)
+            }
+            resVillages[loc.commune_id] = villArray
           }
         }
       })
       section3Data.value = {
         provinceIds: resProvinceIds,
         districts: resDistricts,
+        communes: resCommunes,
+        villages: resVillages,
         otherCountries: resOtherCountries.join(', ')
       }
+      geographyStore.initFromPayload(section3Data.value)
 
       if (activitiesResponse) {
         const resActivities = activitiesResponse.data.data || []
@@ -604,22 +628,23 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
   async function saveAndExit(isSubmit = false, loadingAlreadySet = false): Promise<boolean> {
     syncRefsToStore()
-    if (isSubmit) {
-      if (!validateCurrentStep()) return false
 
-      if (currentStep.value === 5) {
-        if (keywordsData.value.length === 0) {
-          keywordsError.value = 'You must add at least one keyword before saving.'
-          toast.error('Please add at least one keyword.')
+      if (isSubmit) {
+        const requiredSteps = new Set([1, 2, 3, 5])
+        const missing = [...requiredSteps].filter(s => !completedSteps.value.has(s))
+        if (missing.length > 0) {
+          toast.error('Complete steps 1, 2, 3, and 5 before submitting. Step 4 (Agreements) is optional.')
           return false
         }
-        keywordsError.value = null
 
-        const authStore = useAuthStore()
-        if (!authStore.currentUser?.is_profile_complete) {
-          toast.error("You haven't completed Organisation profile yet")
-          return false
-        }
+      if (keywordsError.value) {
+        toast.error('Please remove duplicate keywords before saving.')
+        return false
+      }
+    } else {
+      if (!section1Data.value.name?.trim() || !section1Data.value.startYear) {
+        toast.error('Please complete Step 1 (Programme name and Start year) before saving.')
+        return false
       }
     }
     return await saveEntry(true, isSubmit, loadingAlreadySet)
@@ -634,20 +659,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
   function goToStep(stepNumber: number) {
     syncRefsToStore()
-    
-    // If they are on Step 1 and trying to navigate to another step, they must have filled in name and start year
-    if (currentStep.value === 1 && stepNumber > 1) {
-      if (!section1Data.value.name?.trim() || !section1Data.value.startYear) {
-        toast.error('Please fill in the Programme identity (Name and Start year) before navigating to other steps.')
-        return false
-      }
-    }
-    
-    if (stepNumber > maxAllowedStep.value) {
-      toast.error('Please complete the previous sections in order.')
-      return false
-    }
-    
     currentStep.value = stepNumber
     return true
   }
@@ -708,8 +719,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     saveLabel,
     section1Valid,
     currentStepTitle,
-    maxAllowedStep,
-    isNavigationRestricted,
     stepperProgressPercent,
     stepWidthPercent,
     isFinalStep,

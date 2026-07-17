@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 export const useProgrammeKeywordsStore = defineStore('programmeKeywords', () => {
   const keyword1 = ref('')
@@ -18,6 +18,21 @@ export const useProgrammeKeywordsStore = defineStore('programmeKeywords', () => 
       keyword4.value.trim(),
       keyword5.value.trim()
     ].filter(k => k !== '')
+  })
+
+  const duplicateKeyword = computed(() => {
+    const kwds = keywordsData.value
+    const seen = new Set<string>()
+    for (const k of kwds) {
+      const lower = k.toLowerCase()
+      if (seen.has(lower)) return k
+      seen.add(lower)
+    }
+    return null
+  })
+
+  watch(duplicateKeyword, (dup) => {
+    keywordsError.value = dup ? `Duplicate keyword: "${dup}"` : null
   })
 
   function initKeywords(list: string[]) {

@@ -55,7 +55,9 @@ const router = createRouter({
     },
     {
       path: '/account',
-      redirect: '/dashboard',
+      name: 'organisation-profile',
+      component: () => import('@/views/member/OrganisationProfileView.vue'),
+      meta: { requiresAuth: true },
     },
   ],
 })
