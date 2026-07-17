@@ -10,8 +10,18 @@ const isSidebarOpen = ref(false)
 const navItems = computed(() => {
   if (auth.userRole === 'nep_admin') {
     return [
+      { to: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard' },
       { to: '/admin/users', label: 'User Management', icon: 'users' },
       { to: '/admin/taxonomy', label: 'Taxonomy', icon: 'list' },
+      { to: '/admin/map', label: 'Programme Map', icon: 'map' },
+    ]
+  }
+
+  if (auth.userRole === 'nep_coordinator') {
+    return [
+      { to: '/manager/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { to: '/admin/map', label: 'Programme Map', icon: 'map' },
+      { to: '/account', label: 'Organisation Profile', icon: 'building' },
     ]
   }
 
@@ -62,9 +72,9 @@ function logout() {
           <span class="text-[9px] text-white/55">Portal</span>
         </div>
       </div>
-      <button 
-        type="button" 
-        @click="isSidebarOpen = !isSidebarOpen" 
+      <button
+        type="button"
+        @click="isSidebarOpen = !isSidebarOpen"
         class="text-white hover:text-white/80 transition-colors p-1"
         aria-label="Toggle navigation menu"
       >
@@ -73,14 +83,14 @@ function logout() {
     </div>
 
     <!-- Backdrop Overlay for Mobile Drawer -->
-    <div 
-      v-if="isSidebarOpen" 
-      @click="isSidebarOpen = false" 
+    <div
+      v-if="isSidebarOpen"
+      @click="isSidebarOpen = false"
       class="lg:hidden fixed inset-0 bg-black/60 z-20 backdrop-blur-xs transition-opacity duration-300"
     ></div>
 
     <!-- Sidebar -->
-    <aside 
+    <aside
       :class="[
         'bg-teal-900 text-white flex flex-col shrink-0 z-30 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:flex',
         isSidebarOpen ? 'translate-x-0 fixed inset-y-0 left-0 w-64' : '-translate-x-full fixed inset-y-0 left-0 w-64 lg:relative lg:translate-x-0'
@@ -127,8 +137,8 @@ function logout() {
           <b class="text-xs block truncate w-24 text-white font-semibold">{{ displayName }}</b>
           <span class="text-[10px] text-white/50 block mt-0.5">{{ roleLabel }}</span>
         </div>
-        <button 
-          @click="logout" 
+        <button
+          @click="logout"
           class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center cursor-pointer shrink-0"
           style="min-width: 36px; min-height: 36px;"
           title="Log out"

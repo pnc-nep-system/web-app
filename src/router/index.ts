@@ -25,6 +25,16 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
+      path: '/admin/map',
+      name: 'admin-map',
+      component: () => import('@/views/MapView.vue'),
+      meta: {
+        requiresAuth: true,
+        roles: ['nep_admin', 'nep_coordinator'],
+      },
+    },
+
+    {
       path: '/admin/taxonomy',
       name: 'admin-taxonomy',
       component: () => import('@/views/staff/TaxonomyAdminView.vue'),
@@ -103,4 +113,3 @@ router.beforeEach(async (to) => {
 })
 
 export default router
-
