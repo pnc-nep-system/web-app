@@ -32,3 +32,23 @@ api.interceptors.response.use(
 )
 
 export default api
+
+// Global deduplication for concurrent GET requests
+const originalGet = api.get
+const pendingGetRequests = new Map<string, Promise<any>>()
+
+api.get = function (url: string, config?: any) {
+  // Generate a unique key based on URL and query parameters
+  const key = url + (config?.params ? '?' + JSON.stringify(config.params) : '')
+
+  if (pendingGetRequests.has(key)) {
+    return pendingGetRequests.get(key) as Promise<any>
+  }
+
+  const promise = originalGet.call(this, url, config).finally(() => {
+    pendingGetRequests.delete(key)
+  })
+
+  pendingGetRequests.set(key, promise)
+  return promise
+}

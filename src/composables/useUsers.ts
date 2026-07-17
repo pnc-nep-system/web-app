@@ -31,42 +31,61 @@ export function useUsers() {
     fieldErrors.value = {}
   }
 
+  let _fetchOrgsPromise: Promise<void> | null = null
+
   /** Fetch available organisations for selection. */
   async function fetchOrganisations(): Promise<void> {
-    try {
-      const res = await userService.getOrganisations()
-      organisations.value = res.data.data ?? []
-    } catch (err) {
-      console.error('Failed to load organisations:', err)
-    }
+    if (_fetchOrgsPromise) return _fetchOrgsPromise
+    _fetchOrgsPromise = (async () => {
+      try {
+        const res = await userService.getOrganisations()
+        organisations.value = res.data.data ?? []
+      } catch (err) {
+        console.error('Failed to load organisations:', err)
+      } finally {
+        _fetchOrgsPromise = null
+      }
+    })()
+    return _fetchOrgsPromise
   }
+
+  let _fetchUsersPromise: Promise<void> | null = null
+  let _fetchUsersPage = 1
 
   /** Fetch the paginated and filtered list of users from backend. */
   async function fetchUsers(page = currentPage.value): Promise<void> {
-    isLoading.value = true
-    clearErrors()
-    try {
-      const res = await userService.getUsers(page, searchQuery.value, {
-        role: roleFilter.value || undefined,
-        status: statusFilter.value || undefined,
-        per_page: perPage.value,
-      })
-      const payload = res.data
+    if (_fetchUsersPromise && _fetchUsersPage === page) return _fetchUsersPromise
+    _fetchUsersPage = page
+    _fetchUsersPromise = (async () => {
+      isLoading.value = true
+      clearErrors()
+      try {
+        const res = await userService.getUsers(page, searchQuery.value, {
+          role: roleFilter.value || undefined,
+          status: statusFilter.value || undefined,
+          per_page: perPage.value,
+        })
+        const payload = res.data
 
-      users.value = payload.data ?? []
-      currentPage.value = payload.current_page ?? 1
-      lastPage.value = payload.last_page ?? 1
-      totalItems.value = payload.total ?? 0
-      perPage.value = payload.per_page ?? 50
-    } catch (err: any) {
-      if (err.response?.status === 403) {
-        toast.error('Access denied. Admin only.')
-      } else {
-        toast.error('Failed to load users. Please try again.')
+        users.value = payload.data ?? []
+        currentPage.value = payload.current_page ?? 1
+        lastPage.value = payload.last_page ?? 1
+        totalItems.value = payload.total ?? 0
+        perPage.value = payload.per_page ?? 50
+      } catch (err: any) {
+        if (err.response?.status === 403) {
+          toast.error('Access denied. Admin only.')
+        } else {
+          toast.error('Failed to load users. Please try again.')
+        }
+      } finally {
+        isLoading.value = false
+        if (_fetchUsersPage === page) {
+          _fetchUsersPromise = null
+        }
       }
-    } finally {
-      isLoading.value = false
-    }
+    })()
+    return _fetchUsersPromise
   }
 
   /** Create a new user. Returns true on success. */
