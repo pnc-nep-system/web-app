@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import type { ActivityInclusion, InclusionGroup } from '@/types/taxonomy'
-import { memberApi } from '@/api/member.api'
 import * as InclusionHelpers from '@/utils/inclusionHelpers'
 
 export const useProgrammeActivitiesStore = defineStore('programmeActivities', () => {
@@ -107,36 +106,36 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     const nextSelected = new Set(selected.value)
     const nextPrimary = new Set(primary.value)
     const nextCollapsed = new Set(collapsedItems.value)
-    
+
     if (nextSelected.has(code)) {
       nextSelected.delete(code)
       nextPrimary.delete(code)
-      
+
       const nextInclusions = { ...inclusions.value }
       delete nextInclusions[code]
       inclusions.value = nextInclusions
-      
+
       const nextEdLevels = { ...educationLevels.value }
       delete nextEdLevels[code]
       educationLevels.value = nextEdLevels
-      
+
       nextCollapsed.delete(code)
     } else {
       nextSelected.add(code)
-      
+
       inclusions.value = {
         ...inclusions.value,
         [code]: { hasInclusion: false, dimensions: [] }
       }
-      
+
       educationLevels.value = {
         ...educationLevels.value,
         [code]: []
       }
-      
+
       nextCollapsed.delete(code)
     }
-    
+
     selected.value = nextSelected
     primary.value = nextPrimary
     collapsedItems.value = nextCollapsed
