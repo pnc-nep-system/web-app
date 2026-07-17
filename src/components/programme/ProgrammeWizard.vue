@@ -16,19 +16,28 @@ import { useProgrammeFormStore } from '@/stores/programmeForm'
 const route = useRoute()
 const store = useProgrammeFormStore()
 
-// Re-initialize store when route changes
+let mountedId: string | null = null
+let _skipNextIdWatch = false
+
+onMounted(async () => {
+  mountedId = route.query.id ? String(route.query.id) : null
+  await store.initializeForm(mountedId)
+})
+
 watch(
-  () => route.fullPath,
-  async () => {
-    const entryId = route.query.id ? String(route.query.id) : null
+  () => route.query.id,
+  async (newId) => {
+    if (_skipNextIdWatch) {
+      _skipNextIdWatch = false
+      mountedId = newId ? String(newId) : null
+      return
+    }
+    const entryId = newId ? String(newId) : null
+    if (entryId === mountedId) return
+    mountedId = entryId
     await store.initializeForm(entryId)
   }
 )
-
-onMounted(async () => {
-  const entryId = route.query.id ? String(route.query.id) : null
-  await store.initializeForm(entryId)
-})
 </script>
 
 <template>
@@ -81,7 +90,6 @@ onMounted(async () => {
       <ProgrammeGeographic
         v-else-if="store.currentStep === 3"
         :ref="el => { store.geographicFormRef = el }"
-        v-model="store.section3Data"
       />
 
       <!-- Step 4: Government Agreements -->

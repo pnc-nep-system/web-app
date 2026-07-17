@@ -80,32 +80,23 @@ router.beforeEach(async (to) => {
     return { name: 'login' }
   }
 
-  if (isAuthenticated) {
-    if (!authStore.currentUser) {
-      try {
-        await authStore.fetchCurrentUser()
-      } catch (err) {
-        console.error('Error fetching user profile in router guard:', err)
-        authStore.clearAuthState(false)
-        return { name: 'login' }
-      }
-    }
+  if (to.name === 'login' && isAuthenticated) {
+    return authStore.userRole === 'nep_admin' ? { name: 'admin-users' } : { name: 'dashboard' }
+  }
 
-    // Role-based authorization check
-    const allowedRoles = to.meta.roles as string[] | undefined
-    if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
-      return { name: 'forbidden' }
+  if (isAuthenticated && !authStore.currentUser) {
+    try {
+      await authStore.fetchCurrentUser()
+    } catch {
+      authStore.clearAuthState(false)
+      return { name: 'login' }
     }
   }
 
-  if (to.name === 'login' && isAuthenticated) {
-    if (authStore.userRole === 'nep_admin') {
-      return { name: 'admin-users' }
-    }
-    return { name: 'dashboard' }
-  } else if ((to.path === '/dashboard' || to.name === 'dashboard') && isAuthenticated) {
-    if (authStore.userRole === 'nep_admin') {
-      return { name: 'admin-users' }
+  if (isAuthenticated) {
+    const allowedRoles = to.meta.roles as string[] | undefined
+    if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
+      return { name: 'forbidden' }
     }
   }
 
