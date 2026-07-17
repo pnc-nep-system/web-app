@@ -23,4 +23,14 @@ export default defineConfigWithVueTs(
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,
+
+  // Project-wide rule overrides
+  {
+    name: 'app/rule-overrides',
+    rules: {
+      // Layout placeholder files (Navbar, Sidebar, Footer, etc.) and error pages
+      // (403, 404, 500) use single-word names intentionally.
+      'vue/multi-word-component-names': 'off',
+    }
+  }
 )
