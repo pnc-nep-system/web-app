@@ -41,7 +41,7 @@ function mapEntry(e: any): ProgrammeIdentity {
     activities: (e.activities || []).map((a: any) => ({
       code: a.activity_item?.code || '',
       primary: !!a.is_primary,
-    })).filter(a => a.code),
+    })).filter((a: any) => a.code),
     lastUpdated: e.last_updated_at || e.updated_at || '',
   }
 }

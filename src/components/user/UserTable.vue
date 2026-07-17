@@ -175,13 +175,7 @@ function formatDate(iso: string): string {
                 >
                   <BaseIcon name="refresh" :size="14" />
                 </button>
-                <button
-                  class="action-btn"
-                  title="Reset credentials"
-                  @click="emit('resetCredentials', user)"
-                >
-                  <BaseIcon name="key" :size="14" />
-                </button>
+
               </div>
             </td>
           </tr>
@@ -234,9 +228,7 @@ function formatDate(iso: string): string {
             >
               <BaseIcon name="refresh" :size="13" /> Reactivate
             </button>
-            <button class="btn btn-secondary btn-sm" @click="emit('resetCredentials', user)">
-              <BaseIcon name="key" :size="13" /> Reset
-            </button>
+
           </div>
         </div>
       </div>
