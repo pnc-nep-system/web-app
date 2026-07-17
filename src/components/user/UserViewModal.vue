@@ -39,15 +39,15 @@ function formatDate(iso?: string): string {
 
 <template>
   <BaseModal :open="open" @close="emit('close')">
-    <div class="view-modal">
+    <div class="w-full max-w-[460px]">
       <!-- Header -->
-      <div class="view-header">
+      <div class="flex items-start justify-between mb-5">
         <div>
-          <h2>User Details</h2>
-          <p>Read-only account information</p>
+          <h2 class="text-base font-bold text-[var(--ink-900)]">User Details</h2>
+          <p class="text-xs text-[var(--ink-400)] mt-0.5">Read-only account information</p>
         </div>
         <button
-          class="close-btn"
+          class="w-8 h-8 rounded-lg border border-[var(--line)] bg-[var(--bg)] flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-120 shrink-0 hover:border-[var(--ink-400)] hover:text-[var(--ink-700)]"
           type="button"
           aria-label="Close modal"
           @click="emit('close')"
@@ -57,26 +57,26 @@ function formatDate(iso?: string): string {
       </div>
 
       <!-- Profile Card -->
-      <div v-if="user" class="view-body">
-        <div class="profile-card">
-          <div class="profile-avatar">
+      <div v-if="user" class="space-y-5">
+        <div class="flex items-center gap-3.5 p-4 rounded-xl bg-[var(--bg)] border border-[var(--line-soft)]">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--teal-700)] to-[var(--teal-900)] flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-[0_3px_8px_rgba(10,61,57,0.2)]">
             {{ user.name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() }}
           </div>
-          <div class="profile-info">
-            <h3>{{ user.name }}</h3>
-            <span class="profile-email">{{ user.email }}</span>
+          <div class="min-w-0">
+            <h3 class="text-sm font-bold text-[var(--ink-900)] whitespace-nowrap overflow-hidden text-ellipsis">{{ user.name }}</h3>
+            <span class="text-[12.5px] text-[var(--ink-400)] block whitespace-nowrap overflow-hidden text-ellipsis">{{ user.email }}</span>
           </div>
         </div>
 
         <!-- Detail Rows -->
-        <div class="detail-grid">
-          <div class="detail-row">
-            <span class="detail-label">
+        <div class="flex flex-col">
+          <div class="flex items-center justify-between py-3 border-b border-[var(--line-soft)]">
+            <span class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-400)]">
               <BaseIcon name="shield" :size="13" />
               Role
             </span>
             <span
-              class="detail-role-badge"
+              class="inline-flex px-2.5 py-1 rounded-md text-[11.5px] font-bold"
               :style="{
                 background: ROLE_COLORS[user.role]?.bg ?? '#f3f4f6',
                 color: ROLE_COLORS[user.role]?.text ?? '#6b7280',
@@ -86,45 +86,51 @@ function formatDate(iso?: string): string {
             </span>
           </div>
 
-          <div class="detail-row">
-            <span class="detail-label">
+          <div class="flex items-center justify-between py-3 border-b border-[var(--line-soft)]">
+            <span class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-400)]">
               <BaseIcon name="bolt" :size="13" />
               Status
             </span>
-            <span class="detail-status" :class="user.status">
-              <span class="status-dot" />
+            <span
+              class="inline-flex items-center gap-1.5 text-[12.5px] font-semibold"
+              :class="user.status === 'active' ? 'text-[var(--green-700)]' : 'text-[var(--ink-400)]'"
+            >
+              <span
+                class="w-1.5 h-1.5 rounded-full shrink-0"
+                :class="user.status === 'active' ? 'bg-[var(--green-700)] shadow-[0_0_0_3px_var(--green-100)]' : 'bg-[var(--ink-400)] shadow-[0_0_0_3px_var(--line-soft)]'"
+              />
               {{ user.status === 'active' ? 'Active' : 'Inactive' }}
             </span>
           </div>
 
-          <div class="detail-row">
-            <span class="detail-label">
+          <div class="flex items-center justify-between py-3 border-b border-[var(--line-soft)]">
+            <span class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-400)]">
               <BaseIcon name="building" :size="13" />
               Organisation
             </span>
-            <span class="detail-value">{{ user.organisation?.name || 'None' }}</span>
+            <span class="text-xs text-[var(--ink-900)] font-medium">{{ user.organisation?.name || 'None' }}</span>
           </div>
 
-          <div class="detail-row">
-            <span class="detail-label">
+          <div class="flex items-center justify-between py-3 border-b border-[var(--line-soft)]">
+            <span class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-400)]">
               <BaseIcon name="bolt" :size="13" />
               Created
             </span>
-            <span class="detail-value">{{ formatDate(user.created_at) }}</span>
+            <span class="text-xs text-[var(--ink-900)] font-medium">{{ formatDate(user.created_at) }}</span>
           </div>
 
-          <div class="detail-row">
-            <span class="detail-label">
+          <div class="flex items-center justify-between py-3 last:border-b-0">
+            <span class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-400)]">
               <BaseIcon name="refresh" :size="13" />
               Last Updated
             </span>
-            <span class="detail-value">{{ formatDate(user.updated_at) }}</span>
+            <span class="text-xs text-[var(--ink-900)] font-medium">{{ formatDate(user.updated_at) }}</span>
           </div>
         </div>
       </div>
 
       <!-- Footer -->
-      <div class="view-footer">
+      <div class="flex justify-end mt-5.5 pt-4 border-t border-[var(--line-soft)]">
         <button type="button" class="btn btn-secondary" @click="emit('close')">
           Close
         </button>
@@ -132,166 +138,3 @@ function formatDate(iso?: string): string {
     </div>
   </BaseModal>
 </template>
-
-<style scoped>
-.view-modal {
-  width: 100%;
-  max-width: 460px;
-}
-
-/* Header */
-.view-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.view-header h2 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--ink-900);
-}
-.view-header p {
-  font-size: 12px;
-  color: var(--ink-400);
-  margin-top: 2px;
-}
-.close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-500);
-  cursor: pointer;
-  transition: all 0.12s;
-  flex-shrink: 0;
-}
-.close-btn:hover {
-  border-color: var(--ink-400);
-  color: var(--ink-700);
-}
-
-/* Profile Card */
-.profile-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--bg);
-  border: 1px solid var(--line-soft);
-  margin-bottom: 20px;
-}
-.profile-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, var(--teal-700), var(--teal-900));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  flex-shrink: 0;
-  box-shadow: 0 3px 8px rgba(10, 61, 57, 0.2);
-}
-.profile-info {
-  min-width: 0;
-}
-.profile-info h3 {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--ink-900);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.profile-email {
-  font-size: 12.5px;
-  color: var(--ink-400);
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Detail Grid */
-.detail-grid {
-  display: flex;
-  flex-direction: column;
-}
-.detail-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line-soft);
-}
-.detail-row:last-child {
-  border-bottom: none;
-}
-.detail-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-400);
-}
-.detail-value {
-  font-size: 13px;
-  color: var(--ink-900);
-  font-weight: 500;
-}
-
-/* Role Badge */
-.detail-role-badge {
-  display: inline-flex;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11.5px;
-  font-weight: 700;
-}
-
-/* Status */
-.detail-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-}
-.detail-status.active {
-  color: var(--green-700);
-}
-.detail-status.inactive {
-  color: var(--ink-400);
-}
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-.detail-status.active .status-dot {
-  background: var(--green-700);
-  box-shadow: 0 0 0 3px var(--green-100);
-}
-.detail-status.inactive .status-dot {
-  background: var(--ink-400);
-  box-shadow: 0 0 0 3px var(--line-soft);
-}
-
-/* Footer */
-.view-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 22px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line-soft);
-}
-</style>

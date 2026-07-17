@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, shallowRef } from 'vue'
 import { memberApi } from '@/api/member.api'
 import type { ProgrammeGeographicData, Province, District, Commune, Village } from '@/types/programme'
 
@@ -19,10 +19,10 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
   }))
 
   // Caches — plain objects (non-reactive) so reads are synchronous with no Vue flush delay
-  const provinces = ref<Province[]>([])
-  const districtsCache = ref<Record<number, District[]>>({})
-  const communesCache = ref<Record<number, Commune[]>>({})
-  const villagesCache = ref<Record<number, Village[]>>({})
+  const provinces = shallowRef<Province[]>([])
+  const districtsCache = shallowRef<Record<number, District[]>>({})
+  const communesCache = shallowRef<Record<number, Commune[]>>({})
+  const villagesCache = shallowRef<Record<number, Village[]>>({})
 
   // Raw cache mirrors for instant dedup checks (no Vue reactivity batching)
   const _districtsRaw: Record<number, District[]> = {}
@@ -64,6 +64,16 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     for (const list of Object.values(communesCache.value)) {
       for (const c of list) {
         map[c.id] = c.name
+      }
+    }
+    return map
+  })
+
+  const villageNameById = computed(() => {
+    const map: Record<number, string> = {}
+    for (const list of Object.values(villagesCache.value)) {
+      for (const v of list) {
+        map[v.id] = v.name
       }
     }
     return map
@@ -150,6 +160,8 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     const idx = provinceIds.value.indexOf(provinceId)
     if (idx === -1) {
       provinceIds.value.push(provinceId)
+      // Auto-expand the newly selected province and collapse others
+      toggleDistrictVisibility(provinceId)
     } else {
       provinceIds.value.splice(idx, 1)
       const districtIds = districts.value[provinceId] || []
@@ -159,14 +171,18 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
         delete communes.value[did]
       })
       delete districts.value[provinceId]
+      // Collapse if it was expanded
+      if (expandedProvinces.value.has(provinceId)) {
+        expandedProvinces.value.delete(provinceId)
+      }
     }
   }
 
-  // District expand/collapse
+  // District expand/collapse (Only one province expanded at a time)
   function toggleDistrictVisibility(provinceId: number) {
-    const next = new Set(expandedProvinces.value)
-    if (next.has(provinceId)) {
-      next.delete(provinceId)
+    const next = new Set<number>()
+    if (expandedProvinces.value.has(provinceId)) {
+      // Toggle off -> leaves next empty
     } else {
       next.add(provinceId)
       fetchDistricts(provinceId)
@@ -178,20 +194,24 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     const arr = districts.value[provinceId] ?? []
     const idx = arr.indexOf(districtId)
     if (idx === -1) {
-      districts.value = { ...districts.value, [provinceId]: [...arr, districtId] }
+      arr.push(districtId)
+      // Auto-expand district to show communes and collapse others
+      toggleCommuneVisibility(districtId)
     } else {
       const communeIds = communes.value[districtId] || []
       communeIds.forEach(cid => delete villages.value[cid])
       delete communes.value[districtId]
-      districts.value = { ...districts.value, [provinceId]: arr.filter(id => id !== districtId) }
+      if (expandedDistricts.value.has(districtId)) {
+        expandedDistricts.value.delete(districtId)
+      }
     }
   }
 
-  // Commune expand/collapse
+  // Commune expand/collapse (Only one district expanded at a time)
   function toggleCommuneVisibility(districtId: number) {
-    const next = new Set(expandedDistricts.value)
-    if (next.has(districtId)) {
-      next.delete(districtId)
+    const next = new Set<number>()
+    if (expandedDistricts.value.has(districtId)) {
+      // Toggle off
     } else {
       next.add(districtId)
       fetchCommunes(districtId)
@@ -203,30 +223,26 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     const arr = communes.value[districtId] ?? []
     const idx = arr.indexOf(communeId)
     if (idx === -1) {
-      communes.value = { ...communes.value, [districtId]: [...arr, communeId] }
+      arr.push(communeId)
+      // Auto-expand commune to show villages and collapse others
+      toggleVillageVisibility(communeId)
     } else {
       delete villages.value[communeId]
-      communes.value = { ...communes.value, [districtId]: arr.filter(id => id !== communeId) }
+      if (expandedCommunes.value.has(communeId)) {
+        expandedCommunes.value.delete(communeId)
+      }
     }
   }
 
-  // Village expand/collapse
+  // Village expand/collapse (Only one commune expanded at a time)
   function toggleVillageVisibility(communeId: number) {
+    const next = new Set<number>()
     if (expandedCommunes.value.has(communeId)) {
-      const next = new Set(expandedCommunes.value)
-      next.delete(communeId)
-      expandedCommunes.value = next
-    } else if (!_fetchingVillages.has(communeId) && !_villagesRaw[communeId]) {
-      // Not yet fetched and not in flight — expand and fetch
-      const next = new Set(expandedCommunes.value)
+      // Toggle off
+    } else {
       next.add(communeId)
       expandedCommunes.value = next
       fetchVillages(communeId)
-    } else {
-      // Already fetched or in flight — just expand
-      const next = new Set(expandedCommunes.value)
-      next.add(communeId)
-      expandedCommunes.value = next
     }
   }
 
@@ -251,7 +267,7 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     expandedCommunes.value = new Set()
   }
 
-function getData() {
+  function getData() {
     return section3Data.value
   }
 
@@ -304,6 +320,7 @@ function getData() {
     provinceNameById,
     districtNameById,
     communeNameById,
+    villageNameById,
     loadProvinces,
     fetchDistricts,
     fetchCommunes,

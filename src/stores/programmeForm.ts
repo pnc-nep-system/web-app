@@ -36,7 +36,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     const completed = new Set<number>()
 
     // Step 1: identity
-    if (section1Data.value?.name?.trim() && section1Data.value?.startYear) {
+    if (identityStore.isSection1Complete) {
       completed.add(1)
     }
 
@@ -106,6 +106,26 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   const stepperProgressPercent = computed(() => ((currentStep.value - 1) / (steps.length - 1)) * 100)
   const stepWidthPercent = computed(() => 100 / steps.length)
   const isFinalStep = computed(() => currentStep.value === 5)
+  const isSection2Complete = computed(() => {
+    return (section2Data.value?.selected || []).length > 0
+  })
+
+  const isSection3Complete = computed(() => {
+    return (section3Data.value?.provinceIds || []).length > 0 || !!section3Data.value?.otherCountries
+  })
+
+  const isSection5Complete = computed(() => {
+    return keywordsData.value.length > 0
+  })
+
+  const hasCompletedAllRequired = computed(() => {
+    return (
+      !!identityStore.isSection1Complete &&
+      isSection2Complete.value &&
+      isSection3Complete.value &&
+      isSection5Complete.value
+    )
+  })
 
   const nextStepLabel = computed(() => {
     const next = steps[currentStep.value]
@@ -122,7 +142,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     if (currentStep.value === 2) return 'Continue: Geographic coverage'
     if (currentStep.value === 3) return 'Continue: Government agreements'
     if (currentStep.value === 4) return 'Continue: Keywords'
-    return 'Finish & save'
+    return hasCompletedAllRequired.value ? 'Finish & save' : 'Save draft & exit'
   })
 
   const section1Progress = computed(() => {
@@ -596,28 +616,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     if (currentStep.value === 1) {
       const isValid = identityFormRef.value?.validate?.()
       if (!isValid) {
-        toast.error('Please fix the errors in the form before continuing.')
         return false
       }
-    }
-    if (currentStep.value === 2) {
-      const isValid = activitiesFormRef.value?.validate?.()
-      if (!isValid) {
-        toast.error('Please fix the errors in the form before continuing.')
-        return false
-      }
-    }
-    if (currentStep.value === 3) {
-      const isValid = geographicFormRef.value?.validate?.()
-      if (!isValid) {
-        toast.error('Please fix the errors in the form before continuing.')
-        return false
-      }
-    }
-    if (currentStep.value === 4) {
+    } else if (currentStep.value === 4) {
       const isValid = agreementsFormRef.value?.validate?.()
-      if (isValid === false) {
-        toast.error('Please select a counterpart and specify the institution details for all agreement rows.')
+      if (!isValid) {
         return false
       }
     }
@@ -631,7 +634,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         const requiredSteps = new Set([1, 2, 3, 5])
         const missing = [...requiredSteps].filter(s => !completedSteps.value.has(s))
         if (missing.length > 0) {
-          toast.error('Complete steps 1, 2, 3, and 5 before submitting. Step 4 (Agreements) is optional.')
+          toast.error("Please complete steps 1, 2, 3, and 5 to submit. If you're not ready, you can save your draft and exit by clicking 'Save & exit' in the top right corner.")
           return false
         }
 
@@ -656,6 +659,21 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   }
 
   function goToStep(stepNumber: number) {
+    if (stepNumber > 1) {
+      const isValid = identityFormRef.value ? identityFormRef.value.validate() : identityStore.validate()
+      if (!isValid) {
+        currentStep.value = 1
+        return false
+      }
+    }
+
+    if (stepNumber === 5 && currentStep.value === 4) {
+      const isValid = agreementsFormRef.value ? agreementsFormRef.value.validate() : agreementsStore.validate()
+      if (!isValid) {
+        return false
+      }
+    }
+
     syncRefsToStore()
     currentStep.value = stepNumber
     return true
@@ -684,7 +702,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
   async function continueToNext() {
     if (isFinalStep.value) {
-      await saveAndExit(true)
+      if (hasCompletedAllRequired.value) {
+        await saveAndExit(true)
+      } else {
+        await saveAndExit(false)
+      }
     } else {
       await advanceStep()
     }
@@ -724,6 +746,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     backStepLabel,
     continueButtonText,
     currentSectionProgress,
+    hasCompletedAllRequired,
     // actions
     initializeForm,
     saveEntry,

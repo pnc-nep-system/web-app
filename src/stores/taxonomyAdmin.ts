@@ -58,7 +58,10 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
           sub.code.toLowerCase().includes(query) || 
           sub.label.toLowerCase().includes(query)
 
-        if (subMatchesQuery || items.length > 0) {
+        // Only include subcategory if it has matching items, or if we are not filtering/searching
+        const shouldIncludeSub = (status === 'all' && !query) ? true : items.length > 0
+
+        if (shouldIncludeSub) {
           if (query && items.length > 0) {
             expandedSubcategories.value.add(sub.code)
           }
@@ -71,7 +74,10 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
         cat.code.toLowerCase().includes(query) || 
         cat.label.toLowerCase().includes(query)
 
-      if (catMatchesQuery || subcategories.length > 0) {
+      // Only include category if it has matching subcategories, or if we are not filtering/searching
+      const shouldIncludeCat = (status === 'all' && !query) ? true : subcategories.length > 0
+
+      if (shouldIncludeCat) {
         if (query && subcategories.length > 0) {
           expandedCategories.value.add(cat.code)
         }
@@ -93,7 +99,7 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
     if (expandedCategories.value.has(code)) {
       expandedCategories.value.delete(code)
     } else {
-      expandedCategories.value.add(code)
+      expandedCategories.value = new Set([code])
     }
   }
 
@@ -101,7 +107,7 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
     if (expandedSubcategories.value.has(code)) {
       expandedSubcategories.value.delete(code)
     } else {
-      expandedSubcategories.value.add(code)
+      expandedSubcategories.value = new Set([code])
     }
   }
 
@@ -139,10 +145,59 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
     addForm.label = ''
     showAdd.value = true
   }
-
   async function submitAdd() {
     if (!addForm.categoryCode || !addForm.subcategoryCode || !addForm.label.trim()) {
       toast.error('Category, sub-category code, and label are all required.')
+      return
+    }
+
+    // Validate that the sub-category code matches the selected category prefix (e.g. B1 for B1.x)
+    const categoryPrefix = addForm.categoryCode.trim().toUpperCase()
+    const enteredSubCode = addForm.subcategoryCode.trim().toUpperCase()
+    if (!enteredSubCode.startsWith(categoryPrefix)) {
+      toast.error(`Sub-category code must start with ${categoryPrefix} (e.g., ${categoryPrefix}.1)`)
+      return
+    }
+
+    // Check if the sub-category already exists if the user specified a sub-category label
+    if (addForm.subcategoryLabel.trim()) {
+      const cleanSubCode = addForm.subcategoryCode.trim().toLowerCase()
+      let existingSub: { code: string; label: string } | null = null
+      for (const cat of taxonomy.categories) {
+        for (const sub of cat.subcategories) {
+          if (sub.code.trim().toLowerCase() === cleanSubCode) {
+            existingSub = sub
+            break
+          }
+        }
+        if (existingSub) break
+      }
+
+      if (existingSub) {
+        toast.error(`You can't create it because in programme already have ${existingSub.code}`)
+        return
+      }
+    }
+
+    // Check if the item already exists by label similarity (case-insensitively)
+    const cleanAdd = addForm.label.trim().toLowerCase()
+    let existingItem: { code: string; label: string } | null = null
+    for (const cat of taxonomy.categories) {
+      for (const sub of cat.subcategories) {
+        for (const item of sub.items) {
+          const cleanExist = item.label.trim().toLowerCase()
+          if (cleanExist === cleanAdd || cleanExist.includes(cleanAdd) || cleanAdd.includes(cleanExist)) {
+            existingItem = item
+            break
+          }
+        }
+        if (existingItem) break
+      }
+      if (existingItem) break
+    }
+
+    if (existingItem) {
+      toast.error(`You can't create it because in programme already have ${existingItem.code}`)
       return
     }
 

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 
+
 const auth = useAuthStore()
 const isSidebarOpen = ref(false)
 
@@ -98,6 +99,8 @@ function logout() {
       </div>
 
       <nav class="flex-1 overflow-y-auto p-3.5 space-y-0.5">
+
+
         <div class="text-[10px] uppercase tracking-wider text-white/40 px-2.5 mb-1.5 font-semibold">
           WORKSPACE
         </div>

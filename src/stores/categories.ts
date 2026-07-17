@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { memberApi } from '@/api/member.api'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 
 export const useCategoriesStore = defineStore('categories', () => {
-  const categories = ref<any[]>([])
+  const categories = shallowRef<any[]>([])
   const isLoading = ref(false)
   const openCategories = ref<Set<string>>(new Set())
   const openSubcategories = ref<Set<string>>(new Set())
@@ -26,7 +26,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     if (openCategories.value.has(code)) {
       openCategories.value.delete(code)
     } else {
-      openCategories.value.add(code)
+      openCategories.value = new Set([code])
     }
   }
 
@@ -34,7 +34,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     if (openSubcategories.value.has(code)) {
       openSubcategories.value.delete(code)
     } else {
-      openSubcategories.value.add(code)
+      openSubcategories.value = new Set([code])
     }
   }
 

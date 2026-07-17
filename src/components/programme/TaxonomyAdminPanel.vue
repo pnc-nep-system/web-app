@@ -32,8 +32,8 @@ const taxonomy = store.taxonomy
     </div>
 
     <!-- Segment Tabs & Controls -->
-    <div class="flex items-center justify-between gap-4 border-b border-slate-200/60 pb-px">
-      <div class="inline-flex bg-slate-100 p-0.5 rounded-xl">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 pb-px">
+      <div class="inline-flex bg-slate-100 p-0.5 rounded-xl self-start">
         <button
           @click="store.tab = 'items'"
           class="px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer"
@@ -56,7 +56,7 @@ const taxonomy = store.taxonomy
         </button>
       </div>
 
-      <div v-if="store.tab === 'items'" class="flex items-center gap-2 select-none">
+      <div v-if="store.tab === 'items'" class="flex items-center gap-2 select-none self-end sm:self-auto pb-2 sm:pb-0">
         <button
           @click="store.expandAll"
           class="text-[10px] font-bold text-slate-500 hover:text-teal-800 transition-colors cursor-pointer"

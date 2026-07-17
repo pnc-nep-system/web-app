@@ -61,7 +61,7 @@ watch(
   </div>
 
   <!-- Two-column layout: Step Sidebar + Form -->
-  <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
+  <div class="flex flex-col lg:flex-row gap-6 items-stretch lg:items-start w-full">
     <!-- Mobile Horizontal Stepper -->
     <ProgrammeStepperMobile @go-to-step="store.goToStep" />
 
@@ -72,7 +72,7 @@ watch(
     </div>
 
     <!-- Form Content Container -->
-    <div class="flex-1 min-w-0">
+    <div class="flex-1 min-w-0 w-full">
       <!-- Step 1: Programme Identity -->
       <ProgrammeIdentityForm v-if="store.currentStep === 1" :ref="el => { store.identityFormRef = el }" v-model="store.section1Data"
         v-model:valid="store.section1Valid" :errors="store.errors" :disabled="store.isSaving" @clear-error="store.clearError" />
