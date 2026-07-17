@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onActivated } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import KpiCard from '@/components/KpiCard.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -8,13 +8,16 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import DashboardGuidance from '@/components/programme/DashboardGuidance.vue'
 import { useEntriesStore } from '@/stores/entries.store'
-
 import { useProgrammeFormStore } from '@/stores/programmeForm'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
 const entries = useEntriesStore()
 const formStore = useProgrammeFormStore()
+const auth = useAuthStore()
+
+const canSeeDraft = computed(() => !['nep_admin', 'nep_coordinator'].includes(auth.userRole))
 
 function clearDraft() {
   sessionStorage.removeItem('new_programme_entry_draft')
@@ -22,13 +25,9 @@ function clearDraft() {
 }
 
 onMounted(() => {
-  const tab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
-  entries.switchTab(tab, true)
-})
-
-onActivated(() => {
-  const tab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
-  entries.switchTab(tab, true)
+  const requestedTab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
+  const tab = !canSeeDraft.value && requestedTab === 'draft' ? 'submitted' : requestedTab
+  entries.switchTab(tab)
 })
 </script>
 
@@ -48,14 +47,14 @@ onActivated(() => {
         staff</span>
     </div>
     <div class="flex gap-1 bg-gray-100 p-1 rounded-lg">
-      <button
+      <button v-if="canSeeDraft"
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'draft' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
-        @click="entries.switchTab('draft', true)">
+        @click="entries.switchTab('draft')">
         Draft
       </button>
       <button
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'submitted' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
-        @click="entries.switchTab('submitted', true)">
+        @click="entries.switchTab('submitted')">
         Submitted
       </button>
     </div>

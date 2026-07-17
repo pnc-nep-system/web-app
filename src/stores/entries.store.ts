@@ -97,7 +97,16 @@ export const useEntriesStore = defineStore('entries', () => {
     return entry.isUnverified ? 'unverified' : 'verified'
   }
 
+  let draftPromise: Promise<void> | null = null
+  let submittedPromise: Promise<void> | null = null
+
   async function fetchDraftEntries(page = 1) {
+    if (draftPromise) return draftPromise
+    draftPromise = _fetchDraft(page).finally(() => { draftPromise = null })
+    return draftPromise
+  }
+
+  async function _fetchDraft(page: number) {
     draftLoading.value = true
     draftError.value = ''
     try {
@@ -118,6 +127,12 @@ export const useEntriesStore = defineStore('entries', () => {
   }
 
   async function fetchSubmittedEntries(page = 1) {
+    if (submittedPromise) return submittedPromise
+    submittedPromise = _fetchSubmitted(page).finally(() => { submittedPromise = null })
+    return submittedPromise
+  }
+
+  async function _fetchSubmitted(page: number) {
     submittedLoading.value = true
     submittedError.value = ''
     try {

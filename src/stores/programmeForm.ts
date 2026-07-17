@@ -586,8 +586,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   function syncRefsToStore() {
     if (currentStep.value === 2 && activitiesFormRef.value) {
       section2Data.value = activitiesFormRef.value.getData()
-    } else if (currentStep.value === 3 && geographicFormRef.value) {
-      section3Data.value = geographicFormRef.value.getData()
     } else if (currentStep.value === 4 && agreementsFormRef.value) {
       section4Data.value = agreementsFormRef.value.getData()
     }

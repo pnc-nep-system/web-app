@@ -1,37 +1,8 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted } from 'vue'
 import { useProgrammeGeographyStore } from '@/stores/programmeGeography'
-import type { ProgrammeGeographicData } from '@/types/programme'
-
-const props = defineProps<{
-    modelValue?: ProgrammeGeographicData
-}>()
-
-const emit = defineEmits<{
-    (e: 'update:modelValue', value: ProgrammeGeographicData): void
-}>()
 
 const store = useProgrammeGeographyStore()
-
-watch(
-    () => props.modelValue,
-    (val) => {
-        if (val && JSON.stringify(val) !== JSON.stringify(store.section3Data)) {
-            store.initFromPayload(val)
-        }
-    },
-    { deep: true, immediate: true }
-)
-
-watch(
-    () => store.section3Data,
-    (val) => {
-        if (JSON.stringify(val) !== JSON.stringify(props.modelValue)) {
-            emit('update:modelValue', val)
-        }
-    },
-    { deep: true }
-)
 
 function validate(): boolean {
     return true
@@ -97,8 +68,9 @@ onMounted(() => {
                     <div class="flex items-center justify-between text-[13px] font-semibold text-gray-700 mb-2">
                         <span>{{ store.provinceNameById[pid] || `Province #${pid}` }}</span>
                         <button
+                            type="button"
                             class="inline-flex items-center gap-1 text-xs font-medium text-teal-700 bg-transparent border border-teal-200 rounded-md px-2.5 py-1 cursor-pointer transition-all hover:bg-teal-50 hover:border-teal-400"
-                            @click="store.toggleDistrictVisibility(pid)">
+                            @click.stop="store.toggleDistrictVisibility(pid)">
                             <template v-if="store.expandedProvinces.has(pid)">
                                 Hide districts
                                 <svg height="16" viewBox="0 -960 960 960" width="16" fill="currentColor">
@@ -148,8 +120,9 @@ onMounted(() => {
                             <div class="flex items-center justify-between text-[12px] font-semibold text-gray-600 mb-1.5">
                                 <span>{{ store.districtNameById[did] || `District #${did}` }}</span>
                                 <button
+                                    type="button"
                                     class="inline-flex items-center gap-1 text-[11px] font-medium text-teal-600 bg-transparent border border-teal-200 rounded-md px-2 py-0.5 cursor-pointer transition-all hover:bg-teal-50"
-                                    @click="store.toggleCommuneVisibility(did)">
+                                    @click.stop="store.toggleCommuneVisibility(did)">
                                     <template v-if="store.expandedDistricts.has(did)">
                                         Hide communes
                                         <svg height="14" viewBox="0 -960 960 960" width="14" fill="currentColor">
@@ -198,8 +171,9 @@ onMounted(() => {
                                     <div class="flex items-center justify-between text-[11px] font-semibold text-gray-500 mb-1">
                                         <span>{{ store.communeNameById[cid] || `Commune #${cid}` }}</span>
                                         <button
+                                            type="button"
                                             class="inline-flex items-center gap-1 text-[10px] font-medium text-teal-500 bg-transparent border border-teal-200 rounded-md px-1.5 py-0.5 cursor-pointer transition-all hover:bg-teal-50"
-                                            @click="store.toggleVillageVisibility(cid)">
+                                            @click.stop="store.toggleVillageVisibility(cid)">
                                             <template v-if="store.expandedCommunes.has(cid)">
                                                 Hide villages
                                             </template>

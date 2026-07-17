@@ -10,19 +10,24 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
   const communes = ref<Record<number, number[]>>({})
   const villages = ref<Record<number, number[]>>({})
   const otherCountries = ref('')
-  const section3Data = ref<ProgrammeGeographicData>({
-    provinceIds: [],
-    districts: {},
-    communes: {},
-    villages: {},
-    otherCountries: '',
-  })
+  const section3Data = computed<ProgrammeGeographicData>(() => ({
+    provinceIds: provinceIds.value,
+    districts: districts.value,
+    communes: communes.value,
+    villages: villages.value,
+    otherCountries: otherCountries.value,
+  }))
 
-  // Caches
+  // Caches — plain objects (non-reactive) so reads are synchronous with no Vue flush delay
   const provinces = ref<Province[]>([])
   const districtsCache = ref<Record<number, District[]>>({})
   const communesCache = ref<Record<number, Commune[]>>({})
   const villagesCache = ref<Record<number, Village[]>>({})
+
+  // Raw cache mirrors for instant dedup checks (no Vue reactivity batching)
+  const _districtsRaw: Record<number, District[]> = {}
+  const _communesRaw: Record<number, Commune[]> = {}
+  const _villagesRaw: Record<number, Village[]> = {}
 
   // Loading
   const loadingProvinces = ref(false)
@@ -64,27 +69,42 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     return map
   })
 
+  let _provincesLoaded = false
+  let _provincesLoading = false
+
   async function loadProvinces() {
+    if (_provincesLoaded || _provincesLoading) return
+    _provincesLoading = true
     loadingProvinces.value = true
     provincesError.value = null
     try {
       const res = await memberApi.getProvinces()
       provinces.value = res.data.data
+      _provincesLoaded = true
     } catch {
       provincesError.value = 'Failed to load provinces. Please try again.'
+      _provincesLoaded = false
+      _provincesLoading = false
     } finally {
       loadingProvinces.value = false
     }
   }
 
+  // Plain Sets track in-flight + completed fetches — checked synchronously before any async work
+  const _fetchingDistricts = new Set<number>()
+  const _fetchingCommunes = new Set<number>()
+  const _fetchingVillages = new Set<number>()
+
   async function fetchDistricts(provinceId: number) {
-    if (districtsCache.value[provinceId] || loadingDistricts.value.has(provinceId)) return
+    if (_districtsRaw[provinceId] || _fetchingDistricts.has(provinceId)) return
+    _fetchingDistricts.add(provinceId)
     loadingDistricts.value = new Set([...loadingDistricts.value, provinceId])
     try {
       const res = await memberApi.getDistricts(provinceId)
+      _districtsRaw[provinceId] = res.data.data
       districtsCache.value = { ...districtsCache.value, [provinceId]: res.data.data }
     } catch {
-      // silently fail
+      _fetchingDistricts.delete(provinceId)
     } finally {
       const next = new Set(loadingDistricts.value)
       next.delete(provinceId)
@@ -93,13 +113,15 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
   }
 
   async function fetchCommunes(districtId: number) {
-    if (communesCache.value[districtId] || loadingCommunes.value.has(districtId)) return
+    if (_communesRaw[districtId] || _fetchingCommunes.has(districtId)) return
+    _fetchingCommunes.add(districtId)
     loadingCommunes.value = new Set([...loadingCommunes.value, districtId])
     try {
       const res = await memberApi.getCommunes(districtId)
+      _communesRaw[districtId] = res.data.data
       communesCache.value = { ...communesCache.value, [districtId]: res.data.data }
     } catch {
-      // silently fail
+      _fetchingCommunes.delete(districtId)
     } finally {
       const next = new Set(loadingCommunes.value)
       next.delete(districtId)
@@ -108,13 +130,15 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
   }
 
   async function fetchVillages(communeId: number) {
-    if (villagesCache.value[communeId] || loadingVillages.value.has(communeId)) return
+    if (_villagesRaw[communeId] || _fetchingVillages.has(communeId)) return
+    _fetchingVillages.add(communeId)
     loadingVillages.value = new Set([...loadingVillages.value, communeId])
     try {
       const res = await memberApi.getVillages(communeId)
+      _villagesRaw[communeId] = res.data.data
       villagesCache.value = { ...villagesCache.value, [communeId]: res.data.data }
     } catch {
-      // silently fail
+      _fetchingVillages.delete(communeId)
     } finally {
       const next = new Set(loadingVillages.value)
       next.delete(communeId)
@@ -128,18 +152,14 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
       provinceIds.value.push(provinceId)
     } else {
       provinceIds.value.splice(idx, 1)
-      // Clear all nested data under this province
       const districtIds = districts.value[provinceId] || []
       districtIds.forEach(did => {
         const communeIds = communes.value[did] || []
-        communeIds.forEach(cid => {
-          delete villages.value[cid]
-        })
+        communeIds.forEach(cid => { delete villages.value[cid] })
         delete communes.value[did]
       })
       delete districts.value[provinceId]
     }
-    updateSection3Data()
   }
 
   // District expand/collapse
@@ -155,21 +175,16 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
   }
 
   function toggleDistrict(provinceId: number, districtId: number) {
-    if (!districts.value[provinceId]) {
-      districts.value[provinceId] = []
-    }
-    const arr = districts.value[provinceId]
+    const arr = districts.value[provinceId] ?? []
     const idx = arr.indexOf(districtId)
     if (idx === -1) {
-      arr.push(districtId)
+      districts.value = { ...districts.value, [provinceId]: [...arr, districtId] }
     } else {
-      arr.splice(idx, 1)
-      // Clear nested communes and villages under this district
       const communeIds = communes.value[districtId] || []
       communeIds.forEach(cid => delete villages.value[cid])
       delete communes.value[districtId]
+      districts.value = { ...districts.value, [provinceId]: arr.filter(id => id !== districtId) }
     }
-    updateSection3Data()
   }
 
   // Commune expand/collapse
@@ -185,44 +200,43 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
   }
 
   function toggleCommune(districtId: number, communeId: number) {
-    if (!communes.value[districtId]) {
-      communes.value[districtId] = []
-    }
-    const arr = communes.value[districtId]
+    const arr = communes.value[districtId] ?? []
     const idx = arr.indexOf(communeId)
     if (idx === -1) {
-      arr.push(communeId)
+      communes.value = { ...communes.value, [districtId]: [...arr, communeId] }
     } else {
-      arr.splice(idx, 1)
       delete villages.value[communeId]
+      communes.value = { ...communes.value, [districtId]: arr.filter(id => id !== communeId) }
     }
-    updateSection3Data()
   }
 
   // Village expand/collapse
   function toggleVillageVisibility(communeId: number) {
-    const next = new Set(expandedCommunes.value)
-    if (next.has(communeId)) {
+    if (expandedCommunes.value.has(communeId)) {
+      const next = new Set(expandedCommunes.value)
       next.delete(communeId)
-    } else {
+      expandedCommunes.value = next
+    } else if (!_fetchingVillages.has(communeId) && !_villagesRaw[communeId]) {
+      // Not yet fetched and not in flight — expand and fetch
+      const next = new Set(expandedCommunes.value)
       next.add(communeId)
+      expandedCommunes.value = next
       fetchVillages(communeId)
+    } else {
+      // Already fetched or in flight — just expand
+      const next = new Set(expandedCommunes.value)
+      next.add(communeId)
+      expandedCommunes.value = next
     }
-    expandedCommunes.value = next
   }
 
   function toggleVillage(communeId: number, villageId: number) {
-    if (!villages.value[communeId]) {
-      villages.value[communeId] = []
-    }
-    const arr = villages.value[communeId]
+    const arr = villages.value[communeId] ?? []
     const idx = arr.indexOf(villageId)
-    if (idx === -1) {
-      arr.push(villageId)
-    } else {
-      arr.splice(idx, 1)
+    villages.value = {
+      ...villages.value,
+      [communeId]: idx === -1 ? [...arr, villageId] : arr.filter(id => id !== villageId)
     }
-    updateSection3Data()
   }
 
   function initFromPayload(val: ProgrammeGeographicData | undefined) {
@@ -231,21 +245,13 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     communes.value = val?.communes ?? {}
     villages.value = val?.villages ?? {}
     otherCountries.value = val?.otherCountries ?? ''
-    updateSection3Data()
+    // Reset expanded state so watchers don't re-trigger fetches on reload
+    expandedProvinces.value = new Set()
+    expandedDistricts.value = new Set()
+    expandedCommunes.value = new Set()
   }
 
-  function updateSection3Data() {
-    section3Data.value = {
-      provinceIds: [...provinceIds.value],
-      districts: JSON.parse(JSON.stringify(districts.value)),
-      communes: JSON.parse(JSON.stringify(communes.value)),
-      villages: JSON.parse(JSON.stringify(villages.value)),
-      otherCountries: otherCountries.value,
-    }
-  }
-
-  function getData() {
-    updateSection3Data()
+function getData() {
     return section3Data.value
   }
 
@@ -258,6 +264,14 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     districtsCache.value = {}
     communesCache.value = {}
     villagesCache.value = {}
+    Object.keys(_districtsRaw).forEach(k => delete _districtsRaw[+k])
+    Object.keys(_communesRaw).forEach(k => delete _communesRaw[+k])
+    Object.keys(_villagesRaw).forEach(k => delete _villagesRaw[+k])
+    _fetchingDistricts.clear()
+    _fetchingCommunes.clear()
+    _fetchingVillages.clear()
+    _provincesLoaded = false
+    _provincesLoading = false
     loadingProvinces.value = false
     provincesError.value = null
     loadingDistricts.value = new Set()
@@ -266,7 +280,6 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     expandedProvinces.value = new Set()
     expandedDistricts.value = new Set()
     expandedCommunes.value = new Set()
-    updateSection3Data()
   }
 
   return {
@@ -303,7 +316,6 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     toggleVillageVisibility,
     toggleVillage,
     initFromPayload,
-    updateSection3Data,
     getData,
     reset,
   }
