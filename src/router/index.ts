@@ -19,6 +19,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/map',
+      name: 'map',
+      component: () => import('@/views/map/MapView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin', 'nep_coordinator'] },
+    },
+    {
       path: '/admin/dashboard',
       name: 'admin-dashboard',
       component: () => import('@/views/staff/DashboardView.vue'),

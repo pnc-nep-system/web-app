@@ -10,8 +10,17 @@ const isSidebarOpen = ref(false)
 const navItems = computed(() => {
   if (auth.userRole === 'nep_admin') {
     return [
+      { to: '/map', label: 'The Map', icon: 'map' },
       { to: '/admin/users', label: 'User Management', icon: 'users' },
       { to: '/admin/taxonomy', label: 'Taxonomy', icon: 'list' },
+    ]
+  }
+
+  if (auth.userRole === 'nep_coordinator') {
+    return [
+      { to: '/map', label: 'The Map', icon: 'map' },
+      { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+      { to: '/account', label: 'Organisation Profile', icon: 'building' },
     ]
   }
 

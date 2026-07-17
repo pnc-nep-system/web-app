@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { EDUCATION_LEVELS } from '@/constants/map'
+
 const props = defineProps<{
   modelValue: number[];
 }>();
@@ -6,14 +8,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: number[]): void;
 }>();
-
-const educationLevels = [
-  { id: 1, name: "Pre-primary / ECCD" },
-  { id: 2, name: "Primary" },
-  { id: 3, name: "Lower secondary" },
-  { id: 4, name: "Upper secondary" },
-  { id: 5, name: "Higher education" }
-];
 
 const toggleLevel = (id: number) => {
   const newValue = [...props.modelValue];
@@ -32,7 +26,7 @@ const toggleLevel = (id: number) => {
 <template>
   <div class="flex flex-wrap gap-2.5 mt-2">
     <div
-      v-for="level in educationLevels"
+      v-for="level in EDUCATION_LEVELS"
       :key="level.id"
       class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full border cursor-pointer select-none transition-all duration-200 text-xs font-semibold"
       :class="modelValue.includes(level.id)
