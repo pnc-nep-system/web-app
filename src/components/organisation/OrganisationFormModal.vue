@@ -32,17 +32,9 @@ const title = computed(() => (isEditMode.value ? 'Edit Organisation' : 'Create O
 const subtitle = computed(() =>
   isEditMode.value ? 'Update the organisation details below.' : 'Fill in the details to create a new organisation.',
 )
-const STORAGE_BASE = (import.meta.env.VITE_API_BASE_URL as string).replace('/api', '')
-
-function resolveLogoUrl(url: string | null): string | null {
-  if (!url) return null
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:')) return url
-  return `${STORAGE_BASE}/${url.replace(/^\//, '')}`
-}
-
 const avatarSrc = computed(() => {
   if (logoPreview.value) return logoPreview.value
-  return resolveLogoUrl(props.editOrg?.logo_url ?? null)
+  return props.editOrg?.logo_url ?? null
 })
 const initials = computed(() =>
   (props.editOrg?.name ?? name.value)

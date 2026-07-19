@@ -43,22 +43,7 @@ export const useOrganisationsStore = defineStore('organisations', () => {
     saving.value = true
     try {
       const res = await organisationService.createOrganisation(data)
-      const newOrg = res.data // controller returns the organisation directly, not under `.organisation`
-
-      if (data.logoFile) {
-        try {
-          const logoRes = await organisationService.uploadLogo(newOrg.id, data.logoFile)
-          newOrg.logo_path = logoRes.data.logo_path
-          newOrg.logo_url = logoRes.data.logo_url
-        } catch (e) {
-          console.error('Logo upload error:', e)
-          throw new Error('logo_upload_failed')
-        }
-      }
-
-      // New record — prepend locally instead of refetching the whole page.
-      // If you rely on server-side sort/pagination, refetch here instead.
-      organisations.value.unshift(newOrg)
+      organisations.value.unshift(res.data as any)
       total.value += 1
     } finally {
       saving.value = false
@@ -68,13 +53,29 @@ export const useOrganisationsStore = defineStore('organisations', () => {
   const update = async (id: number, data: OrganisationForm) => {
     saving.value = true
     try {
-      const res = await organisationService.updateOrganisation(id, data)
-      let updated = res.data
+      const fieldsChanged = (() => {
+        const current = organisations.value.find((o) => o.id === id)
+        if (!current) return true
+        return (
+          current.name !== data.name ||
+          current.contact_name !== data.contact_name ||
+          current.email !== data.email ||
+          current.member_since !== data.member_since
+        )
+      })()
+
+      let updated: any
+      if (fieldsChanged) {
+        const res = await organisationService.updateOrganisation(id, data)
+        updated = res.data.organisation
+      } else {
+        updated = organisations.value.find((o) => o.id === id)
+      }
 
       if (data.logoFile) {
         try {
           const logoRes = await organisationService.uploadLogo(id, data.logoFile)
-          updated = logoRes.data
+          updated = logoRes.data.organisation
         } catch {
           throw new Error('logo_upload_failed')
         }

@@ -24,12 +24,9 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-const STORAGE_BASE = (import.meta.env.VITE_API_BASE_URL as string).replace('/api', '')
-
 function logoSrc(url: string | null): string | null {
   if (!url) return null
-  if (url.startsWith('http://') || url.startsWith('https://')) return url
-  return `${STORAGE_BASE}/${url.replace(/^\//, '')}`
+  return url.startsWith('http://') || url.startsWith('https://') ? url : null
 }
 </script>
 
@@ -86,7 +83,7 @@ function logoSrc(url: string | null): string | null {
             <td class="px-4 py-3.5 align-middle">
               <div class="flex items-center gap-3 min-w-0">
                 <div class="w-[38px] h-[38px] rounded-[10px] shrink-0 shadow-[0_2px_6px_rgba(10,61,57,0.18)] overflow-hidden">
-                  <img v-if="org.logo_url" :src="logoSrc(org.logo_url)" :alt="org.name" class="w-full h-full object-cover" />
+                  <img v-if="logoSrc(org.logo_url)" :src="logoSrc(org.logo_url)!" :alt="org.name" class="w-full h-full object-cover" />
                   <div v-else class="w-full h-full bg-gradient-to-br from-[var(--teal-700)] to-[var(--teal-900)] flex items-center justify-center text-white text-xs font-bold tracking-wide">
                     {{ initials(org.name) }}
                   </div>
@@ -154,7 +151,7 @@ function logoSrc(url: string | null): string | null {
         <div v-for="org in organisations" :key="org.id" class="py-4 px-[18px] border-b border-[var(--line-soft)] last:border-b-0">
           <div class="flex items-center gap-2.5">
             <div class="w-[34px] h-[34px] rounded-[9px] shrink-0 shadow-[0_2px_6px_rgba(10,61,57,0.18)] overflow-hidden">
-              <img v-if="org.logo_url" :src="logoSrc(org.logo_url)" :alt="org.name" class="w-full h-full object-cover" />
+              <img v-if="logoSrc(org.logo_url)" :src="logoSrc(org.logo_url)!" :alt="org.name" class="w-full h-full object-cover" />
               <div v-else class="w-full h-full bg-gradient-to-br from-[var(--teal-700)] to-[var(--teal-900)] flex items-center justify-center text-white text-[11px] font-bold tracking-wide">
                 {{ initials(org.name) }}
               </div>
