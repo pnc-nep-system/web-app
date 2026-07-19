@@ -42,6 +42,9 @@ export const memberApi = {
   getGeography(id: number | string) {
     return api.get(`/programme-entries/${id}/geography`);
   },
+  getAllProgrammeEntries(page = 1) {
+    return api.get(`/programme-entries?page=${page}`);
+  },
   getDraftProgrammeEntries(page = 1) {
     return api.get(`/programme-entries/draft?page=${page}`);
   },

@@ -40,7 +40,7 @@ watch(store.keywordsData, (newVal) => {
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-8">
         <div>
           <label for="keyword1" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Keyword 1
+            Keyword 1  <span class="text-red-500">*</span>
           </label>
           <input
             id="keyword1"
@@ -51,7 +51,7 @@ watch(store.keywordsData, (newVal) => {
         </div>
         <div>
           <label for="keyword2" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Keyword 2
+            Keyword 2  <span class="text-red-500">*</span>
           </label>
           <input
             id="keyword2"
@@ -62,7 +62,7 @@ watch(store.keywordsData, (newVal) => {
         </div>
         <div>
           <label for="keyword3" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Keyword 3
+            Keyword 3  <span class="text-red-500">*</span>
           </label>
           <input
             id="keyword3"
@@ -73,7 +73,7 @@ watch(store.keywordsData, (newVal) => {
         </div>
         <div>
           <label for="keyword4" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Keyword 4
+            Keyword 4  <span class="text-red-500">*</span>
           </label>
           <input
             id="keyword4"
@@ -84,7 +84,7 @@ watch(store.keywordsData, (newVal) => {
         </div>
         <div>
           <label for="keyword5" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Keyword 5
+            Keyword 5  <span class="text-red-500">*</span>
           </label>
           <input
             id="keyword5"

@@ -26,9 +26,11 @@ function clearDraft() {
 }
 
 onMounted(() => {
-  const requestedTab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
-  const tab = !canSeeDraft.value && requestedTab === 'draft' ? 'submitted' : requestedTab
-  entries.switchTab(tab)
+  const requestedTab = route.query.tab as 'all' | 'draft' | 'submitted' || 'all'
+  const validTabs = ['all', 'draft', 'submitted']
+  const parsedTab = validTabs.includes(requestedTab) ? requestedTab : 'all'
+  const tab = !canSeeDraft.value && parsedTab !== 'submitted' ? 'submitted' : parsedTab
+  entries.switchTab(tab as 'all' | 'draft' | 'submitted')
 })
 </script>
 
@@ -48,6 +50,11 @@ onMounted(() => {
         staff</span>
     </div>
     <div class="flex gap-1 bg-gray-100 p-1 rounded-lg">
+      <button v-if="canSeeDraft"
+        :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'all' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
+        @click="entries.switchTab('all')">
+        All
+      </button>
       <button v-if="canSeeDraft"
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'draft' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
         @click="entries.switchTab('draft')">
@@ -96,8 +103,8 @@ onMounted(() => {
     <div v-else-if="entries.currentItems.length === 0" class="py-12">
       <EmptyState
         icon="file"
-        :title="entries.activeTab === 'draft' ? 'No draft entries' : 'No submitted entries'"
-        :message="entries.activeTab === 'draft' ? 'You haven\'t created any draft programme entries yet.' : 'No programme entries have been submitted yet.'"
+        :title="entries.activeTab === 'all' ? 'No entries' : (entries.activeTab === 'draft' ? 'No draft entries' : 'No submitted entries')"
+        :message="entries.activeTab === 'all' ? 'You haven\'t created any programme entries yet.' : (entries.activeTab === 'draft' ? 'You haven\'t created any draft programme entries yet.' : 'No programme entries have been submitted yet.')"
       >
         <template #action>
           <NewEntryButton />
@@ -126,8 +133,11 @@ onMounted(() => {
               @click="router.push(`/entries/new?id=${entry.id}`)">
               <td class="px-5 py-3.5">
                 <div class="text-sm font-medium text-gray-800">{{ entry.name || 'Untitled' }}</div>
-                <div class="text-xs text-gray-400 mt-0.5">
-                  {{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}
+                <div class="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-1.5">
+                  <span :class="entry.isDraft ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50'" class="px-1.5 py-0.5 rounded text-[10px] font-medium">
+                    {{ entry.isDraft ? 'Draft' : 'Submitted' }}
+                  </span>
+                  <span>{{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}</span>
                   <span v-if="entry.budgetBand"> · {{ entry.budgetBand }}</span>
                 </div>
               </td>
@@ -180,8 +190,11 @@ onMounted(() => {
           <div class="flex items-start justify-between gap-4">
             <div class="min-w-0">
               <h4 class="text-sm font-bold text-gray-800 truncate">{{ entry.name || 'Untitled' }}</h4>
-              <p class="text-xs text-gray-400 mt-0.5">
-                {{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}
+              <p class="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-1.5">
+                <span :class="entry.isDraft ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50'" class="px-1.5 py-0.5 rounded text-[10px] font-medium">
+                  {{ entry.isDraft ? 'Draft' : 'Submitted' }}
+                </span>
+                <span>{{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}</span>
                 <span v-if="entry.budgetBand"> · {{ entry.budgetBand }}</span>
               </p>
             </div>

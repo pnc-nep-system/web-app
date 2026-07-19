@@ -43,32 +43,37 @@ function mapEntry(e: any): ProgrammeIdentity {
       primary: !!a.is_primary,
     })).filter((a: any) => a.code),
     lastUpdated: e.last_updated_at || e.updated_at || '',
+    isDraft: !Number(e.is_submitted),
   }
 }
 
 export const useEntriesStore = defineStore('entries', () => {
-  const activeTab = ref<'draft' | 'submitted'>('draft')
+  const activeTab = ref<'all' | 'draft' | 'submitted'>('all')
 
+  const allItems = ref<ProgrammeIdentity[]>([])
   const draftItems = ref<ProgrammeIdentity[]>([])
   const submittedItems = ref<ProgrammeIdentity[]>([])
+  const allLoading = ref(false)
   const draftLoading = ref(false)
   const submittedLoading = ref(false)
+  const allError = ref('')
   const draftError = ref('')
   const submittedError = ref('')
+  const allPagination = ref<PaginationMeta>({ currentPage: 1, lastPage: 0, total: 0 })
   const draftPagination = ref<PaginationMeta>({ currentPage: 1, lastPage: 0, total: 0 })
   const submittedPagination = ref<PaginationMeta>({ currentPage: 1, lastPage: 0, total: 0 })
 
   const currentItems = computed(() =>
-    activeTab.value === 'draft' ? draftItems.value : submittedItems.value
+    activeTab.value === 'all' ? allItems.value : (activeTab.value === 'draft' ? draftItems.value : submittedItems.value)
   )
   const currentLoading = computed(() =>
-    activeTab.value === 'draft' ? draftLoading.value : submittedLoading.value
+    activeTab.value === 'all' ? allLoading.value : (activeTab.value === 'draft' ? draftLoading.value : submittedLoading.value)
   )
   const currentError = computed(() =>
-    activeTab.value === 'draft' ? draftError.value : submittedError.value
+    activeTab.value === 'all' ? allError.value : (activeTab.value === 'draft' ? draftError.value : submittedError.value)
   )
   const currentPagination = computed(() =>
-    activeTab.value === 'draft' ? draftPagination.value : submittedPagination.value
+    activeTab.value === 'all' ? allPagination.value : (activeTab.value === 'draft' ? draftPagination.value : submittedPagination.value)
   )
 
   const entriesWithStatus = computed<EntryWithStatus[]>(() =>
@@ -97,8 +102,35 @@ export const useEntriesStore = defineStore('entries', () => {
     return entry.isUnverified ? 'unverified' : 'verified'
   }
 
+  let allPromise: Promise<void> | null = null
   let draftPromise: Promise<void> | null = null
   let submittedPromise: Promise<void> | null = null
+
+  async function fetchAllEntries(page = 1) {
+    if (allPromise) return allPromise
+    allPromise = _fetchAll(page).finally(() => { allPromise = null })
+    return allPromise
+  }
+
+  async function _fetchAll(page: number) {
+    allLoading.value = true
+    allError.value = ''
+    try {
+      const response = await memberApi.getAllProgrammeEntries(page)
+      const body = response.data
+      allItems.value = (body.data || []).map(mapEntry)
+      allPagination.value = {
+        currentPage: body.current_page ?? page,
+        lastPage: body.last_page ?? 0,
+        total: body.total ?? 0,
+      }
+    } catch (err: any) {
+      allError.value = err?.response?.data?.message || 'Failed to load entries.'
+      allItems.value = []
+    } finally {
+      allLoading.value = false
+    }
+  }
 
   async function fetchDraftEntries(page = 1) {
     if (draftPromise) return draftPromise
@@ -152,32 +184,27 @@ export const useEntriesStore = defineStore('entries', () => {
     }
   }
 
-  async function switchTab(tab: 'draft' | 'submitted', force = false) {
+  function switchTab(tab: 'all' | 'draft' | 'submitted') {
     activeTab.value = tab
-    if (tab === 'draft' && (draftItems.value.length === 0 || force)) {
-      await fetchDraftEntries()
-    } else if (tab === 'submitted' && (submittedItems.value.length === 0 || force)) {
-      await fetchSubmittedEntries()
-    }
+    if (tab === 'all') fetchAllEntries(1)
+    else if (tab === 'draft') fetchDraftEntries(1)
+    else fetchSubmittedEntries(1)
   }
 
   function goToPage(page: number) {
-    if (activeTab.value === 'draft') {
-      fetchDraftEntries(page)
+    if (activeTab.value === 'all') {
+      if (page >= 1 && page <= allPagination.value.lastPage) fetchAllEntries(page)
+    } else if (activeTab.value === 'draft') {
+      if (page >= 1 && page <= draftPagination.value.lastPage) fetchDraftEntries(page)
     } else {
-      fetchSubmittedEntries(page)
+      if (page >= 1 && page <= submittedPagination.value.lastPage) fetchSubmittedEntries(page)
     }
   }
 
   function retry() {
-    const page = activeTab.value === 'draft'
-      ? draftPagination.value.currentPage
-      : submittedPagination.value.currentPage
-    if (activeTab.value === 'draft') {
-      fetchDraftEntries(page)
-    } else {
-      fetchSubmittedEntries(page)
-    }
+    if (activeTab.value === 'all') fetchAllEntries(currentPagination.value.currentPage)
+    else if (activeTab.value === 'draft') fetchDraftEntries(currentPagination.value.currentPage)
+    else fetchSubmittedEntries(currentPagination.value.currentPage)
   }
 
   function forOrganisation(orgId: number | null) {
@@ -187,12 +214,16 @@ export const useEntriesStore = defineStore('entries', () => {
 
   return {
     activeTab,
+    allItems,
     draftItems,
     submittedItems,
+    allLoading,
     draftLoading,
     submittedLoading,
+    allError,
     draftError,
     submittedError,
+    allPagination,
     draftPagination,
     submittedPagination,
     currentItems,
@@ -203,6 +234,7 @@ export const useEntriesStore = defineStore('entries', () => {
     verifiedCount,
     unverifiedCount,
     statusOf,
+    fetchAllEntries,
     fetchDraftEntries,
     fetchSubmittedEntries,
     switchTab,

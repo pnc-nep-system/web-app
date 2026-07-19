@@ -21,4 +21,5 @@ export interface ProgrammeIdentity {
   activities?: Activity[]
   provinces?: string[]
   lastUpdated?: string
+  isDraft?: boolean
 }

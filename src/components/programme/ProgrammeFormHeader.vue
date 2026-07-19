@@ -25,7 +25,7 @@ const emit = defineEmits<{
     </div>
 
     <div class="flex items-center gap-2 w-full sm:w-auto">
-      <button v-if="!store.isFinalStep" @click="emit('save-and-exit')" :disabled="store.isSaving"
+      <button @click="emit('save-and-exit')" :disabled="store.isSaving"
         class="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
         <svg v-if="store.isSaving" class="animate-spin -ml-1 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg"
           fill="none" viewBox="0 0 24 24">

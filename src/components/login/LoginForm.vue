@@ -69,7 +69,16 @@ async function submit() {
 </script>
 
 <template>
-  <div class="w-full lg:w-[650px] bg-white flex flex-col justify-center p-8 lg:p-14 flex-shrink-0">
+  <div class="w-full md:w-[600px] lg:w-[650px] bg-white flex flex-col justify-center p-8 md:p-14 lg:p-14 flex-shrink-0 min-h-screen md:min-h-fit lg:min-h-screen md:rounded-2xl lg:rounded-none md:shadow-2xl lg:shadow-none mx-auto lg:mx-0 md:my-auto lg:my-0">
+    <!-- Show logo only on small screens since left panel is hidden -->
+    <div class="lg:hidden mb-8 flex flex-col items-start gap-4">
+      <img src="@/assets/images/logoes/NEP-logoo.webp" alt="NEP Logo" class="w-16" />
+      <div>
+        <h1 class="text-xl font-bold text-gray-900 leading-tight">NEP Cambodia</h1>
+        <p class="text-xs text-gray-500 mt-1">Programme Coordination Layer</p>
+      </div>
+    </div>
+
     <h2 class="text-xl font-semibold mb-2">Organisation sign in</h2>
     <p class="text-sm text-gray-500 mb-6.5">
       Accounts are organisational, not individual — staff turnover never costs you access.
