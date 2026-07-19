@@ -9,6 +9,10 @@ export interface Organisation {
   status: 'active' | 'inactive'
   last_inactive_at: string | null
   users_count: number
+
+  // Add this based on the exact field returned by your backend
+  logo_url: string | null
+
   created_at: string
   updated_at: string
 }
@@ -35,13 +39,24 @@ export interface CreateOrganisationPayload {
   member_since: number
 }
 
-export type UpdateOrganisationPayload = Partial<CreateOrganisationPayload>
+export type UpdateOrganisationPayload =
+  Partial<CreateOrganisationPayload>
 
 const BASE = '/admin/organisations'
 
 export const organisationService = {
-  getOrganisations(page = 1, search = '', filters: { status?: string; per_page?: number } = {}) {
-    return api.get<OrganisationListResponse>(BASE, { params: { page, search, ...filters } })
+  getOrganisations(
+    page = 1,
+    search = '',
+    filters: { status?: string; per_page?: number } = {},
+  ) {
+    return api.get<OrganisationListResponse>(BASE, {
+      params: {
+        page,
+        search,
+        ...filters,
+      },
+    })
   },
 
   getOrganisation(id: number) {
@@ -49,18 +64,41 @@ export const organisationService = {
   },
 
   createOrganisation(payload: CreateOrganisationPayload) {
-    return api.post<OrganisationActionResponse>(BASE, payload)
+    return api.post<OrganisationActionResponse>(
+      BASE,
+      payload,
+    )
   },
 
-  updateOrganisation(id: number, payload: UpdateOrganisationPayload) {
-    return api.patch<OrganisationActionResponse>(`${BASE}/${id}`, payload)
+  updateOrganisation(
+    id: number,
+    payload: UpdateOrganisationPayload,
+  ) {
+    return api.put<OrganisationActionResponse>(
+      `${BASE}/${id}`,
+      payload,
+    )
+  },
+
+  uploadLogo(id: number, file: File) {
+    const formData = new FormData()
+    formData.append('logo', file)
+    return api.post<OrganisationActionResponse>(
+      `${BASE}/${id}/logo`,
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    )
   },
 
   deactivateOrganisation(id: number) {
-    return api.post<OrganisationActionResponse>(`${BASE}/${id}/deactivate`)
+    return api.patch<OrganisationActionResponse>(
+      `${BASE}/${id}/deactivate`,
+    )
   },
 
   reactivateOrganisation(id: number) {
-    return api.post<OrganisationActionResponse>(`${BASE}/${id}/reactivate`)
+    return api.patch<OrganisationActionResponse>(
+      `${BASE}/${id}/activate`,
+    )
   },
 }
