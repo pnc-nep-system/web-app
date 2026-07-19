@@ -59,6 +59,12 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
+      path: '/admin/organisations',
+      name: 'admin-organisations',
+      component: () => import('@/views/admin/OrganisationManagementView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
       path: '/403',
       name: 'forbidden',
       component: () => import('@/views/errors/403.vue'),
