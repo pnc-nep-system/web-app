@@ -60,6 +60,12 @@ const router = createRouter({
       component: () => import('@/views/errors/403.vue'),
     },
     {
+      path: '/entries/:id',
+      name: 'entry-detail',
+      component: () => import('@/views/programme/EntryDetailView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/account',
       name: 'organisation-profile',
       component: () => import('@/views/member/OrganisationProfileView.vue'),

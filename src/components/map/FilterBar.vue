@@ -3,22 +3,23 @@ import { ref, onMounted } from 'vue'
 import { useMapFilterStore } from '@/stores/mapFilter'
 import { useTaxonomyStore } from '@/stores/taxonomy'
 import { useProgrammeGeographyStore } from '@/stores/programmeGeography'
-import { useProgrammeAgreementsStore } from '@/stores/programmeAgreements'
-import { EDUCATION_LEVELS } from '@/constants/map'
 import { GROUPS_CONFIG } from '@/constants/taxonomy'
-import { BUDGET_BANDS } from '@/constants/programme'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 
 const mapFilter = useMapFilterStore()
 const taxonomy = useTaxonomyStore()
 const geography = useProgrammeGeographyStore()
-const agreements = useProgrammeAgreementsStore()
+
 const showFilters = ref(false)
+
+const availableDistricts = mapFilter.availableDistricts
+const availableCommunes = mapFilter.availableCommunes
 
 onMounted(() => {
   taxonomy.fetchTaxonomy()
   geography.loadProvinces()
+  mapFilter.fetchRefdata()
 })
 </script>
 
@@ -51,56 +52,58 @@ onMounted(() => {
     <div
       :class="[
         showFilters ? 'grid' : 'hidden',
-        'md:grid gap-3 mt-3 lg:mt-0 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+        'md:grid gap-3 mt-3 lg:mt-0 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3'
       ]"
     >
-      <select v-model="mapFilter.filters.category"
+      <select v-model.number="mapFilter.filters.category_id"
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-        <option value="">Activity category — any</option>
-        <option v-for="c in taxonomy.categories" :key="c.code" :value="c.code">{{ c.code }} {{ c.label }}</option>
+        <option :value="null">Activity category — any</option>
+        <option v-for="c in taxonomy.categories" :key="c.id" :value="c.id">{{ c.code }} {{ c.label }}</option>
       </select>
 
-      <select v-model="mapFilter.filters.level"
+      <select v-model.number="mapFilter.filters.education_level_id"
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-        <option value="">Education level — any</option>
-        <option v-for="level in EDUCATION_LEVELS" :key="level.id" :value="level.id">{{ level.name }}</option>
+        <option :value="null">Education level — any</option>
+        <option v-if="mapFilter.educationLevelsLoading" disabled>Loading…</option>
+        <option v-for="level in mapFilter.educationLevels" :key="level.id" :value="level.id">{{ level.level_name }}</option>
       </select>
 
-      <select v-model="mapFilter.filters.inclusion"
+      <select v-model="mapFilter.filters.inclusion_group"
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
         <option value="">Inclusion group — any</option>
         <option v-for="g in GROUPS_CONFIG" :key="g.name" :value="g.name">{{ g.name }}</option>
       </select>
 
-      <select v-model="mapFilter.filters.province"
+      <select v-model.number="mapFilter.filters.province_id"
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-        <option value="">Province — any</option>
+        <option :value="null">Province — any</option>
         <option v-if="geography.loadingProvinces" disabled>Loading…</option>
-        <option v-for="p in geography.provinces" :key="p.id" :value="p.province_name">{{ p.province_name }}</option>
+        <option v-for="p in geography.provinces" :key="p.id" :value="p.id">{{ p.province_name }}</option>
       </select>
 
-      <select v-model="mapFilter.filters.counterpart"
+      <select v-model.number="mapFilter.filters.district_id" :disabled="!mapFilter.filters.province_id"
+        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500">
+        <option :value="null">District — any</option>
+        <option v-for="d in availableDistricts" :key="d.id" :value="d.id">{{ d.name }}</option>
+      </select>
+
+      <select v-model.number="mapFilter.filters.commune_id" :disabled="!mapFilter.filters.district_id"
+        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500">
+        <option :value="null">Commune — any</option>
+        <option v-for="c in availableCommunes" :key="c.id" :value="c.id">{{ c.name }}</option>
+      </select>
+
+      <select v-model="mapFilter.filters.agreement_counterpart_type"
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
         <option value="">Govt. counterpart — any</option>
-        <option v-for="c in agreements.COUNTERPARTS" :key="c.value" :value="c.value">{{ c.label }}</option>
-      </select>
-
-      <select v-model="mapFilter.filters.status"
-        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-        <option value="">Agreement status — any</option>
-        <option v-for="s in agreements.STATUSES" :key="s.value" :value="s.value">{{ s.label }}</option>
-      </select>
-
-      <select v-model="mapFilter.filters.budget"
-        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
-        <option value="">Budget range — any</option>
-        <option v-for="b in BUDGET_BANDS" :key="b" :value="b">{{ b }}</option>
+        <option v-if="mapFilter.counterpartAgenciesLoading" disabled>Loading…</option>
+        <option v-for="c in mapFilter.counterpartAgencies" :key="c" :value="c">{{ c }}</option>
       </select>
 
       <input v-model="mapFilter.filters.keyword" type="text" placeholder="Keyword…"
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-400" />
 
-      <input v-model="mapFilter.filters.orgName" type="text" placeholder="Organisation name…"
+      <input v-model="mapFilter.filters.organisation_name" type="text" placeholder="Organisation name…"
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-400" />
     </div>
 

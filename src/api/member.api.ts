@@ -1,6 +1,7 @@
 import api from './axios';
 import { taxonomyApi } from './taxonomy.api';
 import type { ProgrammeIdentity, Province, District, Commune, Village } from '@/types/programme'
+import type { MapFilterParams, MapEntryResponse } from '@/types/map'
 
 export const memberApi = {
   listProgrammeEntries(organisationId: number | string) {
@@ -27,8 +28,8 @@ export const memberApi = {
   getVillages(communeId: number) {
     return api.get<{ data: Village[] }>(`/communes/${communeId}/villages`);
   },
-  getMapEntries() {
-    return api.get('/map/entries');
+  getMapEntries(params: MapFilterParams) {
+    return api.get<MapEntryResponse>('/map/entries', { params });
   },
   saveGovernmentAgreements(id: number | string, agreements: any[]) {
     return api.put(`/programme-entries/${id}/government-agreements`, { agreements });
