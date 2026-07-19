@@ -1,5 +1,20 @@
 import api from './axios'
 
+/**
+ * Fetches all programme entries for the map view.
+ *
+ * @returns Axios response whose `data.data` contains the entry list.
+ */
+export async function getMapEntries() {
+  return api.get('/map/entries')
+}
+
+/**
+ * API-facing filter parameters sent with export requests.
+ *
+ * Unlike MapViewFilters (which uses display-oriented strings), this interface
+ * uses numeric IDs matching the backend's expected query parameters.
+ */
 export interface MapFilters {
   category_id?: number | null
   subcategory_id?: number | null
@@ -14,6 +29,12 @@ export interface MapFilters {
   organisation_name?: string | null
 }
 
+/**
+ * Triggers a CSV download of map entries matching the given filters.
+ *
+ * @param filters - API filter parameters to pass as query string.
+ * @returns A promise that resolves when the download has been initiated.
+ */
 export async function exportMapEntriesCsv(filters: MapFilters) {
   const response = await api.get('/map/entries/export', {
     params: filters,
@@ -27,6 +48,12 @@ export async function exportMapEntriesCsv(filters: MapFilters) {
   )
 }
 
+/**
+ * Triggers a PDF download of a map entries report matching the given filters.
+ *
+ * @param filters - API filter parameters to pass as query string.
+ * @returns A promise that resolves when the download has been initiated.
+ */
 export async function exportMapEntriesPdf(filters: MapFilters) {
   const response = await api.get('/map/entries/export/pdf', {
     params: filters,
@@ -40,6 +67,15 @@ export async function exportMapEntriesPdf(filters: MapFilters) {
   )
 }
 
+/**
+ * Creates a Blob from the response data, generates an object URL, and
+ * programmatically clicks a hidden anchor element to trigger the browser
+ * download dialog.
+ *
+ * @param data - Raw blob data from the API response.
+ * @param filename - Desired filename for the downloaded file.
+ * @param type - MIME type of the file (e.g. "text/csv").
+ */
 function downloadFile(
   data: BlobPart,
   filename: string,
