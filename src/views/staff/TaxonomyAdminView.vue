@@ -19,11 +19,9 @@ onMounted(async () => {
   <AppShell>
     <!-- Breadcrumb -->
     <template #header>
-      <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-        <span>NEP Portal</span>
-        <span>›</span>
-        <span class="text-slate-800 font-bold">Activity Taxonomy Directory</span>
-      </div>
+      <span class="text-gray-400">Admin</span>
+      <span class="mx-1.5 text-gray-300">›</span>
+      <span class="text-gray-700 font-medium">Activity Taxonomy Directory</span>
     </template>
 
     <TaxonomyAdminPanel />

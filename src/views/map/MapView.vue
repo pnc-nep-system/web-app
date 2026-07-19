@@ -1,20 +1,19 @@
 <script setup lang="ts">
 import AppShell from '@/components/AppShell.vue'
 import ExportButtons from '@/components/map/ExportButtons.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
 </script>
 
 <template>
   <AppShell>
     <template #header>
-      <div class="flex w-full items-center justify-between gap-4">
-        <div class="min-w-0">
-          <div class="flex items-center gap-2 text-sm min-w-0">
-            <span class="text-gray-400">NEP</span>
-            <span class="text-gray-300">></span>
-            <span class="text-gray-700 font-medium truncate">Programme Map</span>
-          </div>
-        </div>
+      <span class="text-gray-400">{{ auth.userRole === 'nep_admin' ? 'Admin' : 'Coordinator' }}</span>
+      <span class="mx-1.5 text-gray-300">›</span>
+      <span class="text-gray-700 font-medium truncate">Programme Map</span>
 
+      <div class="ml-auto shrink-0 pl-2">
         <ExportButtons />
       </div>
     </template>

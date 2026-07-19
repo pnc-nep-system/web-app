@@ -30,11 +30,11 @@ const taxonomy = store.taxonomy
               <td class="px-6 py-4 text-[13px] font-semibold text-slate-800">
                 <span>{{ entry.text }}</span>
               </td>
-              <td class="px-6 py-4 text-xs font-bold font-mono text-slate-550">
+              <td class="px-6 py-4 text-xs font-bold text-slate-550">
                 {{ entry.suggestedCategory }}
               </td>
               <td class="px-6 py-4 text-sm text-slate-700">
-                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-55/60 text-slate-700 border border-slate-200/80 select-none font-mono">
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-55/60 text-slate-700 border border-slate-200/80 select-none">
                   {{ entry.frequency }} Org{{ entry.frequency === 1 ? '' : 's' }}
                 </span>
               </td>
@@ -94,13 +94,13 @@ const taxonomy = store.taxonomy
         <div class="grid grid-cols-2 gap-4 border-t border-slate-100/60 pt-3">
           <div>
             <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Suggested Category</span>
-            <span class="text-xs font-bold font-mono text-slate-600 bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded">
+            <span class="text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded">
               {{ entry.suggestedCategory }}
             </span>
           </div>
           <div>
             <span class="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1">Frequency</span>
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-50 text-slate-700 border border-slate-200/80 select-none font-mono">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-50 text-slate-700 border border-slate-200/80 select-none">
               {{ entry.frequency }} Org{{ entry.frequency === 1 ? '' : 's' }}
             </span>
           </div>
