@@ -271,7 +271,9 @@ export const useMapStore = defineStore('map', () => {
         taxStore.fetchTaxonomy(),
         geoStore.loadProvinces(),
       ])
-      mapEntries.value = entriesRes.data.data ?? entriesRes.data ?? []
+      const resData = entriesRes.data
+      const rawList = resData?.data?.data ?? resData?.data ?? resData ?? []
+      mapEntries.value = Array.isArray(rawList) ? rawList : []
     } catch {
       mapEntries.value = []
     } finally {
