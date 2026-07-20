@@ -7,7 +7,6 @@ import NotificationBell from '@/components/common/NotificationBell.vue'
 
 const auth = useAuthStore()
 const isSidebarOpen = ref(false)
-const isCoordinationOpen = ref(true)
 
 interface NavItem {
   to: string
@@ -74,8 +73,7 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
 // Derive a human-friendly title from the stored role
 const portalTitle = computed(() => {
   const role = auth.userRole
-  if (role === 'nep_admin') return 'NEP Admin'
-  if (role === 'nep_coordinator') return 'NEP Coordinator'
+  if (role === 'nep_admin' || role === 'nep_coordinator') return 'NEP Staff Portal'
   return 'NEP Member'
 })
 
@@ -106,12 +104,12 @@ function logout() {
       class="lg:hidden flex items-center justify-between bg-teal-900 text-white px-5 py-3.5 sticky top-0 z-20 border-b border-white/10 shrink-0">
       <div class="flex items-center gap-2.5">
         <div
-          class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center font-bold text-xs">
+          class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center font-bold text-xs">
           NEP
         </div>
-        <div class="leading-none">
-          <b class="font-lexend text-sm font-semibold block text-white">{{ portalTitle }}</b>
-          <span class="text-[9px] text-white/55">Portal</span>
+        <div class="leading-snug">
+          <b class="font-lexend text-sm font-bold block text-white">NEP Staff Portal</b>
+          <span class="text-[9px] text-white/50">Programme Mapping &amp; Advisory</span>
         </div>
       </div>
       <button type="button" @click="isSidebarOpen = !isSidebarOpen"
@@ -129,52 +127,41 @@ function logout() {
       'bg-teal-900 text-white flex flex-col shrink-0 z-30 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:flex',
       isSidebarOpen ? 'translate-x-0 fixed inset-y-0 left-0 w-64' : '-translate-x-full fixed inset-y-0 left-0 w-64 lg:relative lg:translate-x-0'
     ]">
-      <div class="flex items-center gap-2.5 p-5 border-b border-white/10 shrink-0">
+      <div class="flex items-center gap-3 px-5 py-5 shrink-0">
         <div
-          class="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center font-bold text-xs">
+          class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center font-bold text-sm shrink-0">
           NEP
         </div>
-        <div class="leading-none">
-          <b class="font-lexend text-sm font-semibold block">{{ portalTitle }}</b>
-          <span class="text-[10px] text-white/55">Portal</span>
+        <div class="leading-snug">
+          <b class="font-lexend text-base font-bold block text-white">{{ portalTitle }}</b>
+          <span class="text-[11px] text-white/50">Programme Mapping &amp; Advisory</span>
         </div>
       </div>
 
       <nav class="flex-1 overflow-y-auto p-3.5 space-y-0.5">
         <template v-if="auth.userRole === 'nep_coordinator' || auth.userRole === 'nep_admin'">
-          <div v-for="(section, sIndex) in navItems" :key="sIndex" class="mb-3">
+          <div v-for="(section, sIndex) in navItems" :key="sIndex" class="mb-4">
             <template v-if="'section' in section">
-              <button
-                type="button"
-                @click="isCoordinationOpen = !isCoordinationOpen"
-                class="flex items-center justify-between w-full text-[10px] uppercase tracking-wider text-white/40 px-2.5 mb-1.5 font-semibold hover:text-white/60 transition-colors"
+              <div class="text-[10.5px] uppercase tracking-widest text-white/35 px-3 mb-2 mt-1 font-semibold">
+                {{ section.section }}
+              </div>
+              <RouterLink
+                v-for="item in section.items"
+                :key="item.to"
+                :to="item.to"
+                @click="isSidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-teal-200/80 text-sm font-semibold hover:bg-white/8 hover:text-white transition-colors mb-0.5"
+                active-class="!bg-white/15 !text-white"
               >
-                <span>{{ section.section }}</span>
-                <BaseIcon
-                  name="chevronDown"
-                  size="12"
-                  :class="['transition-transform duration-200', isCoordinationOpen ? 'rotate-180' : '']"
-                />
-              </button>
-              <template v-if="isCoordinationOpen || section.section !== 'COORDINATION'">
-                <RouterLink
-                  v-for="item in section.items"
-                  :key="item.to"
-                  :to="item.to"
-                  @click="isSidebarOpen = false"
-                  class="flex items-center gap-2.5 p-2 rounded-lg text-white/78 text-sm font-medium hover:bg-white/7 hover:text-white transition-colors"
-                  active-class="bg-white/14 text-white"
+                <BaseIcon :name="item.icon" size="18" />
+                <span class="flex-1">{{ item.label }}</span>
+                <span
+                  v-if="item.badge"
+                  class="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
                 >
-                  <BaseIcon :name="item.icon" />
-                  <span class="flex-1">{{ item.label }}</span>
-                  <span
-                    v-if="item.badge"
-                    class="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-                  >
-                    {{ item.badge }}
-                  </span>
-                </RouterLink>
-              </template>
+                  {{ item.badge }}
+                </span>
+              </RouterLink>
             </template>
           </div>
         </template>
