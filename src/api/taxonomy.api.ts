@@ -1,27 +1,16 @@
 import api from './axios'
-import type { Category, SubCategory, TaxonomyItem } from '@/types/taxonomy'
+import type {
+  Category,
+  SubCategory,
+  TaxonomyItem,
+  TaxonomyNodeType,
+  TaxonomyItemStatus,
+  TaxonomyCreatePayload,
+  TaxonomyRenamePayload,
+  OtherQueuePayload,
+} from '@/types/taxonomy'
 
-export type TaxonomyNodeType = 'category' | 'subCategory' | 'item'
-export type TaxonomyItemStatus = 'active' | 'deprecated'
-
-export interface TaxonomyCreatePayload {
-  name: string
-  code?: string
-  category_id?: number
-  sub_category_id?: number
-  subcategory_id?: number
-}
-
-export interface TaxonomyRenamePayload {
-  label: string
-}
-
-export interface OtherQueuePayload {
-  text: string
-  suggested_category: string
-  category_code?: string
-  subcategory_label?: string
-}
+export type { TaxonomyNodeType, TaxonomyItemStatus, TaxonomyCreatePayload, TaxonomyRenamePayload, OtherQueuePayload }
 
 const TAXONOMY_CACHE_KEY = 'nep_taxonomy_categories_cache_v1'
 const TAXONOMY_CACHE_TTL_MS = 24 * 60 * 60 * 1000

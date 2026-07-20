@@ -59,7 +59,7 @@ const taxonomy = store.taxonomy
             </svg>
 
             <div class="flex items-center gap-2">
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-50 border border-teal-100 text-teal-800 font-mono">Category {{ cat.code }}</span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-50 border border-teal-100 text-teal-800">Category {{ cat.code }}</span>
               
               <!-- Inline Rename for Category -->
               <div v-if="store.renameForm.key === `category-${cat.id}`" @click.stop class="flex items-center gap-2">
@@ -73,7 +73,7 @@ const taxonomy = store.taxonomy
                 <button @click="store.saveRename(cat, 'category')" class="px-3 py-1 bg-teal-800 text-white rounded-md text-xs font-bold hover:bg-teal-900 cursor-pointer shadow-xs">Save</button>
                 <button @click="store.cancelRename" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-md text-xs font-bold hover:bg-slate-200 cursor-pointer border border-slate-200">Cancel</button>
               </div>
-              <b v-else class="text-sm text-slate-800 font-bold transition-colors">{{ cat.label }}</b>
+              <b v-else class="text-sm text-[var(--ink-900)] font-semibold transition-colors">{{ cat.label }}</b>
             </div>
           </div>
 
@@ -115,7 +115,7 @@ const taxonomy = store.taxonomy
                 </svg>
 
                 <div class="flex items-center gap-2">
-                  <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-800 font-mono">Subcategory {{ sub.code }}</span>
+                  <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-indigo-800">Subcategory {{ sub.code }}</span>
                   
                   <!-- Inline Rename for subcategory -->
                   <div v-if="store.renameForm.key === `subcategory-${sub.id}`" @click.stop class="flex items-center gap-2">
@@ -152,13 +152,13 @@ const taxonomy = store.taxonomy
             <div v-if="store.isSubcategoryExpanded(sub.code)" class="bg-slate-50/15 border-t border-slate-100 pl-8 pr-6 py-4 animate-fade-in overflow-x-auto">
               <table class="w-full text-left border-collapse">
                 <thead>
-                  <tr class="border-b border-slate-200">
-                    <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase font-mono tracking-wider w-28">Activity Code</th>
-                    <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-wider">Activity Description</th>
-                    <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-wider w-24">Availability</th>
-                    <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-wider w-20">Version</th>
-                    <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-wider w-32">Programmes using</th>
-                    <th class="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-wider w-24 text-right">Actions</th>
+                  <tr class="border-b border-[var(--line)]">
+                    <th class="px-4 py-2 text-[10px] font-bold text-[var(--ink-400)] uppercase tracking-wider w-28">Activity Code</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-[var(--ink-400)] uppercase tracking-wider">Activity Description</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-[var(--ink-400)] uppercase tracking-wider w-24">Availability</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-[var(--ink-400)] uppercase tracking-wider w-20">Version</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-[var(--ink-400)] uppercase tracking-wider w-32">Programmes using</th>
+                    <th class="px-4 py-2 text-[10px] font-bold text-[var(--ink-400)] uppercase tracking-wider w-24 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -167,7 +167,7 @@ const taxonomy = store.taxonomy
                     :key="item.code"
                     class="hover:bg-slate-100/40 transition-colors"
                   >
-                    <td class="px-4 py-2.5 text-xs font-bold font-mono text-slate-550">{{ item.code }}</td>
+                    <td class="px-4 py-2.5 text-xs font-bold text-slate-550">{{ item.code }}</td>
                     <td class="px-4 py-2.5 text-xs text-slate-700">
                       <!-- Inline Rename for item -->
                       <div v-if="store.renameForm.key === `item-${item.id}`" class="flex items-center gap-2">
@@ -183,7 +183,7 @@ const taxonomy = store.taxonomy
                       </div>
                       <div v-else class="flex items-center gap-2">
                         <span class="font-medium text-slate-850">{{ item.label }}</span>
-                        <span v-if="item.note" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-xs font-mono select-none">{{ item.note }}</span>
+                        <span v-if="item.note" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-xs select-none">{{ item.note }}</span>
                       </div>
                     </td>
                     <td class="px-4 py-2.5 select-none">
@@ -196,7 +196,7 @@ const taxonomy = store.taxonomy
                         {{ item.status === 'active' ? 'Active' : 'Deprecated' }}
                       </span>
                     </td>
-                    <td class="px-4 py-2.5 text-xs font-medium text-slate-500 font-mono">{{ item.version }}</td>
+                    <td class="px-4 py-2.5 text-xs font-medium text-slate-500">{{ item.version }}</td>
                     <td class="px-4 py-2.5 text-xs font-bold text-slate-700">{{ item.usedCount }}</td>
                     <td class="px-4 py-2.5 text-right select-none">
                       <div class="inline-flex gap-1.5">

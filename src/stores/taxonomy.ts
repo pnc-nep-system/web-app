@@ -341,6 +341,7 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
     deprecateEntry,
     promoteOtherEntry,
     dismissOtherEntry,
+    itemByCode: findItemByCode,
   }
 })
 

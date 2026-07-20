@@ -26,6 +26,7 @@ const logoPreview = ref<string | null>(null)
 const logoFile = ref<File | null>(null)
 const logoError = ref('')
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const isDragging = ref(false)
 
 const isEditMode = computed(() => !!props.editOrg)
 const title = computed(() => (isEditMode.value ? 'Edit Organisation' : 'Create Organisation'))
@@ -49,6 +50,7 @@ watch(
     logoPreview.value = null
     logoFile.value = null
     logoError.value = ''
+    isDragging.value = false
     name.value = props.editOrg?.name ?? ''
     contactName.value = props.editOrg?.contact_name ?? ''
     email.value = props.editOrg?.email ?? ''
@@ -56,10 +58,7 @@ watch(
   },
 )
 
-async function onFileChange(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
-
+function handleFile(file: File) {
   if (!file.type.startsWith('image/')) {
     logoError.value = 'Please select an image file.'
     return
@@ -72,6 +71,39 @@ async function onFileChange(e: Event) {
   logoError.value = ''
   logoPreview.value = URL.createObjectURL(file)
   logoFile.value = file
+}
+
+async function onFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  handleFile(file)
+}
+
+function onDragOver(e: DragEvent) {
+  e.preventDefault()
+  isDragging.value = true
+}
+
+function onDragLeave(e: DragEvent) {
+  e.preventDefault()
+  isDragging.value = false
+}
+
+function onDrop(e: DragEvent) {
+  e.preventDefault()
+  isDragging.value = false
+  
+  const file = e.dataTransfer?.files?.[0]
+  if (file) handleFile(file)
+}
+
+function removeLogo() {
+  logoPreview.value = null
+  logoFile.value = null
+  logoError.value = ''
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
 }
 
 function validate(): boolean {
@@ -121,18 +153,45 @@ function handleSubmit() {
       <!-- Form -->
       <form @submit.prevent="handleSubmit" novalidate class="form-body">
         <!-- Logo upload -->
-        <div class="logo-field">
-          <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="onFileChange" />
-          <div class="logo-avatar" @click="fileInputRef?.click()">
-            <img v-if="avatarSrc" :src="avatarSrc" :alt="name" class="logo-img" />
-            <span v-else class="logo-initials">{{ initials || '?' }}</span>
-            <div class="logo-overlay">
-              <BaseIcon name="upload" :size="16" />
+        <div 
+          class="logo-field"
+          @dragover="onDragOver"
+          @dragleave="onDragLeave"
+          @drop="onDrop"
+        >
+          <input 
+            ref="fileInputRef" 
+            type="file" 
+            accept="image/*" 
+            class="hidden" 
+            @change="onFileChange" 
+          />
+          <div class="logo-upload-area" :class="{ 'is-dragging': isDragging, 'has-image': avatarSrc }">
+            <div class="logo-avatar" @click="fileInputRef?.click()">
+              <img v-if="avatarSrc" :src="avatarSrc" :alt="name" class="logo-img" />
+              <span v-else class="logo-initials">{{ initials || '?' }}</span>
+              <div class="logo-overlay">
+                <BaseIcon name="upload" :size="20" />
+              </div>
             </div>
+            <button 
+              v-if="avatarSrc" 
+              type="button" 
+              class="logo-remove-btn" 
+              @click.stop="removeLogo"
+              aria-label="Remove logo"
+            >
+              <BaseIcon name="x" :size="14" />
+            </button>
           </div>
           <div class="logo-meta">
             <p class="logo-label">Organisation Logo <span class="label-optional">Optional</span></p>
-            <p class="logo-hint">Click the avatar to upload · PNG, JPG up to 10 MB</p>
+            <p class="logo-hint">
+              <span v-if="avatarSrc">Drag & drop to replace · or click to change</span>
+              <span v-else>Drag & drop an image · or click to browse</span>
+              <span class="hint-separator">·</span>
+              <span>PNG, JPG up to 10 MB</span>
+            </p>
             <p v-if="logoError" class="field-error"><BaseIcon name="alert" :size="11" />{{ logoError }}</p>
           </div>
         </div>
@@ -208,14 +267,121 @@ function handleSubmit() {
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* Logo upload */
-.logo-field { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--bg); border: 1px solid var(--line-soft); border-radius: 12px; }
-.logo-avatar { position: relative; width: 56px; height: 56px; border-radius: 12px; overflow: hidden; cursor: pointer; flex-shrink: 0; box-shadow: 0 2px 8px rgba(10,61,57,0.15); }
+.logo-field { 
+  display: flex; 
+  align-items: flex-start; 
+  gap: 14px; 
+  padding: 16px; 
+  background: var(--bg); 
+  border: 2px dashed var(--line-soft); 
+  border-radius: 12px; 
+  transition: all 0.2s ease;
+  cursor: default;
+}
+.logo-field.is-dragging {
+  border-color: var(--teal-600);
+  background: var(--teal-50);
+  transform: scale(1.01);
+}
+.logo-upload-area { 
+  position: relative; 
+  flex-shrink: 0; 
+}
+.logo-avatar { 
+  position: relative; 
+  width: 64px; 
+  height: 64px; 
+  border-radius: 12px; 
+  overflow: hidden; 
+  cursor: pointer; 
+  flex-shrink: 0; 
+  box-shadow: 0 2px 8px rgba(10,61,57,0.15); 
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+.logo-avatar:hover {
+  transform: scale(1.05);
+  border-color: var(--teal-600);
+}
 .logo-img { width: 100%; height: 100%; object-fit: cover; }
-.logo-initials { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--teal-700), var(--teal-900)); color: #fff; font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
-.logo-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; color: #fff; opacity: 0; transition: opacity 0.15s; }
+.logo-initials { 
+  width: 100%; 
+  height: 100%; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  background: linear-gradient(135deg, var(--teal-700), var(--teal-900)); 
+  color: #fff; 
+  font-size: 18px; 
+  font-weight: 700; 
+  letter-spacing: 0.05em; 
+}
+.logo-overlay { 
+  position: absolute; 
+  inset: 0; 
+  background: rgba(0,0,0,0.5); 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  color: #fff; 
+  opacity: 0; 
+  transition: opacity 0.2s ease;
+}
 .logo-avatar:hover .logo-overlay { opacity: 1; }
-.logo-meta { display: flex; flex-direction: column; gap: 3px; }
-.logo-label { font-size: 12.5px; font-weight: 600; color: var(--ink-700); display: flex; align-items: center; gap: 6px; }
-.label-optional { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 4px; background: #f3f4f6; color: var(--ink-400); text-transform: uppercase; letter-spacing: 0.03em; }
-.logo-hint { font-size: 11.5px; color: var(--ink-400); }
+.logo-remove-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--red-600);
+  color: #fff;
+  border: 2px solid var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  z-index: 1;
+}
+.logo-remove-btn:hover {
+  background: var(--red-700);
+  transform: scale(1.15);
+}
+.logo-meta { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 4px; 
+  flex: 1; 
+  min-width: 0;
+}
+.logo-label { 
+  font-size: 13px; 
+  font-weight: 600; 
+  color: var(--ink-800); 
+  display: flex; 
+  align-items: center; 
+  gap: 6px; 
+}
+.label-optional { 
+  font-size: 10px; 
+  font-weight: 700; 
+  padding: 2px 7px; 
+  border-radius: 4px; 
+  background: #f3f4f6; 
+  color: var(--ink-500); 
+  text-transform: uppercase; 
+  letter-spacing: 0.04em; 
+}
+.logo-hint { 
+  font-size: 11.5px; 
+  color: var(--ink-400); 
+  line-height: 1.4;
+}
+.hint-separator {
+  margin: 0 4px;
+  opacity: 0.5;
+}
 </style>

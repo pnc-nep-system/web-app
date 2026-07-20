@@ -10,7 +10,7 @@ const taxonomy = store.taxonomy
     <div v-if="store.showAdd" class="modal-backdrop fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in" @click.self="store.showAdd = false">
       <div class="bg-white rounded-3xl border border-slate-200/80 shadow-2xl max-w-lg w-full p-6 space-y-4 animate-scale-in">
         <div>
-          <h3 class="text-lg font-black text-slate-900 font-lexend">Add custom activity</h3>
+          <h3 class="text-lg font-bold text-[var(--ink-900)]">Add custom activity</h3>
           <p class="text-xs text-slate-500 mt-0.5">Submit a custom taxonomy item for evaluation or review.</p>
         </div>
         

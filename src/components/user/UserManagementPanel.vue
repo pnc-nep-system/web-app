@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BaseIcon from '@/components/common/BaseIcon.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import UserTable from '@/components/user/UserTable.vue'
 import UserFormModal from '@/components/user/UserFormModal.vue'
 import UserViewModal from '@/components/user/UserViewModal.vue'
@@ -13,17 +14,15 @@ const usersComposable = store.usersComposable
 
 <template>
   <!-- ── Page Header ── -->
-  <div class="flex items-start justify-between gap-4 mb-6 flex-col sm:flex-row">
-    <div>
-      <h1 class="text-[22px] font-bold text-[var(--ink-900)] tracking-tight">User Management</h1>
-      <p class="text-xs text-[var(--ink-400)] mt-1">Manage system accounts, roles and organisation access.</p>
-    </div>
-
+  <PageHeader
+    title="User Management"
+    subtitle="Manage system accounts, roles and organisation access."
+  >
     <button id="create-user-btn" class="btn btn-primary" @click="store.openCreateModal">
       <BaseIcon name="plus" :size="14" />
       Create User
     </button>
-  </div>
+  </PageHeader>
 
   <!-- ── Stats Row ── -->
   <div v-if="!usersComposable.isLoading && usersComposable.totalItems > 0" class="flex gap-2.5 mb-4.5 flex-wrap">

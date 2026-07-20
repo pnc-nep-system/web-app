@@ -44,6 +44,7 @@ async function handleFormSubmit(payload: OrganisationForm) {
     }
     showFormModal.value = false
   } catch (err: any) {
+    console.error('[handleFormSubmit] error:', err?.message, err?.response?.status, err?.response?.data)
     if (err?.message === 'logo_upload_failed') {
       await orgStore.fetchOrganisations(1)
       showFormModal.value = false

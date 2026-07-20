@@ -11,6 +11,7 @@ import { useEntriesStore } from '@/stores/entries.store'
 import { useProgrammeFormStore } from '@/stores/programmeForm'
 import { useAuthStore } from '@/stores/auth'
 import NewEntryButton from '@/components/programme/NewEntryButton.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -43,12 +44,11 @@ onMounted(() => {
   </div>
 
   <!-- Tabs -->
-  <div class="flex items-center justify-between mb-3">
-    <div>
-      <h3 class="text-lg font-semibold text-gray-900">Your programme entries</h3>
-      <span class="text-sm text-gray-500 block mt-0.5">Organisational account — visible to your organisation and NEP
-        staff</span>
-    </div>
+  <PageHeader
+    title="Your programme entries"
+    subtitle="Organisational account — visible to your organisation and NEP staff"
+    mb="mb-3"
+  >
     <div class="flex gap-1 bg-gray-100 p-1 rounded-lg">
       <button v-if="canSeeDraft"
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'all' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
@@ -66,7 +66,7 @@ onMounted(() => {
         Submitted
       </button>
     </div>
-  </div>
+  </PageHeader>
 
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">

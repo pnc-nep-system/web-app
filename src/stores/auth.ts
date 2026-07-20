@@ -16,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
   const userRole = ref<string>(sessionStorage.getItem('userRole') ?? '')
 
   const isAuthenticated = computed(() => isLoggedIn.value)
+  const isAdmin = computed(() => userRole.value === 'nep_admin')
 
   function clearErrors() {
     authError.value = ''
@@ -35,7 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (currentUserId.value) {
         sessionStorage.setItem('currentUserId', currentUserId.value)
       }
-      connectRealtimeForRole(userRole.value)
+      connectRealtimeForRole(userRole.value, currentUserId.value)
     } else {
       disconnectRealtime()
       sessionStorage.removeItem('isLoggedIn')
@@ -147,6 +148,7 @@ export const useAuthStore = defineStore('auth', () => {
     fieldErrors,
     loading,
     isAuthenticated,
+    isAdmin,
     userRole,
     login,
     logout,
