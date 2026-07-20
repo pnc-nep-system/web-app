@@ -1,6 +1,7 @@
 export interface TaxonomyItem {
   id: number;
   name: string;
+  label?: string;
   is_active: boolean;
 }
 
@@ -32,6 +33,7 @@ export interface SelectedTaxonomyItem extends TaxonomyItem {
 export interface SubCategory {
   id: number;
   name: string;
+  label?: string;
   is_active?: boolean;
   items: TaxonomyItem[];
 }
@@ -39,6 +41,7 @@ export interface SubCategory {
 export interface Category {
   id: number;
   name: string;
+  label?: string;
   is_active?: boolean;
   subCategories: SubCategory[];
 }

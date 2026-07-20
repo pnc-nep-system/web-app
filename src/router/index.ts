@@ -59,6 +59,30 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
+      path: '/admin/coordinators',
+      name: 'admin-coordinators',
+      component: () => import('@/views/admin/CoordinatorManagementView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/adviser',
+      name: 'adviser',
+      component: () => import('@/views/adviser/AdviserListView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_coordinator', 'nep_admin'] },
+    },
+    {
+      path: '/adviser/new',
+      name: 'adviser-new',
+      component: () => import('@/views/adviser/NewSubmissionView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_coordinator', 'nep_admin'] },
+    },
+    {
+      path: '/adviser/:id',
+      name: 'adviser-detail',
+      component: () => import('@/views/adviser/AdviserDetailView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_coordinator', 'nep_admin'] },
+    },
+    {
       path: '/403',
       name: 'forbidden',
       component: () => import('@/views/errors/403.vue'),

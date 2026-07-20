@@ -36,6 +36,7 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
         items: [
           { to: '/admin/taxonomy', label: 'Taxonomy data', icon: 'list' },
           { to: '/admin/users', label: 'User accounts', icon: 'users' },
+          { to: '/admin/coordinators', label: 'Coordinators', icon: 'users' },
           { to: '/policy', label: 'Policy library', icon: 'book' },
         ],
       },
