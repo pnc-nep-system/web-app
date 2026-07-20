@@ -21,6 +21,17 @@ export interface ProvinceCount {
   programme_count: number
 }
 
+export type ActivityType = 'advisory_note' | 'programme_new' | 'programme_updated'
+
+export interface RecentActivityItem {
+  type: ActivityType
+  id: number
+  label: string
+  programme?: string
+  advisory_note_id?: number
+  occurred_at: string
+}
+
 export const dashboardApi = {
   getStats() {
     return api.get<DashboardStats>('/dashboard/stats')
@@ -30,5 +41,8 @@ export const dashboardApi = {
   },
   getProvinceCounts() {
     return api.get<ProvinceCount[]>('/provinces/counts')
+  },
+  getRecentActivity() {
+    return api.get<RecentActivityItem[]>('/dashboard/recent-activity')
   },
 }
