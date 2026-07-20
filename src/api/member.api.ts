@@ -77,6 +77,5 @@ export const memberApi = {
   listOrganisations() {
     return api.get('/organisations');
   },
-  },
 };
 
