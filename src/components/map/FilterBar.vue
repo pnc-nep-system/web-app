@@ -58,7 +58,19 @@ onMounted(() => {
       <select v-model.number="mapFilter.filters.category_id"
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
         <option :value="null">Activity category — any</option>
-        <option v-for="c in taxonomy.categories" :key="c.id" :value="c.id">{{ c.code }} {{ c.label }}</option>
+        <option v-for="c in mapFilter.activeCategories" :key="c.id" :value="c.id">{{ c.code }} {{ c.label }}</option>
+      </select>
+
+      <select v-model.number="mapFilter.filters.subcategory_id" :disabled="!mapFilter.filters.category_id"
+        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500">
+        <option :value="null">Activity subcategory — any</option>
+        <option v-for="s in mapFilter.availableSubcategories" :key="s.id" :value="s.id">{{ s.code }} {{ s.label }}</option>
+      </select>
+
+      <select v-model.number="mapFilter.filters.item_id" :disabled="!mapFilter.filters.subcategory_id"
+        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500">
+        <option :value="null">Activity item — any</option>
+        <option v-for="i in mapFilter.availableItems" :key="i.id" :value="i.id">{{ i.code }} {{ i.label }}</option>
       </select>
 
       <select v-model.number="mapFilter.filters.education_level_id"
@@ -72,6 +84,13 @@ onMounted(() => {
         class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
         <option value="">Inclusion group — any</option>
         <option v-for="g in GROUPS_CONFIG" :key="g.name" :value="g.name">{{ g.name }}</option>
+      </select>
+
+      <select v-model="mapFilter.filters.inclusion_type" :disabled="!mapFilter.filters.inclusion_group"
+        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:bg-slate-100 disabled:text-slate-500">
+        <option value="">Inclusion type — any</option>
+        <option v-if="mapFilter.inclusionAllowsA" value="A">Mainstreamed (A)</option>
+        <option value="B">Targeted (B)</option>
       </select>
 
       <select v-model.number="mapFilter.filters.province_id"
