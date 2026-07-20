@@ -8,6 +8,7 @@ import Icon from '@/components/common/BaseIcon.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PolicyFormModal from '@/components/policy/PolicyFormModal.vue'
+import PolicyTable from '@/components/policy/PolicyTable.vue'
 
 interface PolicyDocument {
   id: number
@@ -89,17 +90,16 @@ function handleAddPolicy(payload: { title: string; authority: string; version: s
           <span class="text-gray-300">›</span>
           <span class="text-gray-700 font-medium truncate">Policy library</span>
         </div>
-        <button v-if="isAdmin" @click="showAdd = true"
-          class="inline-flex items-center gap-[7px] rounded-lg font-semibold text-[13px] px-4 py-[9px] border border-[var(--line)] bg-white text-[var(--ink-700)] whitespace-nowrap transition duration-100 hover:border-[var(--ink-400)] shadow-sm shrink-0">
+        <button v-if="isAdmin" @click="showAdd = true" class="btn btn-secondary shadow-sm shrink-0">
           <Icon name="plus" :size="15" /> Add document
         </button>
       </div>
     </template>
 
     <!-- Page heading -->
-    <div class="page-head">
-      <h1>Policy document library <Badge tone="indigo" class="align-middle">Phase 7 — future</Badge></h1>
-      <p>Curated MoEYS and government policy documents that will power the Policy Alignment Module (C3), built after C1 and C2 are stable.</p>
+    <div class="mb-6">
+      <h1 class="text-[22px] font-bold text-[var(--ink-900)] tracking-[-0.02em] m-0">Policy document library <Badge tone="indigo" class="align-middle">Phase 7 — future</Badge></h1>
+      <p class="text-[13px] text-[var(--ink-400)] mt-1">Curated MoEYS and government policy documents that will power the Policy Alignment Module (C3), built after C1 and C2 are stable.</p>
     </div>
 
     <!-- Info Banner -->
@@ -119,10 +119,7 @@ function handleAddPolicy(payload: { title: string; authority: string; version: s
 
       <!-- Error State -->
       <EmptyState v-else-if="error" title="Something went wrong" :description="error">
-        <button
-          class="mt-2 text-sm font-medium text-teal-700 hover:text-teal-600 bg-teal-50 px-3 py-1.5 rounded-md border border-teal-200 transition-colors"
-          @click="fetchPolicies"
-        >
+        <button class="btn btn-secondary btn-sm mt-2" @click="fetchPolicies">
           Try again
         </button>
       </EmptyState>
@@ -131,39 +128,7 @@ function handleAddPolicy(payload: { title: string; authority: string; version: s
       <EmptyState v-else-if="items.length === 0" title="No matching entries found" description="Try adjusting or clearing your filters." />
 
       <!-- Data Table -->
-      <div v-else class="overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="border-b border-[var(--line)] bg-gray-50/50">
-              <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-6 py-3.5">Document</th>
-              <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-6 py-3.5">Issuing
-                authority</th>
-              <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-6 py-3.5">Version</th>
-              <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-6 py-3.5">Date</th>
-              <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-6 py-3.5">Status</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--line)]">
-            <tr v-for="d in items" :key="d.id"
-              :class="d.status === 'superseded' ? 'text-[var(--ink-400)]' : 'text-[var(--ink-700)]'"
-              class="hover:bg-gray-50/30 transition-colors">
-              <td class="px-6 py-4 text-[13px]">
-                <span :class="d.status === 'active' ? 'font-bold text-[var(--ink-900)]' : 'font-normal'">
-                  {{ d.title }}
-                </span>
-              </td>
-              <td class="px-6 py-4 text-[13px]">{{ d.authority }}</td>
-              <td class="px-6 py-4 text-[13px]">{{ d.version }}</td>
-              <td class="px-6 py-4 text-[13px]">{{ formatDate(d.date) }}</td>
-              <td class="px-6 py-4 text-[13px]">
-                <Badge :tone="d.status === 'active' ? 'green' : 'gray'">
-                  {{ d.status === 'active' ? 'Active' : 'Superseded' }}
-                </Badge>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <PolicyTable v-else :items="items" />
     </div>
 
     <!-- Modal Form (Extracted Component) -->
@@ -174,21 +139,3 @@ function handleAddPolicy(payload: { title: string; authority: string; version: s
     />
   </AppShell>
 </template>
-
-<style scoped>
-.page-head {
-  margin-bottom: 24px;
-}
-.page-head h1 {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--ink-900);
-  letter-spacing: -0.02em;
-  margin: 0;
-}
-.page-head p {
-  font-size: 13px;
-  color: var(--ink-400);
-  margin-top: 4px;
-}
-</style>

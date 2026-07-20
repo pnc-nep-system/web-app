@@ -137,19 +137,21 @@ onMounted(() => {
       </div>
     </template>
 
-    <div class="page-head">
+    <div class="mb-6">
       <div>
-        <h1>The Map</h1>
-        <p>Filter member programme entries across any combination of dimensions.</p>
+        <h1 class="text-[22px] font-bold text-[var(--ink-900)] tracking-[-0.02em] m-0">The Map</h1>
+        <p class="text-[13px] text-[var(--ink-400)] mt-1">Filter member programme entries across any combination of dimensions.</p>
       </div>
     </div>
 
     <FilterBar />
 
-    <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 class="text-sm font-semibold text-gray-800">Programme entries</h2>
-        <span class="text-xs text-gray-400">{{ total }} total</span>
+    <div class="bg-white border border-[var(--line)] rounded-xl shadow-[var(--shadow-sm)] overflow-hidden mt-6">
+      <div class="px-6 py-5 border-b border-[var(--line-soft)] flex items-center justify-between bg-white">
+        <div>
+          <h2 class="text-[15px] font-bold text-[var(--ink-900)] mb-1">Programme entries</h2>
+          <p class="text-[12.5px] text-[var(--ink-500)]">{{ total }} total</p>
+        </div>
       </div>
 
       <LoadingSpinner v-if="loading" message="Loading entries…" />
@@ -164,47 +166,51 @@ onMounted(() => {
 
       <template v-else>
         <div class="overflow-x-auto">
-          <table class="tbl">
+          <table class="w-full text-left border-collapse">
             <thead>
-              <tr>
-                <th class="sortable" @click="toggleSort('name')">
+              <tr class="border-b border-[var(--line)] bg-[var(--bg)]">
+                <th class="cursor-pointer text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-4 py-3.5 hover:bg-[var(--line-soft)] transition-colors whitespace-nowrap" @click="toggleSort('name')">
                   Organisation / programme
                   <span v-if="sortKey === 'name'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                 </th>
-                <th>Status</th>
-                <th>Primary activities</th>
-                <th>Audiences</th>
-                <th>Provinces</th>
-                <th class="sortable" @click="toggleSort('budgetBand')">
+                <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">Status</th>
+                <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">Primary activities</th>
+                <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">Audiences</th>
+                <th class="text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-4 py-3.5 whitespace-nowrap">Provinces</th>
+                <th class="cursor-pointer text-[11px] font-bold text-[var(--ink-500)] uppercase tracking-wider px-4 py-3.5 hover:bg-[var(--line-soft)] transition-colors whitespace-nowrap" @click="toggleSort('budgetBand')">
                   Budget band
                   <span v-if="sortKey === 'budgetBand'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
                 </th>
-                <th></th>
+                <th class="px-4 py-3.5"></th>
               </tr>
             </thead>
-            <tbody>
-              <tr v-for="e in paged" :key="e.id" class="hoverable" @click="router.push({ name: 'entry-detail', params: { id: e.id } })">
-                <td class="org-cell">
-                  <div class="org-logo">{{ initials(e.organisation?.name) }}</div>
-                  <div>
-                    <b>{{ e.organisation?.name }}</b>
-                    <div class="text-[11.5px]" style="color:var(--ink-500);">{{ e.programme_name }}</div>
+            <tbody class="divide-y divide-[var(--line-soft)]">
+              <tr v-for="e in paged" :key="e.id" class="hover:bg-[var(--bg)] transition-colors cursor-pointer group" @click="router.push({ name: 'entry-detail', params: { id: e.id } })">
+                <td class="px-4 py-3.5 align-middle">
+                  <div class="flex items-center gap-3">
+                    <div class="w-[34px] h-[34px] rounded-[9px] text-[11px] bg-gradient-to-br from-[var(--teal-700)] to-[var(--teal-900)] flex items-center justify-center text-white font-bold tracking-wide shrink-0 shadow-[0_2px_6px_rgba(10,61,57,0.18)]">{{ initials(e.organisation?.name) }}</div>
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-[13.5px] font-semibold text-[var(--ink-900)] group-hover:text-[var(--teal-700)] transition-colors">{{ e.organisation?.name }}</span>
+                      <span class="text-xs text-[var(--ink-400)]">{{ e.programme_name }}</span>
+                    </div>
                   </div>
                 </td>
-                <td>
+                <td class="px-4 py-3.5 align-middle">
                   <BaseBadge :tone="e.is_unverified ? 'amber' : 'green'">
                     {{ e.is_unverified ? 'Unverified' : 'Verified' }}
                   </BaseBadge>
                 </td>
-                <td>
-                  <BaseBadge v-for="code in primaryCodes(e)" :key="code" tone="teal" style="margin-right:4px;">
-                    {{ code }}
-                  </BaseBadge>
+                <td class="px-4 py-3.5 align-middle">
+                  <div class="flex flex-wrap gap-1">
+                    <BaseBadge v-for="code in primaryCodes(e)" :key="code" tone="teal">
+                      {{ code }}
+                    </BaseBadge>
+                  </div>
                 </td>
-                <td style="font-size:12px;color:var(--ink-600);">{{ audienceLabels(e).join(', ') || '—' }}</td>
-                <td style="font-size:12px;">{{ provinceList(e) }}</td>
-                <td style="font-size:12px;">{{ e.budget_band?.label ?? '—' }}</td>
-                <td>
+                <td class="px-4 py-3.5 align-middle text-[12.5px] text-[var(--ink-600)]">{{ audienceLabels(e).join(', ') || '—' }}</td>
+                <td class="px-4 py-3.5 align-middle text-[12.5px] text-[var(--ink-600)]">{{ provinceList(e) }}</td>
+                <td class="px-4 py-3.5 align-middle text-[12.5px] text-[var(--ink-600)]">{{ e.budget_band?.label ?? '—' }}</td>
+                <td class="px-4 py-3.5 align-middle text-right">
                   <button class="btn btn-ghost btn-sm" @click.stop="router.push({ name: 'entry-detail', params: { id: e.id } })">
                     View →
                   </button>
@@ -214,8 +220,10 @@ onMounted(() => {
           </table>
         </div>
 
-        <div v-if="lastPage > 1" class="flex items-center justify-between px-5 py-3 border-t border-gray-100">
-          <span class="text-xs text-gray-500">Page {{ currentPage }} of {{ lastPage }}</span>
+        <div v-if="lastPage > 1" class="flex items-center justify-between px-6 py-4 border-t border-[var(--line-soft)] bg-[var(--bg)]">
+          <span class="text-[12.5px] font-medium text-[var(--ink-500)]">
+            Page <b class="text-[var(--ink-900)]">{{ currentPage }}</b> of <b class="text-[var(--ink-900)]">{{ lastPage }}</b>
+          </span>
           <div class="flex gap-2">
             <button
               :disabled="currentPage <= 1"
