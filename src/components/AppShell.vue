@@ -27,19 +27,19 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
         section: 'COORDINATION',
         items: [
           // { to: '/admin/dashboard', label: 'Overview', icon: 'home' },
-          { to: '/admin/map', label: 'The Map', icon: 'map' },
+          // { to: '/admin/map', label: 'The Map', icon: 'map' },
+          { to: '/adviser', label: 'The Adviser', icon: 'bolt' },
           // { to: '/adviser', label: 'The Adviser', icon: 'bolt', badge: 3 },
+          { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
         ],
       },
       {
         section: 'ADMINISTRATION',
         items: [
           { to: '/admin/taxonomy', label: 'Taxonomy data', icon: 'list' },
-          { to: '/admin/users', label: 'User accounts', icon: 'users' },
-          { to: '/admin/coordinators', label: 'Coordinators', icon: 'users' },
-          { to: '/admin/organisations', label: 'Organisations', icon: 'building' },
-          { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
-          { to: '/policy', label: 'Policy library', icon: 'book' },
+          { to: '/admin/organization', label: 'Organization', icon: 'building' },
+          { to: '/admin/users', label: 'User Management', icon: 'users' },
+          // { to: '/policy', label: 'Policy library', icon: 'book' },
         ],
       },
     ]
@@ -50,10 +50,10 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
       {
         section: 'COORDINATION',
         items: [
-          { to: '/manager/dashboard', label: 'Overview', icon: 'home' },
-          { to: '/admin/map', label: 'The Map', icon: 'map' },
+          // { to: '/manager/dashboard', label: 'Overview', icon: 'home' },
+          // { to: '/admin/map', label: 'The Map', icon: 'map' },
+          { to: '/adviser', label: 'The Adviser', icon: 'bolt' },
           { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
-          { to: '/adviser', label: 'The Adviser', icon: 'bolt', badge: 3 },
         ],
       },
       {
