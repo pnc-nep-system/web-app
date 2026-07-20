@@ -87,7 +87,13 @@ router.beforeEach(async (to) => {
   }
 
   if (to.name === 'login' && isAuthenticated) {
-    return authStore.userRole === 'nep_admin' ? { name: 'admin-users' } : { name: 'dashboard' }
+    if (authStore.userRole === 'nep_admin') {
+      return { name: 'admin-dashboard' }
+    } else if (authStore.userRole === 'nep_coordinator') {
+      return { name: 'manager-dashboard' }
+    } else {
+      return { name: 'dashboard' }
+    }
   }
 
   if (isAuthenticated && !authStore.currentUser) {

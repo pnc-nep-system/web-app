@@ -26,9 +26,8 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
       {
         section: 'COORDINATION',
         items: [
-          // { to: '/admin/dashboard', label: 'Overview', icon: 'home' },
+          { to: '/admin/dashboard', label: 'Overview', icon: 'home' },
           { to: '/admin/map', label: 'The Map', icon: 'map' },
-          // { to: '/adviser', label: 'The Adviser', icon: 'bolt', badge: 3 },
         ],
       },
       {
