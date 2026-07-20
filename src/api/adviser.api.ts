@@ -1,0 +1,57 @@
+import api from './axios'
+import type { PaginatedSubmissions, Submission } from '@/types/adviser'
+import type { User } from '@/types/user'
+
+export interface SubmissionCreateResponse {
+    message: string
+    data: Submission
+}
+
+export interface SubmissionListParams {
+    analysis_scope?: string
+    status?: string
+    per_page?: number
+    page?: number
+}
+
+export interface SubmissionPayload {
+    submitting_party: string
+    document_name: string
+    analysis_scope: string
+    analysis_scope_detail?: string | null
+    assigned_to?: number | null
+}
+
+export interface CoordinatorListResponse {
+    data: User[]
+}
+
+export const adviserApi = {
+    /**
+     * Fetch a paginated list of submissions.
+     */
+    list(params: SubmissionListParams = {}) {
+        return api.get<PaginatedSubmissions>('/adviser/submissions', { params })
+    },
+
+    /**
+     * Fetch all users with role nep_coordinator for the assignment dropdown.
+     */
+    getCoordinators() {
+        return api.get<{ data: User[] } | User[]>('/adviser/coordinators')
+    },
+
+    /**
+     * Fetch a single submission by ID.
+     */
+    getById(id: number) {
+        return api.get<{ data: Submission } | Submission>(`/adviser/submissions/${id}`)
+    },
+
+    /**
+     * Submit a new document for analysis.
+     */
+    submit(payload: SubmissionPayload) {
+        return api.post<SubmissionCreateResponse>('/adviser/submissions', payload)
+    },
+}

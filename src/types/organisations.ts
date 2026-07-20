@@ -19,3 +19,27 @@ export interface OrganisationForm {
   member_since: number
   logoFile?: File | null
 }
+
+export interface OrganisationListResponse {
+  data: Organisation[]
+  current_page: number
+  last_page: number
+  per_page: number
+  total: number
+  from: number | null
+  to: number | null
+}
+
+export interface OrganisationActionResponse {
+  message: string
+  organisation: Organisation
+}
+
+export interface CreateOrganisationPayload {
+  name: string
+  contact_name: string
+  email: string
+  member_since: number
+}
+
+export type UpdateOrganisationPayload = Partial<CreateOrganisationPayload>

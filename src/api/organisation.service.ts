@@ -1,46 +1,13 @@
 import api from './axios'
+import type {
+  Organisation,
+  OrganisationListResponse,
+  OrganisationActionResponse,
+  CreateOrganisationPayload,
+  UpdateOrganisationPayload,
+} from '@/types/organisations'
 
-export interface Organisation {
-  id: number
-  name: string
-  contact_name: string
-  email: string
-  member_since: number
-  status: 'active' | 'inactive'
-  last_inactive_at: string | null
-  users_count: number
-
-  // Add this based on the exact field returned by your backend
-  logo_url: string | null
-
-  created_at: string
-  updated_at: string
-}
-
-export interface OrganisationListResponse {
-  data: Organisation[]
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
-  from: number | null
-  to: number | null
-}
-
-export interface OrganisationActionResponse {
-  message: string
-  organisation: Organisation
-}
-
-export interface CreateOrganisationPayload {
-  name: string
-  contact_name: string
-  email: string
-  member_since: number
-}
-
-export type UpdateOrganisationPayload =
-  Partial<CreateOrganisationPayload>
+export type { Organisation }
 
 const BASE = '/admin/organisations'
 
@@ -63,14 +30,13 @@ export const organisationService = {
     return api.get<Organisation>(`${BASE}/${id}`)
   },
 
-  createOrganisation(payload: CreateOrganisationPayload & { logoFile?: File | null }) {
-    const formData = new FormData()
-    formData.append('name', payload.name)
-    formData.append('contact_name', payload.contact_name)
-    formData.append('email', payload.email)
-    formData.append('member_since', String(payload.member_since))
-    if (payload.logoFile) formData.append('logo', payload.logoFile)
-    return api.post<Organisation>(BASE, formData)
+  createOrganisation(payload: CreateOrganisationPayload) {
+    return api.post<Organisation>(BASE, {
+      name: payload.name,
+      contact_name: payload.contact_name,
+      email: payload.email,
+      member_since: payload.member_since,
+    })
   },
 
   updateOrganisation(
@@ -89,7 +55,7 @@ export const organisationService = {
     return api.post<OrganisationActionResponse>(
       `${BASE}/${id}/logo`,
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } },
+      { timeout: 60000 },
     )
   },
 

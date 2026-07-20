@@ -43,8 +43,18 @@ export const useOrganisationsStore = defineStore('organisations', () => {
     saving.value = true
     try {
       const res = await organisationService.createOrganisation(data)
-      organisations.value.unshift(res.data as any)
+      let created: any = res.data
+      organisations.value.unshift(created)
       total.value += 1
+
+      if (data.logoFile) {
+        try {
+          const logoRes = await organisationService.uploadLogo(created.id, data.logoFile)
+          patchLocal(logoRes.data.organisation ?? logoRes.data ?? created)
+        } catch {
+          throw new Error('logo_upload_failed')
+        }
+      }
     } finally {
       saving.value = false
     }
@@ -53,30 +63,28 @@ export const useOrganisationsStore = defineStore('organisations', () => {
   const update = async (id: number, data: OrganisationForm) => {
     saving.value = true
     try {
-      const fieldsChanged = (() => {
-        const current = organisations.value.find((o) => o.id === id)
-        if (!current) return true
-        return (
-          current.name !== data.name ||
-          current.contact_name !== data.contact_name ||
-          current.email !== data.email ||
-          current.member_since !== data.member_since
-        )
-      })()
+      const current = organisations.value.find((o) => o.id === id)
+      const fieldsChanged = !current ||
+        current.name !== data.name ||
+        current.contact_name !== data.contact_name ||
+        current.email !== data.email ||
+        // eslint-disable-next-line eqeqeq
+        current.member_since != data.member_since
 
       let updated: any
       if (fieldsChanged) {
         const res = await organisationService.updateOrganisation(id, data)
         updated = res.data.organisation
       } else {
-        updated = organisations.value.find((o) => o.id === id)
+        updated = current
       }
 
       if (data.logoFile) {
         try {
           const logoRes = await organisationService.uploadLogo(id, data.logoFile)
-          updated = logoRes.data.organisation
-        } catch {
+          updated = logoRes.data.organisation ?? logoRes.data ?? updated
+        } catch (e) {
+          console.error('[uploadLogo] failed:', e)
           throw new Error('logo_upload_failed')
         }
       }

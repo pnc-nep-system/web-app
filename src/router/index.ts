@@ -33,12 +33,17 @@ const router = createRouter({
         roles: ['nep_admin', 'nep_coordinator'],
       },
     },
-
     {
       path: '/admin/taxonomy',
       name: 'admin-taxonomy',
       component: () => import('@/views/staff/TaxonomyAdminView.vue'),
       meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/policy',
+      name: 'policy',
+      component: () => import('@/views/PolicyView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin', 'nep_coordinator'] },
     },
     {
       path: '/manager/dashboard',
@@ -59,9 +64,39 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
-      path: '/admin/organisations',
-      name: 'admin-organisations',
-      component: () => import('@/views/admin/OrganisationManagementView.vue'),
+      path: '/admin/coordinators',
+      name: 'admin-coordinators',
+      component: () => import('@/views/admin/CoordinatorManagementView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/adviser',
+      name: 'adviser',
+      component: () => import('@/views/adviser/AdviserListView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_coordinator', 'nep_admin'] },
+    },
+    {
+      path: '/adviser/new',
+      name: 'adviser-new',
+      component: () => import('@/views/adviser/NewSubmissionView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_coordinator', 'nep_admin'] },
+    },
+    {
+      path: '/adviser/:id',
+      name: 'adviser-detail',
+      component: () => import('@/views/adviser/AdviserDetailView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_coordinator', 'nep_admin'] },
+    },
+    {
+      path: '/admin/programmes',
+      name: 'admin-programmes',
+      component: () => import('@/views/admin/AdminProgrammesView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin', 'nep_coordinator'] },
+    },
+    {
+      path: '/admin/organization',
+      name: 'admin-organization',
+      component: () => import('@/views/admin/OrganizationManagementView.vue'),
       meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {

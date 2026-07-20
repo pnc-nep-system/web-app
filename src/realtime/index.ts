@@ -1,7 +1,10 @@
 import { getEcho, disconnectEcho } from './echo'
 import { useTaxonomyStore } from '@/stores/taxonomy'
+import { useNotificationStore } from '@/stores/notification'
+import type { ProgrammeDraftCreatedPayload } from '@/types/notification'
 
 let subscribed = false
+let subscribedChannels: string[] = []
 
 interface OtherQueueCreatedPayload {
   id: number
@@ -9,23 +12,43 @@ interface OtherQueueCreatedPayload {
   programme_entry_id?: number
 }
 
-export async function connectRealtimeForRole(role?: string) {
-  if (role !== 'nep_admin' && role !== 'nep_coordinator') return
+export async function connectRealtimeForRole(role?: string, userId?: string | null) {
   if (subscribed) return
 
-  const taxonomy = useTaxonomyStore()
   const echo = await getEcho()
 
-  echo.private('nep-admin')
-    .listen('.other.queue.created', (payload: OtherQueueCreatedPayload) => {
-      taxonomy.upsertOtherQueueEntry({
-        id: payload.id,
-        text: payload.other_text,
-        suggestedCategory: 'New activity',
-        frequency: 1,
-        status: 'pending',
+  if (role === 'nep_admin' || role === 'nep_coordinator') {
+    const taxonomy = useTaxonomyStore()
+    echo.private('nep-admin')
+      .listen('.other.queue.created', (payload: OtherQueueCreatedPayload) => {
+        taxonomy.upsertOtherQueueEntry({
+          id: payload.id,
+          text: payload.other_text,
+          suggestedCategory: 'New activity',
+          frequency: 1,
+          status: 'pending',
+        })
       })
-    })
+    subscribedChannels.push('private-nep-admin')
+  }
+
+  if (role === 'member_org' && userId) {
+    const notificationStore = useNotificationStore()
+    const channelName = `App.Models.User.${userId}`
+    echo.private(channelName)
+      .listen('.programme.draft.created', (payload: ProgrammeDraftCreatedPayload) => {
+        notificationStore.pushNotification({
+          id: payload.notification_id,
+          type: 'programme_sent',
+          title: `New programme: ${payload.programme_name}`,
+          message: payload.message,
+          programme_entry_id: payload.programme_entry_id,
+          read_at: null,
+          created_at: new Date().toISOString(),
+        })
+      })
+    subscribedChannels.push(`private-${channelName}`)
+  }
 
   subscribed = true
 }
@@ -35,12 +58,13 @@ export function disconnectRealtime() {
 
   const globalEcho = (window as any).Echo
   if (globalEcho) {
-    try {
-      globalEcho.leave('private-nep-admin')
-    } catch (err) {
-      console.error('Failed to leave realtime channel:', err)
-    }
+    subscribedChannels.forEach(ch => {
+      try { globalEcho.leave(ch) } catch (err) {
+        console.error('Failed to leave realtime channel:', ch, err)
+      }
+    })
   }
   disconnectEcho()
   subscribed = false
+  subscribedChannels = []
 }
