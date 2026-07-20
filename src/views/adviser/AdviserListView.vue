@@ -33,7 +33,10 @@ function coordinatorLabel(id: number | null): string {
 }
 
 onMounted(() => {
-  adviserStore.fetchSubmissions()
+  // Only fetch if empty, to preserve our frontend-only status changes!
+  if (adviserStore.submissions.length === 0) {
+    adviserStore.fetchSubmissions()
+  }
   loadCoordinators()
 })
 
