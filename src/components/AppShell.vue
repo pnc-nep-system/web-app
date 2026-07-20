@@ -27,7 +27,7 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
         section: 'COORDINATION',
         items: [
           // { to: '/admin/dashboard', label: 'Overview', icon: 'home' },
-          // { to: '/admin/map', label: 'The Map', icon: 'map' },
+          { to: '/admin/map', label: 'The Map', icon: 'map' },
           { to: '/adviser', label: 'The Adviser', icon: 'bolt' },
           // { to: '/adviser', label: 'The Adviser', icon: 'bolt', badge: 3 },
           { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
@@ -51,7 +51,7 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
         section: 'COORDINATION',
         items: [
           // { to: '/manager/dashboard', label: 'Overview', icon: 'home' },
-          // { to: '/admin/map', label: 'The Map', icon: 'map' },
+          { to: '/admin/map', label: 'The Map', icon: 'map' },
           { to: '/adviser', label: 'The Adviser', icon: 'bolt' },
           { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
         ],
