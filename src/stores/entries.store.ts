@@ -145,21 +145,14 @@ export const useEntriesStore = defineStore('entries', () => {
   function byId(id: string | number | undefined): any {
     if (id === undefined || id === null) return null
     const key = String(id)
-    if (entryCache.value[key] !== undefined) return entryCache.value[key]
-    const local = [...allItems.value, ...draftItems.value, ...submittedItems.value].find((e) => String(e.id) === key)
-    if (local) {
-      entryCache.value[key] = local
-      return local
-    }
-    return null
+    return entryCache.value[key] || null
   }
 
   const fetchPromises = new Map<string, Promise<any>>()
 
   async function fetchById(id: string | number): Promise<any> {
     const key = String(id)
-    const cached = byId(id)
-    if (cached !== null) return cached
+    if (entryCache.value[key]) return entryCache.value[key]
     if (fetchPromises.has(key)) return fetchPromises.get(key)
 
     const promise = memberApi.getProgrammeEntry(id)
@@ -167,13 +160,13 @@ export const useEntriesStore = defineStore('entries', () => {
         const data = response.data.data ?? response.data
         const mapped = mapDetailEntry(data)
         entryCache.value[key] = mapped
+        fetchPromises.delete(key)
         return mapped
       })
-      .catch(() => {
-        entryCache.value[key] = null
-        return null
+      .catch((err) => {
+        fetchPromises.delete(key)
+        throw err
       })
-      .finally(() => fetchPromises.delete(key))
 
     fetchPromises.set(key, promise)
     return promise

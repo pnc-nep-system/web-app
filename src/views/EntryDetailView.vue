@@ -48,14 +48,14 @@ const { entry, marking, status, activityRows, relatedEntries, markVerified, anal
         @back="router.push({ name: 'admin-map' })"
       />
 
-      <div class="grid grid-cols-12 gap-6">
-        <div class="col-span-7">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7 space-y-6">
           <EntryProgrammeIdentity :entry />
           <EntryActivitiesList :activity-rows="activityRows" />
           <EntryGovernmentAgreements :agreements="entry.governmentAgreements" />
         </div>
 
-        <div class="col-span-5">
+        <div class="lg:col-span-5 space-y-6">
           <EntryGeographicCoverage :provinces="entry.provinces" :other-countries="entry.otherCountries" />
           <EntryKeywords :keywords="entry.keywords" />
           <EntryCoordinationNote

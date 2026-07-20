@@ -205,7 +205,9 @@ export const useMapStore = defineStore('map', () => {
    * @returns Array of activity codes marked as primary.
    */
   function primaryActivities(e: any): string[] {
-    return e.activities?.filter((a: any) => a.is_primary).map((a: any) => a.activity_item?.code ?? a.code) ?? []
+    const primaries = e.activities?.filter((a: any) => a.is_primary).map((a: any) => a.activity_item?.code ?? a.code).filter(Boolean) ?? []
+    if (primaries.length > 0) return primaries
+    return e.activities?.map((a: any) => a.activity_item?.code ?? a.code).filter(Boolean) ?? []
   }
 
   /**

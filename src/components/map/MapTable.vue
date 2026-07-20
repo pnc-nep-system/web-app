@@ -43,8 +43,8 @@ function formatBudgetBand(b: any): string {
 </script>
 
 <template>
-  <div class="overflow-x-auto">
-    <table class="w-full border-collapse text-sm">
+  <div class="w-full overflow-x-auto">
+    <table class="w-full min-w-[850px] border-collapse text-sm">
       <thead>
         <tr class="bg-slate-50 border-b border-slate-200">
           <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap cursor-pointer select-none hover:text-slate-900 transition-colors" @click="mapStore.toggleSort('name')">
@@ -57,7 +57,7 @@ function formatBudgetBand(b: any): string {
           <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap cursor-pointer select-none hover:text-slate-900 transition-colors" @click="mapStore.toggleSort('budgetBand')">
             Budget band {{ mapStore.sortKey === 'budgetBand' ? (mapStore.sortDir === 'asc' ? '↑' : '↓') : '' }}
           </th>
-          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"></th>
+          <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap min-w-[100px]">Action</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100">
@@ -73,11 +73,11 @@ function formatBudgetBand(b: any): string {
           <td class="px-4 py-3 max-w-[200px]">
             <div class="flex flex-wrap gap-1">
               <template v-if="mapStore.primaryActivities(e).length > 0">
-                <BaseBadge v-for="code in mapStore.primaryActivities(e).slice(0, 3)" :key="code" tone="teal">
+                <BaseBadge v-for="code in mapStore.primaryActivities(e).slice(0, 5)" :key="code" tone="teal">
                   {{ code }}
                 </BaseBadge>
-                <BaseBadge v-if="mapStore.primaryActivities(e).length > 3" tone="slate">
-                  +{{ mapStore.primaryActivities(e).length - 3 }}
+                <BaseBadge v-if="mapStore.primaryActivities(e).length > 5" tone="slate">
+                  +{{ mapStore.primaryActivities(e).length - 5 }}
                 </BaseBadge>
               </template>
               <span v-else class="text-xs text-slate-300">—</span>

@@ -31,10 +31,10 @@ onMounted(() => mapStore.fetchMapEntries())
       </div>
     </template>
 
-    <div class="flex w-full items-center justify-between gap-4 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">The Map</h1>
-        <p class="text-sm text-gray-500 mt-1">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">The Map</h1>
+        <p class="text-xs sm:text-sm text-gray-500 mt-1">
           Filter member programme entries across any combination of dimensions, then export or view geographically.
         </p>
       </div>
@@ -49,7 +49,7 @@ onMounted(() => mapStore.fetchMapEntries())
       </span>
     </div>
 
-    <div class="card">
+    <div class="card overflow-hidden">
       <div v-if="mapStore.loading" class="card-pad flex items-center justify-center py-12">
         <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />

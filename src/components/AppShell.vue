@@ -218,7 +218,7 @@ function logout() {
         </div>
       </header>
 
-      <div class="p-4 sm:p-8 max-w-6xl w-full mx-auto flex-1">
+      <div class="p-4 sm:p-6 md:p-8 max-w-[1400px] w-full mx-auto flex-1">
         <slot />
       </div>
     </main>
