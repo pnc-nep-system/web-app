@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import BaseIcon from '@/components/common/BaseIcon.vue'
+import NotificationBell from '@/components/common/NotificationBell.vue'
 
 
 const auth = useAuthStore()
@@ -37,6 +38,7 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
           { to: '/admin/taxonomy', label: 'Taxonomy data', icon: 'list' },
           { to: '/admin/users', label: 'User accounts', icon: 'users' },
           { to: '/admin/organisations', label: 'Organisations', icon: 'building' },
+          { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
           { to: '/policy', label: 'Policy library', icon: 'book' },
         ],
       },
@@ -50,6 +52,7 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
         items: [
           { to: '/manager/dashboard', label: 'Overview', icon: 'home' },
           { to: '/admin/map', label: 'The Map', icon: 'map' },
+          { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
           { to: '/adviser', label: 'The Adviser', icon: 'bolt', badge: 3 },
         ],
       },
@@ -217,6 +220,7 @@ function logout() {
         <div class="flex items-center gap-1 text-sm text-gray-500 w-full">
           <slot name="header" />
         </div>
+        <NotificationBell v-if="auth.userRole === 'member_org'" />
       </header>
 
       <div class="p-4 sm:p-8 max-w-6xl w-full mx-auto flex-1">
