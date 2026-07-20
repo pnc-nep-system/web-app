@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@imagekit/vue": "^4.0.1",
+    "@svg-maps/cambodia": "^2.0.0",
     "axios": "^1.18.1",
     "laravel-echo": "^2.4.0",
     "pinia": "^3.0.4",

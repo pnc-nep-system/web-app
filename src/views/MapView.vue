@@ -57,9 +57,17 @@ onMounted(() => mapStore.fetchMapEntries())
         </svg>
       </div>
       <div v-else-if="!mapStore.paged.length" class="card-pad">
-        <EmptyState icon="search" title="No entries match these filters" message="Try widening your date range or clearing a filter.">
-          <template #action><button class="btn btn-secondary btn-sm" @click="mapStore.clearFilters">Clear filters</button></template>
+        <EmptyState
+          v-if="mapStore.hasActiveFilters"
+          icon="search"
+          title="No entries match these filters"
+          message="Try widening your date range or clearing a filter."
+        >
+          <template #action>
+            <button class="btn btn-secondary btn-sm" @click="mapStore.clearFilters">Clear filters</button>
+          </template>
         </EmptyState>
+        <EmptyState v-else icon="search" title="No data" message="No programme entries found." />
       </div>
 
       <MapTable v-else />

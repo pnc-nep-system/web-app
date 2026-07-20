@@ -42,13 +42,31 @@ const taxonomyStore = useTaxonomyStore()
       </select>
 
       <!-- District Filter -->
-      <select v-model="mapStore.filters.district" class="flex-1 min-w-[140px] max-w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50/50 hover:bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all cursor-pointer truncate">
+      <select
+        v-model="mapStore.filters.district"
+        :disabled="!mapStore.filters.province"
+        class="flex-1 min-w-[140px] max-w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50/50 hover:bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all cursor-pointer truncate disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-50/50"
+      >
         <option value="">District — any</option>
         <option v-for="d in mapStore.districtsList" :key="d" :value="d">{{ d }}</option>
       </select>
 
+      <!-- Commune Filter -->
+      <select
+        v-model="mapStore.filters.commune"
+        :disabled="!mapStore.filters.district"
+        class="flex-1 min-w-[140px] max-w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50/50 hover:bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all cursor-pointer truncate disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-50/50"
+      >
+        <option value="">Commune — any</option>
+        <option v-for="c in mapStore.communesList" :key="c" :value="c">{{ c }}</option>
+      </select>
+
       <!-- Village Filter -->
-      <select v-model="mapStore.filters.village" class="flex-1 min-w-[140px] max-w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50/50 hover:bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all cursor-pointer truncate">
+      <select
+        v-model="mapStore.filters.village"
+        :disabled="!mapStore.filters.commune"
+        class="flex-1 min-w-[140px] max-w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold bg-slate-50/50 hover:bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 transition-all cursor-pointer truncate disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-50/50"
+      >
         <option value="">Village — any</option>
         <option v-for="v in mapStore.villagesList" :key="v" :value="v">{{ v }}</option>
       </select>
