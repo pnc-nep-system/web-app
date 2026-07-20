@@ -141,17 +141,25 @@ function removeGap(idx: number) {
       </div>
 
       <!-- Main Dual Pane Workspace -->
-      <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8">
+      <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
         
-        <!-- LEFT PANE: Document Viewer / Download -->
-        <DocumentViewerPanel 
-          document-name="education-inclusion-call.pdf"
-          document-size="1.2 MB"
-          submitting-party="EU Delegation to Cambodia"
-          analysis-scope="Full map"
-          submitted-date="16 days ago"
-          :assignee="form.assignee"
-        />
+        <!-- LEFT PANE: Document Viewer & Workflow Sidebar -->
+        <div class="space-y-6">
+          <DocumentViewerPanel 
+            document-name="education-inclusion-call.pdf"
+            document-size="1.2 MB"
+            submitting-party="EU Delegation to Cambodia"
+            analysis-scope="Full map"
+            submitted-date="16 days ago"
+            :assignee="form.assignee"
+          />
+
+          <WorkflowCard
+            :current-status="currentStatus"
+            :assignee="form.assignee"
+            @update:assignee="form.assignee = $event"
+          />
+        </div>
 
         <!-- RIGHT PANE: Editing Form for Sections A-D -->
         <div class="space-y-6">
@@ -192,13 +200,6 @@ function removeGap(idx: number) {
             badge-tone="amber"
             :is-internal="true"
             placeholder="Private notes for coordinations. This will not be exported in the final PDF..."
-          />
-
-          <!-- Workflow Card -->
-          <WorkflowCard
-            :current-status="currentStatus"
-            :assignee="form.assignee"
-            @update:assignee="form.assignee = $event"
           />
 
         </div>
