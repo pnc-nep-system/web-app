@@ -98,8 +98,90 @@ export const useEntriesStore = defineStore('entries', () => {
   const verifiedCount = computed(() => currentItems.value.filter(e => !e.isUnverified).length)
   const unverifiedCount = computed(() => currentItems.value.filter(e => e.isUnverified).length)
 
+  const items = computed<any[]>(() => [...allItems.value, ...draftItems.value, ...submittedItems.value])
+  const entryCache = ref<Record<string, any>>({})
+
   function statusOf(entry: ProgrammeIdentity): 'verified' | 'unverified' {
     return entry.isUnverified ? 'unverified' : 'verified'
+  }
+
+  function mapDetailEntry(e: any): any {
+    return {
+      id: `entry-${e.id}`,
+      name: e.programme_name || '',
+      organisationId: e.organisation_id || e.organisation?.id,
+      organisationName: e.organisation_name || e.organisation?.name,
+      startYear: e.start_year || null,
+      endYear: e.end_year || null,
+      isOngoing: !!e.ongoing,
+      staffFte: e.fte_staff ? parseFloat(e.fte_staff) : null,
+      budgetBand: e.budget_band_id ? BUDGET_BANDS[e.budget_band_id - 1] || null : null,
+      directBeneficiaries: e.direct_beneficiaries || null,
+      indirectBeneficiaries: e.indirect_beneficiaries || null,
+      method: e.method || '',
+      verifiedDate: e.verified_date || '',
+      isUnverified: !!e.is_unverified,
+      provinces: (e.locations || []).map((loc: any) => loc.province?.province_name).filter(Boolean),
+      activities: (e.activities || []).map((a: any) => ({
+        code: a.activity_item?.code || a.code || '',
+        primary: !!a.is_primary,
+        inclusion: a.inclusion ? { group: a.inclusion_group || a.inclusion.group, type: a.inclusion_type || a.inclusion.type } : (a.inclusion_group ? { group: a.inclusion_group, type: a.inclusion_type } : null),
+        levels: a.activity_levels?.map((l: any) => l.education_level_id ?? l) ?? [],
+        source: a.source || null,
+      })).filter((a: any) => a.code),
+      governmentAgreements: (e.government_agreements || []).map((g: any) => ({
+        counterpart: g.counterpart_agency || g.counterpart || '',
+        institution: g.institution_name || g.institution || '',
+        nature: g.nature || '',
+        status: g.status || '',
+      })),
+      keywords: (e.keywords || []).map((k: any) => k.keyword ?? k),
+      otherCountries: e.other_countries || e.otherCountries || '',
+      lastUpdated: e.last_updated_at || e.updated_at || '',
+      isDraft: !Number(e.is_submitted),
+    }
+  }
+
+  function byId(id: string | number | undefined): any {
+    if (id === undefined || id === null) return null
+    const key = String(id)
+    return entryCache.value[key] || null
+  }
+
+  const fetchPromises = new Map<string, Promise<any>>()
+
+  async function fetchById(id: string | number): Promise<any> {
+    const key = String(id)
+    if (entryCache.value[key]) return entryCache.value[key]
+    if (fetchPromises.has(key)) return fetchPromises.get(key)
+
+    const promise = memberApi.getProgrammeEntry(id)
+      .then((response) => {
+        const data = response.data.data ?? response.data
+        const mapped = mapDetailEntry(data)
+        entryCache.value[key] = mapped
+        fetchPromises.delete(key)
+        return mapped
+      })
+      .catch((err) => {
+        fetchPromises.delete(key)
+        throw err
+      })
+
+    fetchPromises.set(key, promise)
+    return promise
+  }
+
+  async function markVerified(id: string | number) {
+    try {
+      await memberApi.markVerified(id)
+      const entry = [...allItems.value, ...draftItems.value, ...submittedItems.value].find((e) => String(e.id) === String(id))
+      if (entry) {
+        entry.isUnverified = false
+      }
+    } catch {
+      // ignore
+    }
   }
 
   let allPromise: Promise<void> | null = null
@@ -227,6 +309,7 @@ export const useEntriesStore = defineStore('entries', () => {
     draftPagination,
     submittedPagination,
     currentItems,
+    items,
     currentLoading,
     currentError,
     currentPagination,
@@ -234,6 +317,9 @@ export const useEntriesStore = defineStore('entries', () => {
     verifiedCount,
     unverifiedCount,
     statusOf,
+    byId,
+    fetchById,
+    markVerified,
     fetchAllEntries,
     fetchDraftEntries,
     fetchSubmittedEntries,

@@ -24,7 +24,7 @@ export const useCategoriesStore = defineStore('categories', () => {
 
   function toggleCategory(code: string) {
     if (openCategories.value.has(code)) {
-      openCategories.value.delete(code)
+      openCategories.value = new Set()
     } else {
       openCategories.value = new Set([code])
     }
@@ -32,7 +32,7 @@ export const useCategoriesStore = defineStore('categories', () => {
 
   function toggleSubcategory(code: string) {
     if (openSubcategories.value.has(code)) {
-      openSubcategories.value.delete(code)
+      openSubcategories.value = new Set()
     } else {
       openSubcategories.value = new Set([code])
     }
@@ -45,7 +45,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     let count = 0
     cat.subcategories?.forEach((sub: any) => {
       sub.items?.forEach((i: any) => {
-        if (activitiesStore.selected.has(i.code)) {
+        if (activitiesStore.selected.includes(i.code)) {
           count++
         }
       })
@@ -64,7 +64,7 @@ export const useCategoriesStore = defineStore('categories', () => {
       }
     }
     if (!sub) return 0
-    return sub.items?.filter((i: any) => activitiesStore.selected.has(i.code)).length || 0
+    return sub.items?.filter((i: any) => activitiesStore.selected.includes(i.code)).length || 0
   }
 
   function reset() {

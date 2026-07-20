@@ -1,10 +1,12 @@
-import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 import { organisationService } from '@/api/organisation.service'
+import { memberApi } from '@/api/member.api'
 import type { OrganisationForm } from '@/types/organisations'
 
 export const useOrganisationsStore = defineStore('organisations', () => {
   const organisations = ref<any[]>([])
+  const items = ref<any[]>([])
   const loading = ref(false)
   const saving = ref(false)
   const error = ref<string | null>(null)
@@ -19,6 +21,7 @@ export const useOrganisationsStore = defineStore('organisations', () => {
     try {
       const res = await organisationService.getOrganisations(page, search.value, { per_page: 16 })
       organisations.value = res.data.data
+      items.value = res.data.data
       currentPage.value = res.data.current_page
       lastPage.value = res.data.last_page
       total.value = res.data.total
@@ -29,32 +32,60 @@ export const useOrganisationsStore = defineStore('organisations', () => {
     }
   }
 
-  // Patches a single organisation in local state without refetching the
-  // whole paginated list — used after activate/deactivate/logo upload,
-  // since the backend already returns the full updated record.
+  async function fetch() {
+    try {
+      const response = await memberApi.listOrganisations()
+      const data = response.data.data ?? response.data ?? []
+      items.value = Array.isArray(data) ? data : []
+    } catch {
+      items.value = []
+    }
+  }
+
+  function byId(id: number | string) {
+    return items.value.find((o) => String(o.id) === String(id)) || null
+  }
+
+  function nameOf(id: number | string): string {
+    const org = byId(id)
+    return org?.name || org?.organisation_name || ''
+  }
+
   const patchLocal = (updated: any) => {
     const idx = organisations.value.findIndex((o) => o.id === updated.id)
     if (idx !== -1) {
       organisations.value[idx] = updated
+    } else {
+      organisations.value.unshift(updated)
     }
   }
 
   const create = async (data: OrganisationForm) => {
     saving.value = true
     try {
-      const res = await organisationService.createOrganisation(data)
-      let created: any = res.data
-      organisations.value.unshift(created)
-      total.value += 1
+      const payload = {
+        name: data.name,
+        acronym: data.acronym,
+        email: data.email,
+        contact_name: data.contactName,
+        phone: data.phone,
+        website: data.website,
+        status: data.status,
+      }
+      const res = await organisationService.createOrganisation(payload)
+      let created = res.data.organisation ?? res.data
 
       if (data.logoFile) {
         try {
           const logoRes = await organisationService.uploadLogo(created.id, data.logoFile)
-          patchLocal(logoRes.data.organisation ?? logoRes.data ?? created)
-        } catch {
-          throw new Error('logo_upload_failed')
+          created = logoRes.data.organisation ?? logoRes.data ?? created
+        } catch (e) {
+          console.error('[uploadLogo] failed:', e)
         }
       }
+
+      patchLocal(created)
+      return created
     } finally {
       saving.value = false
     }
@@ -64,17 +95,20 @@ export const useOrganisationsStore = defineStore('organisations', () => {
     saving.value = true
     try {
       const current = organisations.value.find((o) => o.id === id)
-      const fieldsChanged = !current ||
-        current.name !== data.name ||
-        current.contact_name !== data.contact_name ||
-        current.email !== data.email ||
-        // eslint-disable-next-line eqeqeq
-        current.member_since != data.member_since
+      const payload: Record<string, any> = {}
 
-      let updated: any
-      if (fieldsChanged) {
-        const res = await organisationService.updateOrganisation(id, data)
-        updated = res.data.organisation
+      if (data.name !== current?.name) payload.name = data.name
+      if (data.acronym !== current?.acronym) payload.acronym = data.acronym
+      if (data.email !== current?.email) payload.email = data.email
+      if (data.contactName !== current?.contact_name) payload.contact_name = data.contactName
+      if (data.phone !== current?.phone) payload.phone = data.phone
+      if (data.website !== current?.website) payload.website = data.website
+      if (data.status !== current?.status) payload.status = data.status
+
+      let updated = current
+      if (Object.keys(payload).length > 0) {
+        const res = await organisationService.updateOrganisation(id, payload)
+        updated = res.data.organisation ?? res.data
       } else {
         updated = current
       }
@@ -106,8 +140,22 @@ export const useOrganisationsStore = defineStore('organisations', () => {
   }
 
   return {
-    organisations, loading, saving, error,
-    currentPage, lastPage, total, search,
-    fetchOrganisations, create, update, activate, deactivate,
+    organisations,
+    items,
+    loading,
+    saving,
+    error,
+    currentPage,
+    lastPage,
+    total,
+    search,
+    fetchOrganisations,
+    fetch,
+    byId,
+    nameOf,
+    create,
+    update,
+    activate,
+    deactivate,
   }
 })

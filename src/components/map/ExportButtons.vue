@@ -9,10 +9,15 @@ const mapStore = useMapStore()
 const exportingCsv = ref(false)
 const exportingPdf = ref(false)
 
+/**
+ * Triggers a CSV export of the currently filtered map entries.
+ * Uses the store's toApiFilters() to convert UI filters to API params.
+ * Sets exportingCsv to true during the request to disable the button.
+ */
 async function handleExportCsv() {
   try {
     exportingCsv.value = true
-    await exportMapEntriesCsv(mapStore.filters)
+    await exportMapEntriesCsv(mapStore.toApiFilters())
   } catch (error) {
     console.error('CSV export failed:', error)
   } finally {
@@ -20,10 +25,15 @@ async function handleExportCsv() {
   }
 }
 
+/**
+ * Triggers a PDF export of the currently filtered map entries.
+ * Uses the store's toApiFilters() to convert UI filters to API params.
+ * Sets exportingPdf to true during the request to disable the button.
+ */
 async function handleExportPdf() {
   try {
     exportingPdf.value = true
-    await exportMapEntriesPdf(mapStore.filters)
+    await exportMapEntriesPdf(mapStore.toApiFilters())
   } catch (error) {
     console.error('PDF export failed:', error)
   } finally {
