@@ -64,6 +64,17 @@ export function useAdminProgrammes() {
       orgs.value = (res.data.data ?? [])
         .map((org) => toOrganisation(org))
         .filter((org): org is Organisation => org !== null)
+    } catch {
+      // Fallback: try the general organisations endpoint (for coordinators)
+      try {
+        const res = await memberApi.listAllOrganisations()
+        const data = res.data?.data ?? res.data ?? []
+        orgs.value = (Array.isArray(data) ? data : [])
+          .map((org: unknown) => toOrganisation(org))
+          .filter((org): org is Organisation => org !== null)
+      } catch {
+        orgs.value = []
+      }
     } finally {
       orgsLoading.value = false
     }
@@ -78,6 +89,11 @@ export function useAdminProgrammes() {
       entries.value = (body.data || []).map((e: unknown): EntryRow => {
         const entry = e as Record<string, unknown>
         const org = entry.organisation as Record<string, unknown> | null | undefined
+        const orgName = (org && typeof org.name === 'string')
+          ? org.name
+          : (typeof entry.organisation_name === 'string' ? entry.organisation_name : null)
+            ?? orgs.value.find(o => o.id === Number(entry.organisation_id))?.name
+            ?? null
         return {
           id: Number(entry.id),
           programme_name: String(entry.programme_name ?? ''),
@@ -85,7 +101,7 @@ export function useAdminProgrammes() {
           is_unverified: !!entry.is_unverified,
           start_year: entry.start_year as number | null,
           end_year: entry.end_year as number | null,
-          organisation: org && typeof org.name === 'string' ? { name: org.name } : null,
+          organisation: orgName ? { name: orgName } : null,
           relativeUpdated: formatRelativeTime(entry.updated_at as string) || '—',
         }
       })

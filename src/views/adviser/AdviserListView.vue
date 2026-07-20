@@ -3,38 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import { useAdviserStore } from '@/stores/adviser'
-import { adviserApi } from '@/api/adviser.api'
 import type { Submission, SubmissionStatus } from '@/types/adviser'
 
 const router = useRouter()
 const adviserStore = useAdviserStore()
 
-// ── Coordinator lookup map ──────────────────────────────────────────────────
-const coordinatorMap = ref<Record<number, string>>({})
-
-async function loadCoordinators() {
-  try {
-    const res = await adviserApi.getCoordinators()
-    const body = res.data as any
-    const raw = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : [])
-    // Only include users with nep_coordinator role
-    const list = raw.filter((u: any) => u.role === 'nep_coordinator')
-    const map: Record<number, string> = {}
-    list.forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
-    coordinatorMap.value = map
-  } catch {
-    coordinatorMap.value = {}
-  }
-}
-
-function coordinatorLabel(id: number | null): string {
-  if (!id) return 'Unassigned'
-  return coordinatorMap.value[id] ?? `User #${id}`
-}
-
 onMounted(() => {
   adviserStore.fetchSubmissions()
-  loadCoordinators()
+  adviserStore.loadCoordinators()
 })
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -192,7 +168,7 @@ function openSubmission(id: number) {
               </span>
             </td>
             <td class="px-5 py-4 text-gray-700 align-middle whitespace-pre-line leading-snug">
-              {{ coordinatorLabel(sub.assign_to_staff_user_id) }}
+              {{ adviserStore.coordinatorLabel(sub.assign_to_staff_user_id) }}
             </td>
             <td class="px-5 py-4 text-gray-700 whitespace-nowrap align-middle">
               {{ timeAgo(sub.submitted_at) }}

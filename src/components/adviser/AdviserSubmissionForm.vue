@@ -2,12 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdviserStore } from '@/stores/adviser'
-import { adviserApi } from '@/api/adviser.api'
 import { memberApi } from '@/api/member.api'
 import { taxonomyApi } from '@/api/taxonomy.api'
 import type { Province } from '@/types/programmeGeographic'
 import type { Category } from '@/types/taxonomy'
-import type { User } from '@/types/user'
 
 const router = useRouter()
 const adviserStore = useAdviserStore()
@@ -31,7 +29,6 @@ const categories = ref<Category[]>([])
 const coordinators = ref<User[]>([])
 const loadingProvinces = ref(false)
 const loadingCategories = ref(false)
-const loadingCoordinators = ref(false)
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -102,32 +99,13 @@ async function loadCategories() {
 }
 
 async function loadCoordinators() {
-  if (coordinators.value.length || loadingCoordinators.value) return
-  loadingCoordinators.value = true
-  try {
-    const res = await adviserApi.getCoordinators()
-    const body = res.data as any
-    // Handle both direct array and paginated/wrapped responses just in case
-    let list: User[] = []
-    if (Array.isArray(body)) {
-      list = body
-    } else if (Array.isArray(body?.data)) {
-      list = body.data
-    }
-    // Keep only users whose role is nep_coordinator
-    coordinators.value = list.filter((u: any) => u.role === 'nep_coordinator')
-  } catch {
-    coordinators.value = []
-  } finally {
-    loadingCoordinators.value = false
-  }
+  adviserStore.loadCoordinators()
 }
 
-// Eagerly load all so there's no delay when the user opens each dropdown
 onMounted(() => {
   loadProvinces()
   loadCategories()
-  loadCoordinators()
+  adviserStore.loadCoordinators()
 })
 
 // ── Computed scope display ────────────────────────────────────────────────────
@@ -180,7 +158,7 @@ async function handleSubmit() {
   }
 
   try {
-    await adviserStore.submitDocument(payload)
+    await adviserStore.submitDocument(payload, selectedFile.value!)
     router.push('/adviser')
   } catch (err: any) {
     submitError.value = err?.response?.data?.message ?? 'Submission failed. Please try again.'
@@ -261,9 +239,6 @@ function cancel() {
         />
 
         <p v-if="errors.document" class="mt-2 text-[13px] text-red-500">{{ errors.document }}</p>
-        <p class="mt-2.5 text-[13px] text-gray-400 tracking-wide">
-          Files are read for their name only in this prototype — content is not actually parsed or uploaded anywhere.
-        </p>
       </div>
 
       <!-- Analysis scope -->
