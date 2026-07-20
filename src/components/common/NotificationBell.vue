@@ -1,77 +1,18 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import BaseIcon from '@/components/common/BaseIcon.vue'
-import { useNotificationStore } from '@/stores/notification'
+import { useNotificationBell } from '@/composables/useNotificationBell'
 
-const router = useRouter()
-const store = useNotificationStore()
-const open = ref(false)
-const bellRef = ref<HTMLElement | null>(null)
-const isRinging = ref(false)
-const alert = ref<{ id: string; title: string; message: string; programme_entry_id: number } | null>(null)
-let alertTimer: ReturnType<typeof setTimeout> | null = null
-
-onMounted(() => {
-  store.fetchNotifications()
-  document.addEventListener('click', onOutsideClick)
-})
-
-onUnmounted(() => {
-  document.removeEventListener('click', onOutsideClick)
-  if (alertTimer) clearTimeout(alertTimer)
-})
-
-// Watch for new incoming notifications (unread count going up)
-watch(
-  () => store.items[0],
-  (newest, prev) => {
-    if (!newest || newest.read_at) return
-    if (prev && prev.id === newest.id) return
-    // Ring the bell
-    isRinging.value = false
-    requestAnimationFrame(() => { isRinging.value = true })
-    setTimeout(() => { isRinging.value = false }, 1000)
-    // Show alert banner
-    showAlert(newest.id, newest.title, newest.message, newest.programme_entry_id)
-  }
-)
-
-function showAlert(id: string, title: string, message: string, programme_entry_id: number) {
-  if (alertTimer) clearTimeout(alertTimer)
-  alert.value = { id, title, message, programme_entry_id }
-  alertTimer = setTimeout(() => { alert.value = null }, 6000)
-}
-
-function dismissAlert() {
-  if (alertTimer) clearTimeout(alertTimer)
-  alert.value = null
-}
-
-async function openFromAlert() {
-  if (!alert.value) return
-  const { id, programme_entry_id } = alert.value
-  dismissAlert()
-  await store.markRead(id)
-  router.push({ path: '/entries/new', query: { id: programme_entry_id } })
-}
-
-function onOutsideClick(e: MouseEvent) {
-  if (bellRef.value && !bellRef.value.contains(e.target as Node)) {
-    open.value = false
-  }
-}
-
-async function handleClick(id: string, programmeEntryId: number) {
-  await store.markRead(id)
-  open.value = false
-  router.push({ path: '/entries/new', query: { id: programmeEntryId } })
-}
-
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
+const {
+  store,
+  open,
+  bellRef,
+  isRinging,
+  incomingAlert,
+  dismissAlert,
+  openFromAlert,
+  handleNotificationClick,
+  formatTime,
+} = useNotificationBell()
 </script>
 
 <template>
@@ -86,7 +27,7 @@ function formatTime(iso: string) {
       leave-to-class="opacity-0 translate-y-2"
     >
       <div
-        v-if="alert"
+        v-if="incomingAlert"
         class="fixed bottom-6 right-6 z-[9999] w-80 bg-white rounded-xl shadow-xl border border-teal-100 overflow-hidden"
       >
         <div class="flex items-start gap-3 px-4 py-3.5">
@@ -94,8 +35,8 @@ function formatTime(iso: string) {
             <BaseIcon name="bell" size="14" />
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-xs font-bold text-gray-800 truncate">{{ alert.title }}</p>
-            <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ alert.message }}</p>
+            <p class="text-xs font-bold text-gray-800 truncate">{{ incomingAlert.title }}</p>
+            <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ incomingAlert.message }}</p>
             <button
               class="mt-2 text-[11px] font-semibold text-teal-600 hover:text-teal-700 transition-colors"
               @click="openFromAlert"
@@ -166,7 +107,7 @@ function formatTime(iso: string) {
           :key="n.id"
           class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
           :class="{ 'bg-teal-50/60': !n.read_at }"
-          @click="handleClick(n.id, n.programme_entry_id)"
+          @click="handleNotificationClick(n.id, n.programme_entry_id)"
         >
           <div class="mt-0.5 shrink-0 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-teal-600">
             <BaseIcon name="file" size="13" />
