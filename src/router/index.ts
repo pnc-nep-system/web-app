@@ -33,12 +33,17 @@ const router = createRouter({
         roles: ['nep_admin', 'nep_coordinator'],
       },
     },
-
     {
       path: '/admin/taxonomy',
       name: 'admin-taxonomy',
       component: () => import('@/views/staff/TaxonomyAdminView.vue'),
       meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+      path: '/policy',
+      name: 'policy',
+      component: () => import('@/views/PolicyView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin', 'nep_coordinator'] },
     },
     {
       path: '/manager/dashboard',
