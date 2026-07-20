@@ -4,6 +4,7 @@ import TaxonomyDirectoryList from '@/components/programme/TaxonomyDirectoryList.
 import TaxonomyReviewQueue from '@/components/programme/TaxonomyReviewQueue.vue'
 import AddTaxonomyModal from '@/components/programme/AddTaxonomyModal.vue'
 import PromoteTaxonomyModal from '@/components/programme/PromoteTaxonomyModal.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import { useTaxonomyAdminStore } from '@/stores/taxonomyAdmin'
 
 const store = useTaxonomyAdminStore()
@@ -13,13 +14,12 @@ const taxonomy = store.taxonomy
 <template>
   <div class="space-y-6 max-w-7xl mx-auto px-1 sm:px-4">
     <!-- Title & Action -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-      <div>
-        <h1 class="text-2xl font-black text-slate-900 font-lexend tracking-tight">Activity Taxonomy Directory</h1>
-        <p class="text-sm text-slate-500 mt-1 max-w-2xl leading-relaxed">
-          Manage the standard activity list (B1 to B9) that member organisations select when submitting new programme reports.
-        </p>
-      </div>
+    <PageHeader
+      title="Activity Taxonomy Directory"
+      subtitle="Manage the standard activity list (B1 to B9) that member organisations select when submitting new programme reports."
+      border
+      mb="mb-6"
+    >
       <button
         @click="store.openAdd"
         class="inline-flex items-center gap-2 bg-teal-800 text-white font-semibold text-xs px-4 py-2.5 rounded-xl hover:bg-teal-900 shadow-xs transition-all duration-200 cursor-pointer self-start md:self-auto"
@@ -29,7 +29,7 @@ const taxonomy = store.taxonomy
         </svg>
         Add custom activity
       </button>
-    </div>
+    </PageHeader>
 
     <!-- Segment Tabs & Controls -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/60 pb-px">

@@ -58,6 +58,13 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/entries/:id',
+      name: 'entry-detail',
+      component: () => import('@/views/EntryDetailView.vue'),
+      meta: { requiresAuth: true },
+      props: true,
+    },
+    {
       path: '/admin/users',
       name: 'admin-users',
       component: () => import('@/views/admin/UserManagementView.vue'),
@@ -94,9 +101,9 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['nep_admin', 'nep_coordinator'] },
     },
     {
-      path: '/admin/organisations',
-      name: 'admin-organisations',
-      component: () => import('@/views/admin/OrganisationManagementView.vue'),
+      path: '/admin/organization',
+      name: 'admin-organization',
+      component: () => import('@/views/admin/OrganizationManagementView.vue'),
       meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {

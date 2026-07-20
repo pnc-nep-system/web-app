@@ -71,5 +71,11 @@ export const memberApi = {
   getDraftProgrammeEntry(id: number | string) {
     return api.get(`/programme-entries/${id}`);
   },
+  markVerified(id: number | string) {
+    return api.patch(`/programme-entries/${id}/verify`);
+  },
+  listOrganisations() {
+    return api.get('/organisations');
+  },
 };
 
