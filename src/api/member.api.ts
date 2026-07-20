@@ -63,6 +63,12 @@ export const memberApi = {
   updateMyOrganisation(payload: { contact_name?: string; email?: string }) {
     return api.patch('/organisations/me', payload);
   },
+  markVerified(id: number | string) {
+    return api.patch(`/programme-entries/${id}/verify`);
+  },
+  listOrganisations() {
+    return api.get('/organisations');
+  },
 };
 
 

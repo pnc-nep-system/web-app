@@ -53,6 +53,13 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/entries/:id',
+      name: 'entry-detail',
+      component: () => import('@/views/EntryDetailView.vue'),
+      meta: { requiresAuth: true },
+      props: true,
+    },
+    {
       path: '/admin/users',
       name: 'admin-users',
       component: () => import('@/views/admin/UserManagementView.vue'),
