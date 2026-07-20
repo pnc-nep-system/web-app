@@ -6,8 +6,8 @@ export const memberApi = {
   listProgrammeEntries(organisationId: number | string) {
     return api.get(`/organisations/${organisationId}/programme-entries`);
   },
-  createProgrammeEntry(data: ProgrammeIdentity) {
-    return api.post('/programme-entries', data);
+  createProgrammeEntry(data: ProgrammeIdentity, organisationId?: number | string) {
+    return api.post('/programme-entries', { ...data, ...(organisationId ? { organisation_id: organisationId } : {}) });
   },
   updateProgrammeEntry(id: number | string, data: ProgrammeIdentity) {
     return api.put(`/programme-entries/${id}`, data);
@@ -45,6 +45,11 @@ export const memberApi = {
   getAllProgrammeEntries(page = 1) {
     return api.get(`/programme-entries?page=${page}`);
   },
+  getAdminAllProgrammeEntries(page = 1, organisationId?: number | null) {
+    const params: Record<string, any> = { page }
+    if (organisationId) params.organisation_id = organisationId
+    return api.get('/programme-entries', { params })
+  },
   getDraftProgrammeEntries(page = 1) {
     return api.get(`/programme-entries/draft?page=${page}`);
   },
@@ -63,6 +68,8 @@ export const memberApi = {
   updateMyOrganisation(payload: { contact_name?: string; email?: string }) {
     return api.patch('/organisations/me', payload);
   },
+  getDraftProgrammeEntry(id: number | string) {
+    return api.get(`/programme-entries/${id}`);
+  },
 };
-
 

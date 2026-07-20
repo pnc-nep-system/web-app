@@ -385,6 +385,14 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     _onSaveRouteUpdate = cb
   }
 
+  function getCreateOrgId() {
+    return router.currentRoute.value.query.org_id
+  }
+
+  function shouldCreateAsDraft(isSubmit: boolean): boolean {
+    return isSubmit && !section1Data.value.id && !!getCreateOrgId()
+  }
+
   async function saveEntry(exitAfterSave: boolean, isSubmit = false, loadingAlreadySet = false): Promise<boolean> {
     if (isSaving.value && !loadingAlreadySet) return false
     if (!loadingAlreadySet) {
@@ -393,9 +401,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     saveStatus.value = 'saving'
     errors.value = {}
     clearSubmissionResult()
+    const shouldSubmit = isSubmit && !shouldCreateAsDraft(isSubmit)
 
     try {
       const isEditMode = !!section1Data.value.id
+      const orgId = getCreateOrgId()
 
       const activitiesData = section2Data.value
       const agreementsData = section4Data.value
@@ -410,7 +420,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         province_ids: section3Data.value.provinceIds,
         district_ids: section3Data.value.districts,
         other_countries: section3Data.value.otherCountries,
-        is_submitted: isSubmit,
+        is_submitted: shouldSubmit,
       }
 
       if (section1Data.value.fteStaff !== null && String(section1Data.value.fteStaff) !== '') {
@@ -430,7 +440,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       if (isEditMode) {
         response = await memberApi.updateProgrammeEntry(section1Data.value.id!, payload as any)
       } else {
-        response = await memberApi.createProgrammeEntry(payload as any)
+        response = await memberApi.createProgrammeEntry(payload as any, orgId ? String(orgId) : undefined)
       }
 
       sessionStorage.removeItem('new_programme_entry_draft')
@@ -599,7 +609,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       }
 
       if (exitAfterSave) {
-        const destTab = isSubmit ? 'submitted' : 'draft'
+        const destTab = shouldSubmit ? 'submitted' : 'draft'
         router.push(`/dashboard?tab=${destTab}`)
       }
       return true
@@ -608,7 +618,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         const apiMessage = 'Please correct the validation errors below.'
         showSubmissionResult('error', apiMessage)
         if (exitAfterSave) {
-          const destTab = isSubmit ? 'submitted' : 'draft'
+          const destTab = shouldSubmit ? 'submitted' : 'draft'
           router.push(`/dashboard?tab=${destTab}`)
         } else {
           errors.value = err.response.data.errors
@@ -664,8 +674,9 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
   async function saveAndExit(isSubmit = false, loadingAlreadySet = false): Promise<boolean> {
     syncRefsToStore()
+    const shouldSubmit = isSubmit && !shouldCreateAsDraft(isSubmit)
 
-      if (isSubmit) {
+      if (shouldSubmit) {
         const requiredSteps = new Set([1, 2, 3, 5])
         const missing = [...requiredSteps].filter(s => !completedSteps.value.has(s))
         if (missing.length > 0) {
@@ -683,7 +694,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         return false
       }
     }
-    return await saveEntry(true, isSubmit, loadingAlreadySet)
+    return await saveEntry(true, shouldSubmit, loadingAlreadySet)
   }
 
   function goBack() {

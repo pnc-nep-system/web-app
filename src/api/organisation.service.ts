@@ -1,47 +1,29 @@
 import api from './axios'
+import type {
+  Organisation,
+  OrganisationListResponse,
+  OrganisationActionResponse,
+  CreateOrganisationPayload,
+  UpdateOrganisationPayload,
+} from '@/types/organisations'
 
-export interface Organisation {
-  id: number
-  name: string
-  contact_name: string
-  email: string
-  member_since: number
-  status: 'active' | 'inactive'
-  last_inactive_at: string | null
-  users_count: number
-  created_at: string
-  updated_at: string
-}
-
-export interface OrganisationListResponse {
-  data: Organisation[]
-  current_page: number
-  last_page: number
-  per_page: number
-  total: number
-  from: number | null
-  to: number | null
-}
-
-export interface OrganisationActionResponse {
-  message: string
-  organisation: Organisation
-}
-
-export interface CreateOrganisationPayload {
-  name: string
-  contact_name: string
-  email: string
-  member_since: number
-}
-
-export type UpdateOrganisationPayload = Partial<CreateOrganisationPayload>
+export type { Organisation }
 
 const BASE = '/admin/organisations'
 
 export const organisationService = {
-  getOrganisations(page = 1, search = '', filters: { status?: string; per_page?: number } = {}) {
-    return api.get<OrganisationListResponse>(BASE, { params: { page, search, ...filters } })
+  getOrganisations(
+    page = 1,
+    search = '',
+    filters: { status?: string; per_page?: number } = {},
+  ) {
+    return api.get<OrganisationListResponse>(BASE, {
+      params: {
+        page,
+        search,
+        ...filters,
+      },
+    })
   },
 
   getOrganisation(id: number) {
@@ -49,18 +31,43 @@ export const organisationService = {
   },
 
   createOrganisation(payload: CreateOrganisationPayload) {
-    return api.post<OrganisationActionResponse>(BASE, payload)
+    return api.post<Organisation>(BASE, {
+      name: payload.name,
+      contact_name: payload.contact_name,
+      email: payload.email,
+      member_since: payload.member_since,
+    })
   },
 
-  updateOrganisation(id: number, payload: UpdateOrganisationPayload) {
-    return api.patch<OrganisationActionResponse>(`${BASE}/${id}`, payload)
+  updateOrganisation(
+    id: number,
+    payload: UpdateOrganisationPayload,
+  ) {
+    return api.put<OrganisationActionResponse>(
+      `${BASE}/${id}`,
+      payload,
+    )
+  },
+
+  uploadLogo(id: number, file: File) {
+    const formData = new FormData()
+    formData.append('logo', file)
+    return api.post<OrganisationActionResponse>(
+      `${BASE}/${id}/logo`,
+      formData,
+      { timeout: 60000 },
+    )
   },
 
   deactivateOrganisation(id: number) {
-    return api.post<OrganisationActionResponse>(`${BASE}/${id}/deactivate`)
+    return api.patch<OrganisationActionResponse>(
+      `${BASE}/${id}/deactivate`,
+    )
   },
 
   reactivateOrganisation(id: number) {
-    return api.post<OrganisationActionResponse>(`${BASE}/${id}/reactivate`)
+    return api.patch<OrganisationActionResponse>(
+      `${BASE}/${id}/activate`,
+    )
   },
 }

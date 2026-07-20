@@ -59,6 +59,7 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
+<<<<<<< HEAD
       path: '/admin/coordinators',
       name: 'admin-coordinators',
       component: () => import('@/views/admin/CoordinatorManagementView.vue'),
@@ -83,6 +84,20 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['nep_coordinator', 'nep_admin'] },
     },
     {
+=======
+      path: '/admin/programmes',
+      name: 'admin-programmes',
+      component: () => import('@/views/admin/AdminProgrammesView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin', 'nep_coordinator'] },
+    },
+    {
+      path: '/admin/organisations',
+      name: 'admin-organisations',
+      component: () => import('@/views/admin/OrganisationManagementView.vue'),
+      meta: { requiresAuth: true, roles: ['nep_admin'] },
+    },
+    {
+>>>>>>> 809c92cb8c1d09fcb4f210022fe265231b5b21c2
       path: '/403',
       name: 'forbidden',
       component: () => import('@/views/errors/403.vue'),

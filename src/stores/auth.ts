@@ -35,7 +35,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (currentUserId.value) {
         sessionStorage.setItem('currentUserId', currentUserId.value)
       }
-      connectRealtimeForRole(userRole.value)
+      connectRealtimeForRole(userRole.value, currentUserId.value)
     } else {
       disconnectRealtime()
       sessionStorage.removeItem('isLoggedIn')
