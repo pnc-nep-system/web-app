@@ -36,12 +36,9 @@ export const adviserApi = {
 
     /**
      * Fetch all users with role nep_coordinator for the assignment dropdown.
-     * Calls /admin/users?role=nep_coordinator — the real backend endpoint.
      */
     getCoordinators() {
-        return api.get<{ data: User[] } | User[]>('/admin/users', {
-            params: { role: 'nep_coordinator', per_page: 100 },
-        })
+        return api.get<{ data: User[] } | User[]>('/adviser/coordinators')
     },
 
     /**

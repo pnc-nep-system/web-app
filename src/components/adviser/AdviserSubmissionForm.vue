@@ -107,7 +107,7 @@ async function loadCoordinators() {
   try {
     const res = await adviserApi.getCoordinators()
     const body = res.data as any
-    // /admin/users returns a Laravel paginator: { data: User[], current_page, ... }
+    // Handle both direct array and paginated/wrapped responses just in case
     let list: User[] = []
     if (Array.isArray(body)) {
       list = body
@@ -342,7 +342,7 @@ function cancel() {
             :key="coord.id"
             :value="String(coord.id)"
           >
-            {{ coord.name }} ({{ coord.email }})
+            {{ coord.name }}
           </option>
         </select>
       </div>
