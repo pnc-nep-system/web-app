@@ -111,8 +111,8 @@ function removeGap(idx: number) {
         <div>
           <div class="flex items-center gap-3">
             <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Draft advisory note</h1>
-            <span v-if="currentStatus === 'submitted_for_review'" class="bg-[#FFF4ED] text-[#C2410C] px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide">Submitted for review</span>
-            <span v-else class="bg-[#DCFCE7] text-[#15803D] px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide">Advice delivered</span>
+            <span v-if="currentStatus === 'advice_delivered'" class="bg-[#DCFCE7] text-[#15803D] px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide">Advice delivered</span>
+            <span v-else class="bg-[#FFF4ED] text-[#C2410C] px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide">Submitted for review</span>
           </div>
           <p class="mt-2 text-[13px] text-gray-500 flex items-center gap-2">
             <span>Source: <a href="#" class="text-[#0F5A4D] hover:underline underline-offset-2">education-inclusion-call.pdf</a></span>
@@ -129,7 +129,7 @@ function removeGap(idx: number) {
             Back
           </button>
           
-          <template v-if="currentStatus === 'submitted_for_review'">
+          <template v-if="currentStatus !== 'advice_delivered'">
             <button @click="saveDraft" class="px-4 py-2 border border-gray-200 rounded-lg text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm">
               Save draft
             </button>
