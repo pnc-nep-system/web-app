@@ -1,56 +1,85 @@
 <script setup lang="ts">
 import AppShell from '@/components/AppShell.vue'
-import { reactive, ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/utils/toast'
 import Badge from '@/components/common/BaseBadge.vue'
 import Icon from '@/components/common/BaseIcon.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import PolicyFormModal from '@/components/policy/PolicyFormModal.vue'
+
+interface PolicyDocument {
+  id: number
+  title: string
+  authority: string
+  version: string
+  date: string
+  status: 'active' | 'superseded'
+}
 
 const auth = useAuthStore()
 const toast = useToast()
 
 const isAdmin = computed(() => auth.userRole === 'nep_admin')
 
-const items = ref([])
+const items = ref<PolicyDocument[]>([])
+const loading = ref(false)
+const error = ref('')
+
+const seedData: PolicyDocument[] = [
+  { id: 1, title: 'Education Strategic Plan 2024-2028', authority: 'MoEYS', version: '1.0', date: '2024-01-15', status: 'active' },
+  { id: 2, title: 'Inclusive Education Policy Circular', authority: 'MoEYS', version: '2.1', date: '2025-03-02', status: 'active' },
+  { id: 3, title: 'TVET Sector Framework', authority: 'Ministry of Labour and Vocational Training', version: '1.2', date: '2023-09-10', status: 'superseded' },
+  { id: 4, title: 'TVET Sector Framework', authority: 'Ministry of Labour and Vocational Training', version: '2.0', date: '2026-02-01', status: 'active' },
+  { id: 5, title: 'Early Childhood Care and Development Policy', authority: 'MoEYS', version: '1.0', date: '2022-06-20', status: 'active' },
+  { id: 6, title: 'Child Safeguarding in Schools Guideline', authority: 'MoEYS', version: '1.1', date: '2025-08-14', status: 'active' }
+]
+
+async function fetchPolicies() {
+  loading.value = true
+  error.value = ''
+  try {
+    // Simulate API request delay
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    items.value = [...seedData]
+  } catch {
+    error.value = 'Failed to load policy documents.'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchPolicies()
+})
 
 const showAdd = ref(false)
-const form = reactive({ title: '', authority: '', version: '', date: '' })
-const errors = reactive({ title: '', authority: '', version: '', date: '' })
 
-function formatDate(dateStr) {
+function formatDate(dateStr: string) {
   if (!dateStr) return ''
   const d = new Date(dateStr)
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function openAdd() {
-  form.title = ''
-  form.authority = ''
-  form.version = ''
-  form.date = ''
-  showAdd.value = true
-}
-
-async function submit() {
-  errors.title = form.title.trim() ? '' : 'Title is required.'
-  errors.authority = form.authority.trim() ? '' : 'Issuing authority is required.'
-  errors.version = form.version.trim() ? '' : 'Version is required.'
-  errors.date = form.date ? '' : 'Date is required.'
-  if (Object.values(errors).some(Boolean)) return
-  const active = items.value.find(d => d.title === form.title.trim() && d.status === 'active')
+function handleAddPolicy(payload: { title: string; authority: string; version: string; date: string }) {
+  const active = items.value.find(d => d.title === payload.title && d.status === 'active')
   if (active) active.status = 'superseded'
+
   items.value.push({
     id: Date.now(),
-    title: form.title.trim(),
-    authority: form.authority.trim(),
-    version: form.version.trim(),
-    date: form.date,
+    title: payload.title,
+    authority: payload.authority,
+    version: payload.version,
+    date: payload.date,
     status: 'active',
   })
+
   toast.success('Policy document added — any prior active version has been marked superseded')
   showAdd.value = false
 }
 </script>
+
 <template>
   <AppShell>
     <template #header>
@@ -60,7 +89,7 @@ async function submit() {
           <span class="text-gray-300">›</span>
           <span class="text-gray-700 font-medium truncate">Policy library</span>
         </div>
-        <button v-if="isAdmin" @click="openAdd"
+        <button v-if="isAdmin" @click="showAdd = true"
           class="inline-flex items-center gap-[7px] rounded-lg font-semibold text-[13px] px-4 py-[9px] border border-[var(--line)] bg-white text-[var(--ink-700)] whitespace-nowrap transition duration-100 hover:border-[var(--ink-400)] shadow-sm shrink-0">
           <Icon name="plus" :size="15" /> Add document
         </button>
@@ -83,9 +112,26 @@ async function submit() {
       </p>
     </div>
 
-    <!-- Data Table -->
+    <!-- Data Table / Loader / Empty States -->
     <div class="border rounded-xl shadow-sm bg-white overflow-hidden">
-      <div class="overflow-x-auto">
+      <!-- Loading Indicator -->
+      <LoadingSpinner v-if="loading" message="Loading documents..." />
+
+      <!-- Error State -->
+      <EmptyState v-else-if="error" title="Something went wrong" :description="error">
+        <button
+          class="mt-2 text-sm font-medium text-teal-700 hover:text-teal-600 bg-teal-50 px-3 py-1.5 rounded-md border border-teal-200 transition-colors"
+          @click="fetchPolicies"
+        >
+          Try again
+        </button>
+      </EmptyState>
+
+      <!-- Empty State -->
+      <EmptyState v-else-if="items.length === 0" title="No matching entries found" description="Try adjusting or clearing your filters." />
+
+      <!-- Data Table -->
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
           <thead>
             <tr class="border-b border-[var(--line)] bg-gray-50/50">
@@ -120,65 +166,12 @@ async function submit() {
       </div>
     </div>
 
-    <!-- Modal Form (Teleport) -->
-    <Teleport to="body">
-      <div v-if="showAdd" class="fixed inset-0 bg-[rgba(10,25,22,0.45)] flex items-center justify-center z-[150] p-5"
-        @click.self="showAdd = false">
-        <div class="bg-white rounded-xl shadow-[var(--shadow-lg)] w-full max-w-[440px] p-6">
-          <h3 class="text-[16px] font-semibold mb-[14px]">Add policy document</h3>
-
-          <div class="mb-4">
-            <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-[6px]">Title</label>
-            <input type="text" v-model="form.title"
-              class="w-full border rounded-lg px-3 py-[10px] text-[13.3px] text-[var(--ink-900)] bg-white transition-colors duration-100 focus:outline-none focus:border-[var(--teal-600)] focus:ring-[3px] focus:ring-[var(--teal-100)]"
-              :class="errors.title ? 'border-[var(--red-600)]' : 'border-[var(--line)]'" />
-            <div v-if="errors.title" class="flex items-center gap-1 text-[11.5px] text-[var(--red-600)] mt-1">{{
-              errors.title }}</div>
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-[6px]">Issuing authority</label>
-            <input type="text" v-model="form.authority"
-              class="w-full border rounded-lg px-3 py-[10px] text-[13.3px] text-[var(--ink-900)] bg-white transition-colors duration-100 focus:outline-none focus:border-[var(--teal-600)] focus:ring-[3px] focus:ring-[var(--teal-100)]"
-              :class="errors.authority ? 'border-[var(--red-600)]' : 'border-[var(--line)]'" />
-            <div v-if="errors.authority" class="flex items-center gap-1 text-[11.5px] text-[var(--red-600)] mt-1">{{
-              errors.authority }}</div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-[6px]">Version</label>
-              <input type="text" v-model="form.version" placeholder="e.g. 1.0"
-                class="w-full border rounded-lg px-3 py-[10px] text-[13.3px] text-[var(--ink-900)] bg-white transition-colors duration-100 focus:outline-none focus:border-[var(--teal-600)] focus:ring-[3px] focus:ring-[var(--teal-100)]"
-                :class="errors.version ? 'border-[var(--red-600)]' : 'border-[var(--line)]'" />
-              <div v-if="errors.version" class="flex items-center gap-1 text-[11.5px] text-[var(--red-600)] mt-1">{{
-                errors.version }}</div>
-            </div>
-            <div>
-              <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-[6px]">Date</label>
-              <input type="date" v-model="form.date"
-                class="w-full border rounded-lg px-3 py-[10px] text-[13.3px] text-[var(--ink-900)] bg-white transition-colors duration-100 focus:outline-none focus:border-[var(--teal-600)] focus:ring-[3px] focus:ring-[var(--teal-100)]"
-                :class="errors.date ? 'border-[var(--red-600)]' : 'border-[var(--line)]'" />
-              <div v-if="errors.date" class="flex items-center gap-1 text-[11.5px] text-[var(--red-600)] mt-1">{{
-                errors.date }}</div>
-            </div>
-          </div>
-
-          <div class="text-[11.5px] text-[var(--ink-500)] mt-3 mb-[18px] leading-normal">
-            If a document with this exact title is already active, it will be marked superseded and retained for
-            historical reference.
-          </div>
-
-          <div class="flex justify-end gap-[10px]">
-            <button @click="showAdd = false"
-              class="inline-flex items-center gap-[7px] rounded-[7px] font-semibold text-[12.3px] px-[11px] py-[6px] border border-[var(--line)] bg-white text-[var(--ink-700)] whitespace-nowrap transition duration-100 hover:border-[var(--ink-400)]">Cancel</button>
-            <button @click="submit"
-              class="inline-flex items-center gap-[7px] rounded-[7px] font-semibold text-[12.3px] px-[11px] py-[6px] border border-transparent bg-[var(--teal-800)] text-white shadow-sm whitespace-nowrap transition duration-100 hover:bg-[var(--teal-700)]">Add
-              document</button>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+    <!-- Modal Form (Extracted Component) -->
+    <PolicyFormModal
+      :show="showAdd"
+      @close="showAdd = false"
+      @submit="handleAddPolicy"
+    />
   </AppShell>
 </template>
 
@@ -199,4 +192,3 @@ async function submit() {
   margin-top: 4px;
 }
 </style>
-
