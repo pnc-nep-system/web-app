@@ -4,21 +4,41 @@ import BaseBadge from '@/components/common/BaseBadge.vue'
 import { useMapStore } from '@/stores/map'
 import { useEntriesStore } from '@/stores/entries.store'
 
-/**
- * Renders a sortable table of map entries.
- *
- * Reads paged data, sort state, and sorting/filtering helpers from
- * useMapStore. Status badges are sourced from useEntriesStore.statusOf.
- * Row click navigates to the entry edit route.
- */
 const router = useRouter()
 const mapStore = useMapStore()
 const entriesStore = useEntriesStore()
 
-function formatAudiences(audiences: any[]): string[] {
-  return (audiences ?? []).map(
-    (a: any) => `${a.inclusion_group} (${a.inclusion_type})`
-  )
+function formatAudiences(activities: any[]): string[] {
+  if (!activities || !activities.length) return []
+  const unique = new Set<string>()
+  activities.forEach((a: any) => {
+    if (a.inclusion_group && a.inclusion_type) {
+      unique.add(`${a.inclusion_group} (${a.inclusion_type})`)
+    } else if (a.inclusion_group) {
+      unique.add(a.inclusion_group)
+    }
+  })
+  return Array.from(unique).sort()
+}
+
+function getProvinces(entry: any): string[] {
+  if (!entry.locations || !entry.locations.length) return []
+  const unique = new Set<string>()
+  entry.locations.forEach((l: any) => {
+    if (l.province?.province_name) {
+      unique.add(l.province.province_name)
+    } else if (l.province_name) {
+      unique.add(l.province_name)
+    }
+  })
+  return Array.from(unique).sort()
+}
+
+function formatBudgetBand(b: any): string {
+  if (!b) return '—'
+  if (typeof b === 'string') return b
+  if (typeof b === 'object' && b.label) return b.label
+  return '—'
 }
 </script>
 
@@ -26,46 +46,65 @@ function formatAudiences(audiences: any[]): string[] {
   <div class="overflow-x-auto">
     <table class="w-full border-collapse text-sm">
       <thead>
-        <tr>
-          <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap cursor-pointer select-none hover:text-gray-900" @click="mapStore.toggleSort('name')">
-            Programme {{ mapStore.sortKey === 'name' ? (mapStore.sortDir === 'asc' ? '\u2191' : '\u2193') : '' }}
+        <tr class="bg-slate-50 border-b border-slate-200">
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap cursor-pointer select-none hover:text-slate-900 transition-colors" @click="mapStore.toggleSort('name')">
+            Programme {{ mapStore.sortKey === 'name' ? (mapStore.sortDir === 'asc' ? '↑' : '↓') : '' }}
           </th>
-          <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">Status</th>
-          <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">Primary activities</th>
-          <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">Audiences</th>
-          <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap">Provinces</th>
-          <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap cursor-pointer select-none hover:text-gray-900" @click="mapStore.toggleSort('budgetBand')">
-            Budget band {{ mapStore.sortKey === 'budgetBand' ? (mapStore.sortDir === 'asc' ? '\u2191' : '\u2193') : '' }}
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Primary activities</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Audiences</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Provinces</th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap cursor-pointer select-none hover:text-slate-900 transition-colors" @click="mapStore.toggleSort('budgetBand')">
+            Budget band {{ mapStore.sortKey === 'budgetBand' ? (mapStore.sortDir === 'asc' ? '↑' : '↓') : '' }}
           </th>
-          <th class="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-200 whitespace-nowrap"></th>
+          <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap"></th>
         </tr>
       </thead>
-      <tbody>
-        <tr v-for="e in mapStore.paged" :key="e.id" class="cursor-pointer transition-colors duration-100 hover:bg-gray-50" @click="router.push('/entries/' + e.id)">
-          <td class="px-3 py-2.5 border-b border-gray-100 min-w-[160px]">
-            <div><b>{{ e.programme_name ?? e.name }}</b></div>
+      <tbody class="divide-y divide-slate-100">
+        <tr v-for="e in mapStore.paged" :key="e.id" class="cursor-pointer transition-colors duration-200 hover:bg-teal-50/50 group" @click="router.push({ name: 'entry-detail', params: { id: String(e.id) } })">
+          <td class="px-4 py-3 min-w-[200px]">
+            <div class="font-semibold text-slate-800 group-hover:text-teal-700 transition-colors">{{ e.programme_name ?? e.name }}</div>
           </td>
-          <td class="px-3 py-2.5 border-b border-gray-100">
+          <td class="px-4 py-3">
             <BaseBadge :tone="entriesStore.statusOf(e) === 'verified' ? 'green' : 'amber'">
               {{ entriesStore.statusOf(e) === 'verified' ? 'Verified' : 'Unverified' }}
             </BaseBadge>
           </td>
-          <td class="px-3 py-2.5 border-b border-gray-100">
-            <BaseBadge v-for="code in mapStore.primaryActivities(e)" :key="code" tone="teal" class="mr-1">
-              {{ code }}
-            </BaseBadge>
+          <td class="px-4 py-3 max-w-[200px]">
+            <div class="flex flex-wrap gap-1">
+              <template v-if="mapStore.primaryActivities(e).length > 0">
+                <BaseBadge v-for="code in mapStore.primaryActivities(e).slice(0, 3)" :key="code" tone="teal">
+                  {{ code }}
+                </BaseBadge>
+                <BaseBadge v-if="mapStore.primaryActivities(e).length > 3" tone="slate">
+                  +{{ mapStore.primaryActivities(e).length - 3 }}
+                </BaseBadge>
+              </template>
+              <span v-else class="text-xs text-slate-300">—</span>
+            </div>
           </td>
-          <td class="px-3 py-2.5 border-b border-gray-100 text-xs">
-            {{ formatAudiences(e.audiences).slice(0, 2).join(', ') }}
-            <span v-if="(e.audiences ?? []).length > 2" class="text-gray-400"> +{{ e.audiences.length - 2 }}</span>
+          <td class="px-4 py-3 text-xs text-slate-600">
+            {{ formatAudiences(e.activities).slice(0, 2).join(', ') || '—' }}
+            <span v-if="formatAudiences(e.activities).length > 2" class="text-slate-400 font-medium ml-1"> +{{ formatAudiences(e.activities).length - 2 }}</span>
           </td>
-          <td class="px-3 py-2.5 border-b border-gray-100 text-xs">
-            {{ (e.provinces ?? []).slice(0, 2).join(', ') }}
-            <span v-if="(e.provinces ?? []).length > 2" class="text-gray-400"> +{{ e.provinces.length - 2 }}</span>
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap gap-1">
+              <span v-for="p in getProvinces(e).slice(0, 2)" :key="p" class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200/60">{{ p }}</span>
+              <span v-if="getProvinces(e).length > 2" class="px-1.5 py-0.5 rounded-md bg-slate-100/80 text-slate-500 text-xs font-semibold"> +{{ getProvinces(e).length - 2 }}</span>
+              <span v-if="!getProvinces(e).length" class="text-xs text-slate-300">—</span>
+            </div>
           </td>
-          <td class="px-3 py-2.5 border-b border-gray-100 text-xs">{{ mapStore.formatBudget(e.budget_band ?? e.budgetBand) }}</td>
-          <td class="px-3 py-2.5 border-b border-gray-100">
-            <button class="btn btn-ghost btn-sm" @click.stop="router.push('/entries/' + e.id)">View →</button>
+          <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+            {{ formatBudgetBand(e.budget_band ?? e.budgetBand) }}
+          </td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <button 
+              class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition-all border border-teal-200/60 shadow-xs whitespace-nowrap cursor-pointer group-hover:bg-teal-100/80"
+              @click.stop="router.push({ name: 'entry-detail', params: { id: String(e.id) } })"
+            >
+              <span>View</span>
+              <span class="transition-transform group-hover:translate-x-0.5">→</span>
+            </button>
           </td>
         </tr>
       </tbody>
