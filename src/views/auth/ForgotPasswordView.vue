@@ -24,6 +24,7 @@ async function submit() {
 
   loading.value = true
   try {
+    await authApi.getCsrfCookie()
     await authApi.forgotPassword({ email: email.value.trim() })
     submitted.value = true
   } catch (error: any) {
