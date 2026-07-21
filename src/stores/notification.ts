@@ -13,7 +13,7 @@ export const useNotificationStore = defineStore('notifications', () => {
     loading.value = true
     try {
       const res = await notificationApi.list()
-      items.value = res.data.data
+      items.value = res.data.data ?? []
     } finally {
       loading.value = false
     }
@@ -31,9 +31,8 @@ export const useNotificationStore = defineStore('notifications', () => {
   }
 
   function pushNotification(notification: AppNotification) {
-    if (!items.value.find(n => n.id === notification.id)) {
-      items.value.unshift(notification)
-    }
+    if (items.value.find(n => n.id === notification.id)) return
+    items.value.unshift(notification)
   }
 
   return { items, loading, unreadCount, fetchNotifications, markRead, markAllRead, pushNotification }

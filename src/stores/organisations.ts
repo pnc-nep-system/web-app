@@ -65,12 +65,9 @@ export const useOrganisationsStore = defineStore('organisations', () => {
     try {
       const payload = {
         name: data.name,
-        acronym: data.acronym,
         email: data.email,
-        contact_name: data.contactName,
-        phone: data.phone,
-        website: data.website,
-        status: data.status,
+        contact_name: data.contact_name,
+        member_since: data.member_since,
       }
       const res = await organisationService.createOrganisation(payload)
       let created = res.data.organisation ?? res.data
@@ -98,12 +95,9 @@ export const useOrganisationsStore = defineStore('organisations', () => {
       const payload: Record<string, any> = {}
 
       if (data.name !== current?.name) payload.name = data.name
-      if (data.acronym !== current?.acronym) payload.acronym = data.acronym
       if (data.email !== current?.email) payload.email = data.email
-      if (data.contactName !== current?.contact_name) payload.contact_name = data.contactName
-      if (data.phone !== current?.phone) payload.phone = data.phone
-      if (data.website !== current?.website) payload.website = data.website
-      if (data.status !== current?.status) payload.status = data.status
+      if (data.contact_name !== current?.contact_name) payload.contact_name = data.contact_name
+      if (data.member_since !== current?.member_since) payload.member_since = data.member_since
 
       let updated = current
       if (Object.keys(payload).length > 0) {
