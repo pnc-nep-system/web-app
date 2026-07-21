@@ -28,8 +28,8 @@ function formatDate(dateStr: string) {
         <col style="width: 25%" />
         <col style="width: 12%" />
         <col style="width: 13%" />
-        <col style="width: 12%" />
-        <col v-if="isAdmin" style="width: 8%" />
+        <col style="width: 10%" />
+        <col style="width: 10%" />
       </colgroup>
 
       <!-- Header -->
@@ -40,7 +40,7 @@ function formatDate(dateStr: string) {
           <th class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Version</th>
           <th class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Date</th>
           <th class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Status</th>
-          <th v-if="isAdmin" class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right whitespace-nowrap">Actions</th>
+          <th class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right whitespace-nowrap">Action</th>
         </tr>
       </thead>
 
