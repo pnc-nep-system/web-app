@@ -1,15 +1,37 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
+import type { User } from '@/types/user'
 
-defineProps<{
+const props = defineProps<{
   currentStatus: string
-  assignee: string
+  assigneeId: number | null
+  coordinators: User[]
+  deliveredAt?: string | null
 }>()
 
 const emit = defineEmits<{
-  'update:assignee': [value: string]
+  'update:assigneeId': [value: number | null]
   upload: []
 }>()
+
+const assigneeName = computed(() => {
+  if (!props.assigneeId) return null
+  const u = props.coordinators.find(c => c.id === props.assigneeId)
+  return u ? (u.name ?? u.email ?? `User #${props.assigneeId}`) : `User #${props.assigneeId}`
+})
+
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'just now'
+  return new Date(dateStr).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  })
+}
+
+function onSelectChange(e: Event) {
+  const val = (e.target as HTMLSelectElement).value
+  emit('update:assigneeId', val === '' ? null : Number(val))
+}
 </script>
 
 <template>
@@ -23,7 +45,6 @@ const emit = defineEmits<{
           <BaseIcon name="check" size="14" />
         </div>
         <h3 class="text-[13px] font-bold text-gray-900 leading-none">Document uploaded</h3>
-        <p class="text-[12px] text-gray-500 mt-1">16 days ago</p>
       </div>
 
       <div class="relative">
@@ -31,7 +52,6 @@ const emit = defineEmits<{
           <BaseIcon name="check" size="14" />
         </div>
         <h3 class="text-[13px] font-bold text-gray-900 leading-none">AI draft generated</h3>
-        <p class="text-[12px] text-gray-500 mt-1">16 days ago</p>
       </div>
 
       <div class="relative">
@@ -44,11 +64,13 @@ const emit = defineEmits<{
         
         <template v-if="currentStatus === 'advice_delivered'">
           <h3 class="text-[13px] font-bold text-gray-900 leading-none">Advice delivered</h3>
-          <p class="text-[12px] text-gray-500 mt-1">just now</p>
+          <p class="text-[12px] text-gray-500 mt-1">{{ formatDate(deliveredAt) }}</p>
         </template>
         <template v-else>
           <h3 class="text-[13px] font-bold text-gray-900 leading-none">Coordinator review</h3>
-          <p class="text-[12px] text-gray-500 mt-1">In progress — Sophea Chandara</p>
+          <p class="text-[12px] text-gray-500 mt-1">
+            In progress<template v-if="assigneeName"> — {{ assigneeName }}</template>
+          </p>
         </template>
       </div>
     </div>
@@ -59,23 +81,28 @@ const emit = defineEmits<{
     <!-- Post-delivery State -->
     <div v-if="currentStatus === 'advice_delivered'">
       <p class="text-[13px] text-gray-900 font-semibold mb-1">
-        Final note: <span class="font-normal text-gray-600">adv-9bw9lj4rbn-advisory-FINAL.pdf</span>
+        Delivered on <span class="font-normal text-gray-600">{{ formatDate(deliveredAt) }}</span>
       </p>
     </div>
 
     <!-- Pre-delivery Editing State -->
     <div v-else class="space-y-4">
       <div>
-        <label class="block text-[12px] font-bold text-gray-700 mb-2">Assign to</label>
+        <label class="block text-[12px] font-bold text-gray-700 mb-2">Assign to coordinator</label>
         <div class="relative">
-          <select 
-            :value="assignee"
-            @change="$emit('update:assignee', ($event.target as HTMLSelectElement).value)"
+          <select
+            :value="assigneeId ?? ''"
+            @change="onSelectChange"
             class="w-full text-[13px] text-gray-900 border border-gray-200 rounded-lg px-4 py-2.5 appearance-none bg-white hover:border-gray-300 focus:outline-none focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D] transition shadow-sm"
           >
-            <option>Sophea Chandara</option>
-            <option>Sreymom Pich</option>
-            <option>Unassigned</option>
+            <option value="">Unassigned — leave in shared queue</option>
+            <option
+              v-for="c in coordinators"
+              :key="c.id"
+              :value="c.id"
+            >
+              {{ c.name ?? c.email ?? `User #${c.id}` }}
+            </option>
           </select>
           <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
             <BaseIcon name="chevronDown" size="16" />

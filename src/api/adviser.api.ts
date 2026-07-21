@@ -61,4 +61,13 @@ export const adviserApi = {
     markDelivered(id: number) {
         return api.patch<{ data: Submission }>(`/adviser/submissions/${id}/deliver`)
     },
+
+    /**
+     * Update the coordinator assigned to a submission.
+     */
+    updateAssignee(id: number, userId: number | null) {
+        return api.patch<{ data: Submission }>(`/adviser/submissions/${id}`, {
+            assign_to_staff_user_id: userId,
+        })
+    },
 }
