@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import AppShell from '@/components/AppShell.vue'
+import BaseBadge from '@/components/common/BaseBadge.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import ToastHost from '@/components/ToastHost.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import { useAdminProgrammes } from '@/composables/useAdminProgrammes'
 
 const programmes = useAdminProgrammes()
-import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 </script>
 
 <template>
@@ -59,6 +60,7 @@ import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
           <tr class="border-b border-[var(--line)] text-xs font-semibold text-[var(--ink-400)] uppercase tracking-wider">
             <th class="text-left px-5 py-3">Programme</th>
             <th class="text-left px-5 py-3 hidden sm:table-cell">Organisation</th>
+            <th class="text-left px-5 py-3 hidden lg:table-cell">Primary activities</th>
             <th class="text-left px-5 py-3 hidden md:table-cell">Status</th>
             <th class="text-left px-5 py-3 hidden sm:table-cell">Updated</th>
             <th class="text-left px-5 py-3">Action</th>
@@ -76,6 +78,12 @@ import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
             </td>
             <td class="px-5 py-3.5 text-xs text-[var(--ink-500)] hidden sm:table-cell">
               {{ entry.organisation?.name ?? '—' }}
+            </td>
+            <td class="px-5 py-3.5 hidden lg:table-cell">
+              <div class="flex flex-wrap gap-1">
+                <BaseBadge v-for="code in (entry.primaryActivities || [])" :key="code" tone="teal">{{ code }}</BaseBadge>
+                <span v-if="!entry.primaryActivities?.length" class="text-xs text-gray-300">—</span>
+              </div>
             </td>
             <td class="px-5 py-3.5 hidden md:table-cell">
               <StatusBadge v-if="!entry.is_unverified" label="Verified" variant="success" />

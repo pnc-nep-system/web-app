@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { memberApi } from '@/api/member.api'
 import { organisationService } from '@/api/organisation.service'
 import { formatRelativeTime } from '@/utils/date'
+import { extractPrimaryActivityCodes } from '@/utils/activityHelpers'
 import type { Organisation } from '@/api/organisation.service'
 import type { EntryRow } from '@/types/adminProgrammes'
 
@@ -126,6 +127,8 @@ export function useAdminProgrammes() {
             orgName = orgNameById.value[orgId] ?? `Org #${orgId}`
           }
         }
+        const primaryActivities = extractPrimaryActivityCodes(entry.activities as any[])
+
         return {
           id: Number(entry.id),
           programme_name: String(entry.programme_name ?? ''),
@@ -134,6 +137,7 @@ export function useAdminProgrammes() {
           start_year: entry.start_year as number | null,
           end_year: entry.end_year as number | null,
           organisation: orgName ? { name: orgName } : null,
+          primaryActivities,
           relativeUpdated: formatRelativeTime(entry.updated_at as string) || '—',
         }
       })

@@ -5,6 +5,7 @@ import { BUDGET_BANDS } from '@/constants/programme'
 import type { ProgrammeIdentity } from '@/types/programme'
 
 import { monthsSince, formatRelativeTime } from '@/utils/date'
+import { extractPrimaryActivityCodes } from '@/utils/activityHelpers'
 
 export interface EntryWithStatus extends ProgrammeIdentity {
   status: string
@@ -38,10 +39,16 @@ function mapEntry(e: any): ProgrammeIdentity {
     verifiedDate: e.verified_date || '',
     isUnverified: !!e.is_unverified,
     provinces: (e.locations || []).map((loc: any) => loc.province?.province_name ?? loc.province_name).filter(Boolean),
-    activities: (e.activities || []).map((a: any) => ({
-      code: a.activity_item?.code || '',
-      primary: !!a.is_primary,
-    })).filter((a: any) => a.code),
+    activities: (e.activities || []).map((a: any) => {
+      const code = a.activity_item?.code || a.code || (typeof a === 'string' ? a : '')
+      const isPrimary = !!(a.is_primary ?? a.primary)
+      return {
+        code,
+        is_primary: isPrimary,
+        primary: isPrimary,
+        activity_item: a.activity_item || { code },
+      }
+    }).filter((a: any) => a.code),
     lastUpdated: e.last_updated_at || e.updated_at || '',
     isDraft: !Number(e.is_submitted),
   }
@@ -79,7 +86,7 @@ export const useEntriesStore = defineStore('entries', () => {
   const entriesWithStatus = computed<EntryWithStatus[]>(() =>
     currentItems.value.map(entry => {
       const provinces = entry.provinces || []
-      const primaryActivities = entry.activities?.filter(a => a.primary).map(a => a.code) || []
+      const primaryActivities = extractPrimaryActivityCodes(entry.activities)
 
       return {
         ...entry,
@@ -124,7 +131,8 @@ export const useEntriesStore = defineStore('entries', () => {
       provinces: (e.locations || []).map((loc: any) => loc.province?.province_name ?? loc.province_name).filter(Boolean),
       activities: (e.activities || []).map((a: any) => ({
         code: a.activity_item?.code || a.code || '',
-        primary: !!a.is_primary,
+        is_primary: !!(a.is_primary ?? a.primary),
+        primary: !!(a.is_primary ?? a.primary),
         inclusion: a.inclusion ? { group: a.inclusion_group || a.inclusion.group, type: a.inclusion_type || a.inclusion.type } : (a.inclusion_group ? { group: a.inclusion_group, type: a.inclusion_type } : null),
         levels: a.activity_levels?.map((l: any) => l.education_level_id ?? l) ?? [],
         source: a.source || null,

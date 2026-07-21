@@ -11,6 +11,10 @@ let counter = 0
 
 export function useToast() {
   function push(message: string, type = 'default', duration = 3200) {
+    const existingIdx = state.items.findIndex(t => t.message === message || (type === 'error' && t.type === 'error'))
+    if (existingIdx !== -1) {
+      state.items.splice(existingIdx, 1)
+    }
     const id = ++counter
     state.items.push({ id, message, type })
     setTimeout(() => dismiss(id), duration)

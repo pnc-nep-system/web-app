@@ -155,8 +155,8 @@ onMounted(() => {
               </td>
               <td class="px-5 py-3.5 hidden md:table-cell">
                 <div class="flex flex-wrap gap-1">
-                  <BaseBadge v-for="code in entry.primaryCodes" :key="code" tone="teal">{{ code }}</BaseBadge>
-                  <span v-if="!entry.primaryCodes.length" class="text-xs text-gray-300">—</span>
+                  <BaseBadge v-for="code in (entry.primaryCodes || [])" :key="code" tone="teal">{{ code }}</BaseBadge>
+                  <span v-if="!entry.primaryCodes?.length" class="text-xs text-gray-300">—</span>
                 </div>
               </td>
               <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">

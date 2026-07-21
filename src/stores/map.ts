@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useProgrammeGeographyStore } from './programmeGeography'
 import { useTaxonomyStore } from './taxonomy'
 import { getMapEntries, type MapFilters } from '@/api/map.api'
+import { extractPrimaryActivityCodes } from '@/utils/activityHelpers'
 import type { MapViewFilters } from '@/types/map'
 
 /** Baseline empty filter state used by the store and by clearFilters(). */
@@ -104,44 +105,115 @@ export const useMapStore = defineStore('map', () => {
     return map
   })
 
-  /** District display names for the "District" filter dropdown, filtered by selected province. */
+  /** District display names for the "District" filter dropdown. */
   const districtsList = computed(() => {
-    const name = filters.value.province
-    if (!name) return []
-    const pId = provinceIdByName.value[name]
-    if (!pId) return []
-    const dists = geographyStore.value.districtsCache[pId]
-    if (!dists) return []
-    return dists.map(d => d.name)
+    const provName = filters.value.province
+    const distSet = new Set<string>()
+
+    // 1. Extract from loaded map entries
+    for (const e of mapEntries.value) {
+      for (const l of e.locations || []) {
+        if (!provName || l.province?.province_name === provName || l.province_name === provName) {
+          const dName = l.district?.name ?? l.district_name
+          if (dName) distSet.add(dName)
+        }
+      }
+    }
+
+    // 2. Extract from geographyStore districtsCache
+    if (provName) {
+      const pId = provinceIdByName.value[provName]
+      if (pId && geographyStore.value.districtsCache[pId]) {
+        for (const d of geographyStore.value.districtsCache[pId]) {
+          if (d.name) distSet.add(d.name)
+        }
+      }
+    } else {
+      for (const list of Object.values(geographyStore.value.districtsCache)) {
+        for (const d of list) {
+          if (d.name) distSet.add(d.name)
+        }
+      }
+    }
+
+    return [...distSet].sort()
   })
 
-  /** Commune display names for the "Commune" filter dropdown, filtered by selected district. */
+  /** Commune display names for the "Commune" filter dropdown. */
   const communesList = computed(() => {
-    const name = filters.value.district
-    if (!name) return []
-    for (const list of Object.values(geographyStore.value.districtsCache)) {
-      const dist = list.find(d => d.name === name)
-      if (dist) {
-        const communes = geographyStore.value.communesCache[dist.id] ?? []
-        return communes.map(c => c.name)
+    const provName = filters.value.province
+    const distName = filters.value.district
+    const commSet = new Set<string>()
+
+    for (const e of mapEntries.value) {
+      for (const l of e.locations || []) {
+        const matchProv = !provName || l.province?.province_name === provName || l.province_name === provName
+        const matchDist = !distName || l.district?.name === distName || l.district_name === distName
+        if (matchProv && matchDist) {
+          const cName = l.commune?.name ?? l.commune_name
+          if (cName) commSet.add(cName)
+        }
       }
     }
-    return []
+    return [...commSet].sort()
   })
 
-  /** Village display names for the "Village" filter dropdown, filtered by selected commune. */
+  /** Village display names for the "Village" filter dropdown. */
   const villagesList = computed(() => {
-    const name = filters.value.commune
-    if (!name) return []
-    for (const list of Object.values(geographyStore.value.communesCache)) {
-      const commune = list.find(c => c.name === name)
-      if (commune) {
-        const villages = geographyStore.value.villagesCache[commune.id] ?? []
-        return villages.map(v => v.name)
+    const provName = filters.value.province
+    const distName = filters.value.district
+    const vilSet = new Set<string>()
+
+    // 1. Extract from loaded map entries
+    for (const e of mapEntries.value) {
+      for (const l of e.locations || []) {
+        const matchProv = !provName || l.province?.province_name === provName || l.province_name === provName
+        const matchDist = !distName || l.district?.name === distName || l.district_name === distName
+        if (matchProv && matchDist) {
+          const vName = l.village?.name ?? l.village_name
+          if (vName) vilSet.add(vName)
+        }
       }
     }
-    return []
+
+    // 2. Extract from geographyStore villagesCache
+    for (const list of Object.values(geographyStore.value.villagesCache)) {
+      for (const v of list) {
+        if (v.name) vilSet.add(v.name)
+      }
+    }
+
+    return [...vilSet].sort()
   })
+
+  watch(
+    () => filters.value.province,
+    (newProv) => {
+      filters.value.district = ''
+      filters.value.village = ''
+      if (newProv) {
+        const pId = provinceIdByName.value[newProv]
+        if (pId) {
+          geographyStore.value.fetchDistricts(pId)
+        }
+      }
+    }
+  )
+
+  watch(
+    () => filters.value.district,
+    (newDist) => {
+      filters.value.village = ''
+      if (newDist) {
+        for (const list of Object.values(geographyStore.value.districtsCache)) {
+          const dist = list.find((d: any) => d.name === newDist)
+          if (dist) {
+            geographyStore.value.fetchCommunes(dist.id)
+          }
+        }
+      }
+    }
+  )
 
   /**
    * Unique government counterpart agency names derived from all loaded
@@ -248,9 +320,7 @@ export const useMapStore = defineStore('map', () => {
    * @returns Array of activity codes marked as primary.
    */
   function primaryActivities(e: any): string[] {
-    const primaries = e.activities?.filter((a: any) => a.is_primary).map((a: any) => a.activity_item?.code ?? a.code).filter(Boolean) ?? []
-    if (primaries.length > 0) return primaries
-    return e.activities?.map((a: any) => a.activity_item?.code ?? a.code).filter(Boolean) ?? []
+    return extractPrimaryActivityCodes(e?.activities)
   }
 
   /**

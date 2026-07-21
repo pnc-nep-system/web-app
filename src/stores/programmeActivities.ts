@@ -105,6 +105,9 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
       educationLevels.value = nextEdLevels
     } else {
       selected.value = [...selected.value, code]
+      if (!primary.value.includes(code)) {
+        primary.value = [...primary.value, code]
+      }
 
       if (!inclusions.value[code]) {
         inclusions.value = {
@@ -145,10 +148,55 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     // Placeholder
   }
 
+  const errorMessage = ref('')
+
   function validate(): boolean {
-    const isValid = selected.value.length > 0
-    showError.value = !isValid
-    return isValid
+    errorMessage.value = ''
+
+    // 1. At least one activity must be selected
+    if (selected.value.length === 0) {
+      errorMessage.value = 'Please select at least one activity before continuing.'
+      showError.value = true
+      return false
+    }
+
+    // 2. Education level must be chosen for every selected activity
+    for (const code of selected.value) {
+      const levels = educationLevels.value[code] || []
+      if (levels.length === 0) {
+        errorMessage.value = `Please select at least one education level for selected activity ${code}.`
+        showError.value = true
+        return false
+      }
+    }
+
+    // 3. Inclusion sub-fields must be complete when toggled on
+    for (const code of selected.value) {
+      const inc = inclusions.value[code]
+      if (inc && inc.hasInclusion) {
+        const dims = inc.dimensions || []
+        if (dims.length === 0) {
+          errorMessage.value = `Please select an inclusion dimension for activity ${code}.`
+          showError.value = true
+          return false
+        }
+        for (const dim of dims) {
+          if (!dim.group || !dim.type) {
+            errorMessage.value = `Please select the inclusion category and type for activity ${code}.`
+            showError.value = true
+            return false
+          }
+          if ((dim.group as string) === 'other' && !dim.otherText?.trim()) {
+            errorMessage.value = `Please specify the inclusion detail for activity ${code}.`
+            showError.value = true
+            return false
+          }
+        }
+      }
+    }
+
+    showError.value = false
+    return true
   }
 
   function getData() {
@@ -186,6 +234,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     educationLevels,
     collapsedItems,
     showError,
+    errorMessage,
     section2Data,
     initFromPayload,
     isGroupSelected,

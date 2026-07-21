@@ -44,27 +44,7 @@ watch(
   <!-- Page Header -->
   <ProgrammeFormHeader @save-and-exit="store.saveAndExit" />
 
-  <!-- Submission Result Banner -->
-  <div v-if="store.submissionResult"
-    class="mb-6 px-5 py-3.5 rounded-lg border flex items-center gap-3 text-sm font-medium transition-all" :class="store.submissionResult.type === 'success'
-      ? 'bg-green-50 border-green-200 text-green-800'
-      : 'bg-red-50 border-red-200 text-red-800'">
-    <svg v-if="store.submissionResult.type === 'success'" class="w-5 h-5 shrink-0 text-green-600" fill="none"
-      viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    <svg v-else class="w-5 h-5 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-      stroke-width="2">
-      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-    </svg>
-    <span class="flex-1">{{ store.submissionResult.message }}</span>
-    <button @click="store.clearSubmissionResult" class="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
-      :class="store.submissionResult.type === 'success' ? 'text-green-800' : 'text-red-800'">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    </button>
-  </div>
+
 
   <!-- Two-column layout: Step Sidebar + Form -->
   <div class="flex flex-col lg:flex-row gap-6 items-stretch lg:items-start w-full">

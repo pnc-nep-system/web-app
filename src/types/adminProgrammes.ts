@@ -6,5 +6,6 @@ export interface EntryRow {
   start_year: number | null
   end_year: number | null
   organisation: { name: string } | null
+  primaryActivities?: string[]
   relativeUpdated: string
 }

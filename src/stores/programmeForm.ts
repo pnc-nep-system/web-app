@@ -5,6 +5,8 @@ import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
 import { BUDGET_BANDS } from '@/constants/programme'
 import { useCategoriesStore } from './categories'
+import { useTaxonomyStore } from './taxonomy'
+import { useAuthStore } from './auth'
 import { useProgrammeIdentityStore } from './programmeIdentity'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 import { useProgrammeGeographyStore } from './programmeGeography'
@@ -44,7 +46,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
     // Step 2: activities
     const selectedList = section2Data.value?.selected || []
-    if (selectedList.length > 0 || activitiesStore.selected.size > 0) {
+    if (selectedList.length > 0 || (activitiesStore.selected && activitiesStore.selected.length > 0)) {
       completed.add(2)
     }
 
@@ -109,7 +111,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   const stepWidthPercent = computed(() => 100 / steps.length)
   const isFinalStep = computed(() => currentStep.value === 5)
   const isSection2Complete = computed(() => {
-    return (section2Data.value?.selected || []).length > 0 || activitiesStore.selected.size > 0
+    return (section2Data.value?.selected || []).length > 0 || (activitiesStore.selected && activitiesStore.selected.length > 0)
   })
 
   const isSection3Complete = computed(() => {
@@ -270,8 +272,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           return ''
         }
 
-        const selectedCodes = entry.activities?.map((a: any) => getActivityCode(a)).filter(Boolean) || []
-        const primaryCodes = entry.activities?.filter((a: any) => a.is_primary).map((a: any) => getActivityCode(a)).filter(Boolean) || []
+        const selectedCodes = Array.from(new Set((entry.activities?.map((a: any) => getActivityCode(a)).filter(Boolean) || []) as string[]))
+        const primaryCodes = Array.from(new Set((entry.activities?.filter((a: any) => a.is_primary || a.primary).map((a: any) => getActivityCode(a)).filter(Boolean) || []) as string[]))
 
         const inclusionsMap: Record<string, any> = {}
         const educationLevelsMap: Record<string, number[]> = {}
@@ -283,7 +285,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
               hasInclusion: !!a.inclusion_group,
               dimensions: a.inclusion_group ? [{ group: a.inclusion_group, type: a.inclusion_type }] : []
             }
-            educationLevelsMap[code] = a.activity_levels?.map((l: any) => l.education_level_id) || []
+            const rawL = a.activity_levels?.map((l: any) => l.education_level_id) || []
+            educationLevelsMap[code] = Array.from(new Set(rawL.map(Number))).filter((n: number) => !isNaN(n) && n > 0)
           }
         })
 
@@ -414,11 +417,22 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     if (!catsStore.categories.length) {
       await catsStore.loadCategories()
     }
-    catsStore.categories.forEach((cat: any) => {
-      cat.subcategories?.forEach((sub: any) => {
-        sub.items?.forEach((item: any) => {
-          dbIdToCodeMap.value[item.id] = item.code
-          taxonomyMap.value[item.code] = item.id
+    const taxStore = useTaxonomyStore()
+    if (!taxStore.categories.length) {
+      await taxStore.fetchTaxonomy()
+    }
+
+    const allCats = [...(catsStore.categories || []), ...(taxStore.categories || [])]
+    allCats.forEach((cat: any) => {
+      const subcats = cat.subcategories || cat.subCategories || cat.sub_categories || []
+      subcats.forEach((sub: any) => {
+        const items = sub.items || sub.taxonomy_items || sub.taxonomyItems || []
+        items.forEach((item: any) => {
+          if (item.id && item.code) {
+            dbIdToCodeMap.value[item.id] = item.code
+            dbIdToCodeMap.value[Number(item.id)] = item.code
+            taxonomyMap.value[item.code] = item.id
+          }
         })
       })
     })
@@ -437,7 +451,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     try {
       await ensureTaxonomyMaps()
       const isEditMode = !!section1Data.value.id
-      const orgId = getCreateOrgId()
+      let orgId = getCreateOrgId()
+      const authStore = useAuthStore() as any
+      if (!orgId && ['nep_admin', 'nep_coordinator'].includes(authStore.userRole || '') && (authStore.currentUser?.organisation_id || authStore.user?.organisation_id)) {
+        orgId = authStore.currentUser?.organisation_id || authStore.user?.organisation_id
+      }
 
       const activitiesData = section2Data.value
       const agreementsData = section4Data.value
@@ -449,9 +467,6 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         ongoing: section1Data.value.isOngoing,
         method: section1Data.value.method || null,
         verified_date: section1Data.value.verifiedDate || null,
-        province_ids: section3Data.value.provinceIds,
-        district_ids: section3Data.value.districts,
-        other_countries: section3Data.value.otherCountries,
         is_submitted: shouldSubmit,
       }
 
@@ -478,7 +493,10 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       sessionStorage.removeItem('new_programme_entry_draft')
       saveStatus.value = 'saved'
 
-      const savedId = response.data.data.id
+      const savedId = response.data?.data?.id ?? response.data?.id
+      if (!savedId) {
+        throw new Error('Failed to retrieve programme entry ID after save.')
+      }
       section1Data.value.id = savedId
 
       // 1. Agreements
@@ -492,9 +510,10 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
       // 2. Geography
       const geographicData = section3Data.value
-      const otherCountriesArray = (geographicData && geographicData.otherCountries)
-        ? geographicData.otherCountries.split(',').map((c: string) => c.trim()).filter(Boolean)
-        : []
+      const rawOtherCountries = geographicData?.otherCountries
+      const otherCountriesArray = typeof rawOtherCountries === 'string'
+        ? rawOtherCountries.split(',').map((s: string) => s.trim()).filter(Boolean)
+        : (Array.isArray(rawOtherCountries) ? rawOtherCountries : [])
       const provincesPayload = (geographicData && geographicData.provinceIds)
         ? geographicData.provinceIds.map((pId: number) => ({
             province_id: pId,
@@ -508,24 +527,52 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         other_countries: otherCountriesArray
       }
 
-      // 3. Activities — ALWAYS read live selections directly from activitiesStore
-      const selectedArray = Array.from(activitiesStore.selected)
-      const primaryArray = Array.from(activitiesStore.primary)
+      // 3. Activities — combine store & section2Data with Set deduplication
+      const selectedSet = new Set<string>([
+        ...(activitiesData?.selected || []),
+        ...(activitiesStore.selected || [])
+      ])
+      const primarySet = new Set<string>([
+        ...(activitiesData?.primary || []),
+        ...(activitiesStore.primary || [])
+      ])
+      const selectedArray = Array.from(selectedSet)
+      const primaryArray = Array.from(primarySet)
 
       const mappedActivities = selectedArray
         .map((code: string) => {
-          const dbId = taxonomyMap.value[code]
+          let dbId = taxonomyMap.value[code]
+          if (!dbId) {
+            const catsStore = useCategoriesStore()
+            const taxStore = useTaxonomyStore()
+            const allCats = [...(catsStore.categories || []), ...(taxStore.categories || [])]
+            for (const cat of allCats) {
+              const subcats = cat.subcategories || cat.subCategories || cat.sub_categories || []
+              for (const sub of subcats) {
+                const items = sub.items || sub.taxonomy_items || sub.taxonomyItems || []
+                for (const item of items) {
+                  if (item.code === code && item.id) {
+                    dbId = item.id
+                    taxonomyMap.value[code] = item.id
+                    break
+                  }
+                }
+              }
+            }
+          }
           if (!dbId) {
             console.warn(`[saveEntry] No taxonomy mapping found for code: ${code}, skipping`)
             return null
           }
-          const levels = activitiesData?.educationLevels?.[code] || activitiesStore.educationLevels?.[code] || []
+          const rawLevels = activitiesData?.educationLevels?.[code] || activitiesStore.educationLevels?.[code] || []
+          const uniqueLevels = Array.from(new Set(rawLevels.map(Number))).filter((n: number) => !isNaN(n) && n > 0)
+          const finalLevels = uniqueLevels.length > 0 ? uniqueLevels : [1]
           const inc = activitiesData?.inclusions?.[code] || activitiesStore.inclusions?.[code]
 
           const payloadAct: any = {
             activity_item_id: dbId,
             is_primary: primaryArray.includes(code),
-            education_level_ids: levels.length > 0 ? levels : [1],
+            education_level_ids: finalLevels,
             source: 'human_entered'
           }
 
@@ -544,7 +591,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       const agreementsPromise = memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
       const geographyPromise = memberApi.saveGeography(savedId, geographyPayload)
       const activitiesPromise = memberApi.saveActivities(savedId, mappedActivities)
-      const keywordsList = keywordsData.value
+      const keywordsList = (keywordsData.value || []).map(k => typeof k === 'string' ? k.trim() : '').filter(Boolean)
       const keywordsPromise = keywordsList.length > 0
         ? memberApi.saveKeywords(savedId, keywordsList)
         : Promise.resolve(null)
@@ -615,7 +662,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
               hasInclusion: !!a.inclusion_group,
               dimensions: a.inclusion_group ? [{ group: a.inclusion_group, type: a.inclusion_type }] : []
             }
-            resLevels[code] = a.activity_levels?.map((l: any) => l.education_level_id) || []
+            const rawL = a.activity_levels?.map((l: any) => l.education_level_id) || []
+            resLevels[code] = Array.from(new Set(rawL.map(Number))).filter((n: number) => !isNaN(n) && n > 0)
           }
         })
         
@@ -648,19 +696,21 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       }
       return true
     } catch (err: any) {
+      console.error('[saveEntry] Save failed:', err)
+      const serverMessage = err.response?.data?.message || err?.message
       if (err.response && err.response.status === 422) {
-        const apiMessage = 'Please correct the validation errors below.'
-        showSubmissionResult('error', apiMessage)
+        const firstErrorField = err.response.data?.errors ? Object.values(err.response.data.errors)[0] : null
+        const firstErrorMsg = Array.isArray(firstErrorField) ? firstErrorField[0] : firstErrorField
+        const apiMessage = firstErrorMsg || serverMessage || 'Please correct the validation errors below.'
+        toast.error(apiMessage)
         if (exitAfterSave) {
           const destTab = shouldSubmit ? 'submitted' : 'draft'
           router.push(`/dashboard?tab=${destTab}`)
         } else {
-          errors.value = err.response.data.errors
-          toast.error(apiMessage)
+          errors.value = err.response.data.errors || {}
         }
       } else {
-        const apiMessage = err.response?.data?.message || 'An unexpected error occurred while saving.'
-        showSubmissionResult('error', apiMessage)
+        const apiMessage = serverMessage || 'An unexpected error occurred while saving.'
         toast.error(apiMessage)
       }
       return false
@@ -694,6 +744,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   function validateCurrentStep(): boolean {
     if (currentStep.value === 1) {
       const isValid = identityFormRef.value?.validate?.()
+      if (!isValid) {
+        return false
+      }
+    } else if (currentStep.value === 2) {
+      const isValid = activitiesFormRef.value?.validate?.()
       if (!isValid) {
         return false
       }
