@@ -9,6 +9,7 @@ import Icon from '@/components/common/BaseIcon.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PolicyFormModal from '@/components/policy/PolicyFormModal.vue'
+import PolicyDocumentPreviewModal from '@/components/policy/PolicyDocumentPreviewModal.vue'
 import PolicyTable from '@/components/policy/PolicyTable.vue'
 import { policyApi, type PolicyDocument } from '@/api/policy.api'
 
@@ -44,6 +45,11 @@ const showAdd = ref(false)
 const submitting = ref(false)
 const editingPolicy = ref<PolicyDocument | null>(null)
 
+const viewingPolicy = ref<PolicyDocument | null>(null)
+function handleView(doc: PolicyDocument) {
+  viewingPolicy.value = doc
+}
+
 function openAddModal() {
   editingPolicy.value = null
   showAdd.value = true
@@ -66,7 +72,7 @@ async function handleDelete(id: number) {
   }
 }
 
-async function handleSavePolicy(payload: { title: string; authority: string; version: string; date: string; status: 'active' | 'superseded' | 'inactive' }) {
+async function handleSavePolicy(payload: { title: string; authority: string; version: string; date: string; status: 'active' | 'superseded' | 'inactive'; file?: File | null }) {
   submitting.value = true
   try {
     if (editingPolicy.value) {
@@ -132,6 +138,7 @@ async function handleSavePolicy(payload: { title: string; authority: string; ver
         v-else 
         :items="items" 
         :is-admin="isAdmin"
+        @view="handleView"
         @edit="handleEdit"
         @delete="handleDelete"
       />
@@ -143,6 +150,13 @@ async function handleSavePolicy(payload: { title: string; authority: string; ver
       :initial-data="editingPolicy"
       @close="showAdd = false"
       @submit="handleSavePolicy"
+    />
+
+    <!-- Document Preview Modal -->
+    <PolicyDocumentPreviewModal
+      :show="!!viewingPolicy"
+      :document="viewingPolicy"
+      @close="viewingPolicy = null"
     />
   </AppShell>
 </template>

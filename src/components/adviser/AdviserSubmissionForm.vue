@@ -7,6 +7,7 @@ import { taxonomyApi } from '@/api/taxonomy.api'
 import FormFileUpload from '@/components/adviser/FormFileUpload.vue'
 import FormScopeSelect from '@/components/adviser/FormScopeSelect.vue'
 import FormCoordinatorSelect from '@/components/adviser/FormCoordinatorSelect.vue'
+import BaseButton from '@/components/common/BaseButton.vue'
 import type { Province } from '@/types/programmeGeographic'
 import type { Category } from '@/types/taxonomy'
 import type { User } from '@/types/user'
@@ -132,7 +133,7 @@ function cancel() {
 
 <template>
   <div>
-    <div class="bg-white border border-gray-100 rounded-xl p-[44px] space-y-8 shadow-sm">
+    <div class="bg-white border border-gray-100 rounded-xl p-8 space-y-6 shadow-sm">
 
       <!-- Submitting party -->
       <div>
@@ -185,25 +186,23 @@ function cancel() {
 
       <!-- Actions -->
       <div class="flex items-center justify-end gap-3 pt-6">
-        <button
-          type="button"
+        <BaseButton
+          variant="secondary"
           @click="cancel"
-          class="px-6 py-3 text-[15px] font-medium text-gray-700 bg-white border border-gray-200 rounded-[8px] hover:bg-gray-50 transition-colors shadow-sm"
         >
           Cancel
-        </button>
-        <button
-          type="button"
+        </BaseButton>
+        <BaseButton
+          variant="primary"
           @click="handleSubmit"
           :disabled="adviserStore.submitting"
-          class="px-6 py-3 text-[15px] font-semibold text-white bg-[#125B4D] border border-[#125B4D] rounded-[8px] hover:bg-[#0E4A3F] transition shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          <svg v-if="adviserStore.submitting" class="animate-spin h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24">
+          <svg v-if="adviserStore.submitting" class="animate-spin h-4 w-4 shrink-0 mr-1" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
           {{ adviserStore.submitting ? 'Submitting…' : 'Continue →' }}
-        </button>
+        </BaseButton>
       </div>
 
     </div>

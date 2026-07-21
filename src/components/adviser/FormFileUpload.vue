@@ -6,6 +6,7 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 const props = defineProps<{
   modelValue: File | null
   error?: string
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -59,14 +60,14 @@ function triggerFileInput() {
 
     <!-- Drop zone -->
     <div
-      class="border border-dashed rounded-lg py-12 px-8 flex flex-col items-center justify-center gap-2 cursor-pointer transition relative"
-      style="border-width: 1.5px;"
+      class="border rounded-lg flex flex-col items-center justify-center cursor-pointer transition relative"
       :class="[
+        compact ? 'py-5 px-6 gap-1' : 'py-12 px-8 gap-2',
         isDragging
           ? 'border-teal-500 bg-teal-50/50'
           : error
             ? 'border-red-400 bg-red-50/50'
-            : 'border-gray-300 bg-white hover:border-[#125B4D] hover:bg-gray-50/30',
+            : 'border-[var(--line)] bg-white hover:border-[#125B4D] hover:bg-gray-50/30',
       ]"
       @click="triggerFileInput"
       @dragover.prevent="isDragging = true"
