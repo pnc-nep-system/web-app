@@ -319,6 +319,8 @@ textarea {
   border-radius: 14px;
   box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 440px;
+  max-width: 540px;
   padding: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
 }

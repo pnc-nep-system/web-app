@@ -10,6 +10,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'edit', doc: PolicyDocument): void
   (e: 'delete', id: number): void
+  (e: 'view', doc: PolicyDocument): void
 }>()
 
 function formatDate(dateStr: string) {
@@ -100,9 +101,17 @@ function formatDate(dateStr: string) {
           </td>
 
           <!-- Actions -->
-          <td v-if="isAdmin" class="px-5 h-12 align-middle text-right">
+          <td class="px-5 h-12 align-middle text-right">
             <div class="flex items-center justify-end gap-1 transition-opacity">
               <button
+                @click.stop="emit('view', d)"
+                class="p-1.5 text-gray-500 hover:text-[var(--teal-600)] hover:bg-[var(--teal-50)] rounded transition-colors"
+                title="View document"
+              >
+                <BaseIcon name="eye" size="15" />
+              </button>
+              <button
+                v-if="isAdmin"
                 @click.stop="emit('edit', d)"
                 class="p-1.5 text-gray-500 hover:text-[var(--teal-600)] hover:bg-[var(--teal-50)] rounded transition-colors"
                 title="Edit document"
@@ -110,6 +119,7 @@ function formatDate(dateStr: string) {
                 <BaseIcon name="edit" size="15" />
               </button>
               <button
+                v-if="isAdmin"
                 @click.stop="emit('delete', d.id)"
                 class="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                 title="Delete document"

@@ -31,7 +31,7 @@ const { entry, marking, status, activityRows, relatedEntries, markVerified, anal
 
     <div v-if="!entry">
       <EmptyState icon="search" title="Entry not found" message="It may have been removed, or the link is out of date.">
-        <template #action><BaseButton variant="secondary" size="sm" @click="router.push({ name: 'admin-map' })">← Back to
+        <template #action><BaseButton variant="secondary" size="sm" @click="router.push({ name: 'map' })">← Back to
             map</BaseButton></template>
       </EmptyState>
     </div>
@@ -43,7 +43,7 @@ const { entry, marking, status, activityRows, relatedEntries, markVerified, anal
         :marking
         :is-admin="auth.isAdmin"
         @mark-verified="markVerified"
-        @back="router.push({ name: 'admin-map' })"
+        @back="router.push({ name: 'map' })"
       />
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">

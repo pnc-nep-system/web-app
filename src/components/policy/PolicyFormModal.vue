@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import Icon from '@/components/common/BaseIcon.vue'
+import FormFileUpload from '@/components/adviser/FormFileUpload.vue'
 import type { PolicyDocument } from '@/api/policy.api'
 
 const props = defineProps<{
@@ -10,11 +11,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'submit', payload: { title: string; authority: string; version: string; date: string; status: 'active' | 'superseded' | 'inactive' }): void
+  (e: 'submit', payload: { title: string; authority: string; version: string; date: string; status: 'active' | 'superseded' | 'inactive'; file?: File | null }): void
 }>()
 
-const form = reactive({ title: '', authority: '', version: '', date: '', status: 'active' as 'active' | 'superseded' | 'inactive' })
-const errors = reactive({ title: '', authority: '', version: '', date: '' })
+const form = reactive({ title: '', authority: '', version: '', date: '', status: 'active' as 'active' | 'superseded' | 'inactive', file: null as File | null })
+const errors = reactive({ title: '', authority: '', version: '', date: '', file: '' })
 
 // Reset or populate form when modal opens
 watch(
@@ -34,10 +35,12 @@ watch(
         form.date = ''
         form.status = 'active'
       }
+      form.file = null
       errors.title = ''
       errors.authority = ''
       errors.version = ''
       errors.date = ''
+      errors.file = ''
     }
   }
 )
@@ -55,7 +58,8 @@ function submit() {
     authority: form.authority.trim(),
     version: form.version.trim(),
     date: form.date,
-    status: form.status
+    status: form.status,
+    file: form.file ?? undefined,
   })
 }
 </script>
@@ -63,7 +67,7 @@ function submit() {
 <template>
   <Teleport to="body">
     <div v-if="show" class="modal-backdrop" @click.self="emit('close')">
-      <div class="modal-panel">
+      <div class="modal-panel" style="max-width: 640px;">
         <h3 class="text-[16px] font-semibold mb-[14px]">
           {{ initialData ? 'Edit policy document' : 'Add policy document' }}
         </h3>
@@ -109,7 +113,11 @@ function submit() {
           </select>
         </div>
 
-        <div v-if="!initialData" class="text-[11.5px] text-[var(--ink-500)] mt-3 mb-[18px] leading-normal">
+        <div class="field mt-4">
+          <FormFileUpload v-model="form.file" :error="errors.file" :compact="true" />
+        </div>
+
+        <div v-if="!initialData" class="text-[11.5px] text-[var(--ink-500)] mt-4 mb-[18px] leading-normal">
           If a document with this exact title is already active, it will be marked superseded and retained for
           historical reference.
         </div>
