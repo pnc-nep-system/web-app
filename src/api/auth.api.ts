@@ -16,4 +16,15 @@ export const authApi = {
   getUser() {
     return api.get('/user')
   },
+  forgotPassword(payload: { email: string }) {
+    return api.post('/forgot-password', payload)
+  },
+  resetPassword(payload: {
+    token: string
+    email: string
+    password: string
+    password_confirmation: string
+  }) {
+    return api.post('/reset-password', payload)
+  },
 }
