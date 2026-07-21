@@ -57,7 +57,7 @@ const navItems = computed<any>(() => {
       {
         section: 'REFERENCE',
         items: [
-          // { to: '/policy', label: 'Policy library', icon: 'book' },
+        { to: '/policy', label: 'Policy library', icon: 'book' },
         ],
       },
     ]

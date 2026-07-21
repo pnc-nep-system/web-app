@@ -10,15 +10,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PolicyFormModal from '@/components/policy/PolicyFormModal.vue'
 import PolicyTable from '@/components/policy/PolicyTable.vue'
-
-interface PolicyDocument {
-  id: number
-  title: string
-  authority: string
-  version: string
-  date: string
-  status: 'active' | 'superseded'
-}
+import { policyApi, type PolicyDocument } from '@/api/policy.api'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -29,24 +21,16 @@ const items = ref<PolicyDocument[]>([])
 const loading = ref(false)
 const error = ref('')
 
-const seedData: PolicyDocument[] = [
-  { id: 1, title: 'Education Strategic Plan 2024-2028', authority: 'MoEYS', version: '1.0', date: '2024-01-15', status: 'active' },
-  { id: 2, title: 'Inclusive Education Policy Circular', authority: 'MoEYS', version: '2.1', date: '2025-03-02', status: 'active' },
-  { id: 3, title: 'TVET Sector Framework', authority: 'Ministry of Labour and Vocational Training', version: '1.2', date: '2023-09-10', status: 'superseded' },
-  { id: 4, title: 'TVET Sector Framework', authority: 'Ministry of Labour and Vocational Training', version: '2.0', date: '2026-02-01', status: 'active' },
-  { id: 5, title: 'Early Childhood Care and Development Policy', authority: 'MoEYS', version: '1.0', date: '2022-06-20', status: 'active' },
-  { id: 6, title: 'Child Safeguarding in Schools Guideline', authority: 'MoEYS', version: '1.1', date: '2025-08-14', status: 'active' }
-]
-
 async function fetchPolicies() {
   loading.value = true
   error.value = ''
   try {
-    // Simulate API request delay
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    items.value = [...seedData]
-  } catch {
-    error.value = 'Failed to load policy documents.'
+    const res = await policyApi.getPolicies()
+    const rawData = res.data as any
+    const list = Array.isArray(rawData) ? rawData : (Array.isArray(rawData?.data) ? rawData.data : [])
+    items.value = list
+  } catch (err: any) {
+    error.value = err?.response?.data?.message ?? 'Failed to load policy documents.'
   } finally {
     loading.value = false
   }
@@ -57,28 +41,27 @@ onMounted(() => {
 })
 
 const showAdd = ref(false)
+const submitting = ref(false)
 
-function formatDate(dateStr: string) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-}
+async function handleAddPolicy(payload: { title: string; authority: string; version: string; date: string }) {
+  submitting.value = true
+  try {
+    await policyApi.createPolicy({
+      title: payload.title,
+      authority: payload.authority,
+      version: payload.version,
+      date: payload.date,
+      status: 'active',
+    })
 
-function handleAddPolicy(payload: { title: string; authority: string; version: string; date: string }) {
-  const active = items.value.find(d => d.title === payload.title && d.status === 'active')
-  if (active) active.status = 'superseded'
-
-  items.value.push({
-    id: Date.now(),
-    title: payload.title,
-    authority: payload.authority,
-    version: payload.version,
-    date: payload.date,
-    status: 'active',
-  })
-
-  toast.success('Policy document added — any prior active version has been marked superseded')
-  showAdd.value = false
+    toast.success('Policy document created successfully')
+    showAdd.value = false
+    await fetchPolicies()
+  } catch (err: any) {
+    toast.error(err?.response?.data?.message ?? 'Failed to create policy document')
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -109,7 +92,7 @@ function handleAddPolicy(payload: { title: string; authority: string; version: s
     </div>
 
     <!-- Data Table / Loader / Empty States -->
-    <div class="border rounded-xl shadow-sm bg-white overflow-hidden">
+    <div class="rounded-xl shadow-sm bg-white overflow-hidden">
       <!-- Loading Indicator -->
       <LoadingSpinner v-if="loading" message="Loading documents..." />
 
