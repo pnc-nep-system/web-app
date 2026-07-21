@@ -35,8 +35,10 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
   if (role === 'member_org' && userId) {
     const notificationStore = useNotificationStore()
     const channelName = `App.Models.User.${userId}`
+    console.log('[Realtime] Subscribing to channel:', channelName)
     echo.private(channelName)
       .listen('.programme.draft.created', (payload: ProgrammeDraftCreatedPayload) => {
+        console.log('[Realtime] Event received:', payload)
         notificationStore.pushNotification({
           id: payload.notification_id,
           type: 'programme_sent',

@@ -17,6 +17,8 @@ export function useNotificationBell() {
   } | null>(null)
 
   let alertTimer: ReturnType<typeof setTimeout> | null = null
+  let loaded = false
+  const seenIds = new Set<string>()
 
   function onOutsideClick(e: MouseEvent) {
     if (bellRef.value && !bellRef.value.contains(e.target as Node)) {
@@ -64,19 +66,29 @@ export function useNotificationBell() {
     })
   }
 
-  watch(
-    () => store.items[0],
-    (newest, prev) => {
-      if (!newest || newest.read_at) return
-      if (prev?.id === newest.id) return
+  function checkForNew() {
+    if (!loaded) return
+    for (const item of store.items) {
+      if (item.read_at) continue
+      if (seenIds.has(item.id)) continue
+      seenIds.add(item.id)
       triggerRing()
-      showAlert(newest.id, newest.title, newest.message, newest.programme_entry_id)
+      showAlert(item.id, item.title, item.message, item.programme_entry_id)
+      break
     }
-  )
+  }
 
-  onMounted(() => {
-    store.fetchNotifications()
+  // Watch items length — fires whenever an item is added
+  watch(() => store.items.length, checkForNew)
+
+  // Also watch the first item id in case length stays same but item changes
+  watch(() => store.items[0]?.id, checkForNew)
+
+  onMounted(async () => {
     document.addEventListener('click', onOutsideClick)
+    await store.fetchNotifications()
+    store.items.forEach(n => seenIds.add(n.id))
+    loaded = true
   })
 
   onUnmounted(() => {
