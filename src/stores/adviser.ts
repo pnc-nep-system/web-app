@@ -10,11 +10,35 @@ export const useAdviserStore = defineStore('adviser', () => {
     const submitting = ref(false)
     const error = ref<string | null>(null)
 
-    // Pagination state
     const currentPage = ref(1)
     const lastPage = ref(1)
     const total = ref(0)
     const perPage = ref(25)
+
+    // ── Coordinator map (shared) ──────────────────────────────────────────────
+    const coordinatorMap = ref<Record<number, string>>({})
+    const coordinatorsLoaded = ref(false)
+
+    async function loadCoordinators() {
+        if (coordinatorsLoaded.value) return
+        try {
+            const res = await adviserApi.getCoordinators()
+            const body = res.data as any
+            const raw = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : [])
+            const map: Record<number, string> = {}
+            raw.filter((u: any) => u.role === 'nep_coordinator')
+               .forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
+            coordinatorMap.value = map
+            coordinatorsLoaded.value = true
+        } catch {
+            coordinatorMap.value = {}
+        }
+    }
+
+    function coordinatorLabel(id: number | null): string {
+        if (!id) return 'Unassigned'
+        return coordinatorMap.value[id] ?? `User #${id}`
+    }
 
     async function fetchSubmissions(params: SubmissionListParams = {}) {
         loading.value = true
@@ -42,11 +66,11 @@ export const useAdviserStore = defineStore('adviser', () => {
         await fetchSubmissions(params)
     }
 
-    async function submitDocument(payload: SubmissionPayload): Promise<Submission> {
+    async function submitDocument(payload: SubmissionPayload, file?: File): Promise<Submission> {
         submitting.value = true
         error.value = null
         try {
-            const response = await adviserApi.submit(payload)
+            const response = await adviserApi.submit(payload, file)
             const created = response.data.data
             submissions.value.unshift(created)
             total.value += 1
@@ -68,6 +92,9 @@ export const useAdviserStore = defineStore('adviser', () => {
         lastPage,
         total,
         perPage,
+        coordinatorMap,
+        coordinatorLabel,
+        loadCoordinators,
         fetchSubmissions,
         goToPage,
         submitDocument,

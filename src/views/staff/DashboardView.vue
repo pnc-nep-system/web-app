@@ -6,6 +6,7 @@ import DashboardTopBar from '@/components/dashboard/DashboardTopBar.vue'
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader.vue'
 import DashboardKpiGrid from '@/components/dashboard/DashboardKpiGrid.vue'
 import CoverageListCard from '@/components/dashboard/CoverageListCard.vue'
+import DashboardRecentActivity from '@/components/dashboard/DashboardRecentActivity.vue'
 import { dashboardApi } from '@/api/dashboard.api'
 
 const router = useRouter()
@@ -65,5 +66,7 @@ onMounted(() => {
         @action="router.push('/map')"
       />
     </div>
+
+    <DashboardRecentActivity class="mt-5" />
   </AppShell>
 </template>

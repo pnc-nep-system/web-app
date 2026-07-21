@@ -82,5 +82,8 @@ export const memberApi = {
   listOrganisations() {
     return api.get('/organisations');
   },
+  listAllOrganisations() {
+    return api.get('/organisations', { params: { per_page: 200 } });
+  },
 };
 
