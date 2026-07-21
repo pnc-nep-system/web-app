@@ -8,7 +8,6 @@ import { useToast } from '@/composables/useToast'
 import { useAdviserStore } from '@/stores/adviser'
 import { adviserApi } from '@/api/adviser.api'
 import type { Submission } from '@/types/adviser'
-import type { User } from '@/types/user'
 
 // Adviser-specific sub-components
 import DetailPageHeader from '@/components/adviser/DetailPageHeader.vue'
@@ -29,7 +28,6 @@ const delivering = ref(false)
 const submissionId = Number(route.params.id)
 const currentStatus = ref('submitted_for_review')
 const submission = ref<Submission | null>(null)
-const coordinators = ref<User[]>([])
 const assigneeId = ref<number | null>(null)
 
 const form = ref({
@@ -39,14 +37,18 @@ const form = ref({
   sectionD: '',
 })
 
+// Coordinators are loaded into the store (shared, cached, role-filtered)
+const coordinators = computed(() =>
+  Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({
+    id: Number(id),
+    name,
+  }))
+)
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  // Load coordinators in background
-  adviserApi.getCoordinators().then(res => {
-    const body = res.data as any
-    const raw = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : [])
-    coordinators.value = raw
-  }).catch(() => {})
+  // Load coordinators via store (cached, role-filtered)
+  adviserStore.loadCoordinators()
 
   // Fast path: use cached store data if available
   const cached = adviserStore.submissions.find(s => s.id === submissionId)

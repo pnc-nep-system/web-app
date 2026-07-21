@@ -50,7 +50,13 @@ async function submit() {
 
   if (success) {
     failedAttempts.value = 0
-    await router.push(authStore.userRole === 'nep_admin' ? { name: 'admin-users' } : { name: 'dashboard' })
+    if (authStore.userRole === 'nep_admin') {
+      await router.push({ name: 'admin-dashboard' })
+    } else if (authStore.userRole === 'nep_coordinator') {
+      await router.push({ name: 'manager-dashboard' })
+    } else {
+      await router.push({ name: 'dashboard' })
+    }
   } else {
     failedAttempts.value++
 

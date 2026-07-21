@@ -37,7 +37,7 @@ function mapEntry(e: any): ProgrammeIdentity {
     method: e.method || '',
     verifiedDate: e.verified_date || '',
     isUnverified: !!e.is_unverified,
-    provinces: (e.locations || []).map((loc: any) => loc.province?.province_name).filter(Boolean),
+    provinces: (e.locations || []).map((loc: any) => loc.province?.province_name ?? loc.province_name).filter(Boolean),
     activities: (e.activities || []).map((a: any) => ({
       code: a.activity_item?.code || '',
       primary: !!a.is_primary,
@@ -121,7 +121,7 @@ export const useEntriesStore = defineStore('entries', () => {
       method: e.method || '',
       verifiedDate: e.verified_date || '',
       isUnverified: !!e.is_unverified,
-      provinces: (e.locations || []).map((loc: any) => loc.province?.province_name).filter(Boolean),
+      provinces: (e.locations || []).map((loc: any) => loc.province?.province_name ?? loc.province_name).filter(Boolean),
       activities: (e.activities || []).map((a: any) => ({
         code: a.activity_item?.code || a.code || '',
         primary: !!a.is_primary,

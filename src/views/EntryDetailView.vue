@@ -17,6 +17,8 @@ import RelatedEntriesList from '@/components/entry_detail/RelatedEntriesList.vue
 const props = defineProps({ id: String })
 const router = useRouter()
 
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
+
 const { entry, marking, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth }
   = useEntryDetail(toRef(props, 'id'))
 </script>
@@ -24,11 +26,7 @@ const { entry, marking, status, activityRows, relatedEntries, markVerified, anal
 <template>
   <AppShell>
     <template #header>
-      <div class="flex items-center gap-2 text-sm min-w-0">
-        <span class="text-gray-400">NEP</span>
-        <span class="text-gray-300">&gt;</span>
-        <span class="text-gray-700 font-medium truncate">Programme Map</span>
-      </div>
+      <HeaderBreadcrumb :crumbs="['Programme entries', (entry as any)?.name || (entry as any)?.programme_name || 'Entry Detail']" />
     </template>
 
     <div v-if="!entry">

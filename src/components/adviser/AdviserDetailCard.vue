@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { adviserApi } from '@/api/adviser.api'
+import { useAdviserStore } from '@/stores/adviser'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import type { Submission } from '@/types/adviser'
 
@@ -12,31 +13,10 @@ const emit = defineEmits<{
   back: []
 }>()
 
+const adviserStore = useAdviserStore()
 const submission = ref<Submission | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
-
-// ── Coordinator lookup map ──────────────────────────────────────────────────
-const coordinatorMap = ref<Record<number, string>>({})
-
-async function loadCoordinators() {
-  try {
-    const res = await adviserApi.getCoordinators()
-    const body = res.data as any
-    const raw = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : [])
-    const list = raw.filter((u: any) => u.role === 'nep_coordinator')
-    const map: Record<number, string> = {}
-    list.forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
-    coordinatorMap.value = map
-  } catch {
-    coordinatorMap.value = {}
-  }
-}
-
-function coordinatorLabel(id: number | null): string {
-  if (!id) return 'Unassigned'
-  return coordinatorMap.value[id] ?? `User #${id}`
-}
 
 onMounted(async () => {
   try {
@@ -48,7 +28,7 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-  loadCoordinators()
+  adviserStore.loadCoordinators()
 })
 
 // ── Status helpers ──────────────────────────────────────────────────────────
@@ -209,7 +189,7 @@ const scopeIcon = computed(() => {
             Assigned to
           </span>
           <span class="text-sm font-medium text-[var(--ink-900)]">
-            {{ coordinatorLabel(submission.assign_to_staff_user_id) }}
+            {{ adviserStore.coordinatorLabel(submission.assign_to_staff_user_id) }}
           </span>
         </div>
 

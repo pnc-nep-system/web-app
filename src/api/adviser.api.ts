@@ -51,7 +51,18 @@ export const adviserApi = {
     /**
      * Submit a new document for analysis.
      */
-    submit(payload: SubmissionPayload) {
+    submit(payload: SubmissionPayload, file?: File) {
+        if (file) {
+            const form = new FormData()
+            Object.entries(payload).forEach(([k, v]) => {
+                if (v !== null && v !== undefined) form.append(k, String(v))
+            })
+            form.append('document', file)
+            return api.post<SubmissionCreateResponse>('/adviser/submissions', form, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+                timeout: 60000,
+            })
+        }
         return api.post<SubmissionCreateResponse>('/adviser/submissions', payload)
     },
 

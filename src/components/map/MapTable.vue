@@ -76,7 +76,7 @@ function formatBudgetBand(b: any): string {
                 <BaseBadge v-for="code in mapStore.primaryActivities(e).slice(0, 5)" :key="code" tone="teal">
                   {{ code }}
                 </BaseBadge>
-                <BaseBadge v-if="mapStore.primaryActivities(e).length > 5" tone="slate">
+                <BaseBadge v-if="mapStore.primaryActivities(e).length > 5" tone="gray">
                   +{{ mapStore.primaryActivities(e).length - 5 }}
                 </BaseBadge>
               </template>

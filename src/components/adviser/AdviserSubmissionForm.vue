@@ -2,7 +2,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAdviserStore } from '@/stores/adviser'
-import { adviserApi } from '@/api/adviser.api'
 import { memberApi } from '@/api/member.api'
 import { taxonomyApi } from '@/api/taxonomy.api'
 import FormFileUpload from '@/components/adviser/FormFileUpload.vue'
@@ -27,13 +26,19 @@ const assignedTo = ref('unassigned')
 const errors = ref<Record<string, string>>({})
 const submitError = ref<string | null>(null)
 
-// ── Remote data ───────────────────────────────────────────────────────────────
+// ── Reference data ────────────────────────────────────────────────────────────
 const provinces = ref<Province[]>([])
 const categories = ref<Category[]>([])
-const coordinators = ref<User[]>([])
 const loadingProvinces = ref(false)
 const loadingCategories = ref(false)
-const loadingCoordinators = ref(false)
+
+// Coordinators are owned by the store (shared, cached, role-filtered)
+const coordinators = computed<User[]>(() =>
+  Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({
+    id: Number(id),
+    name,
+  } as User))
+)
 
 async function loadProvinces() {
   if (provinces.value.length) return
@@ -61,32 +66,17 @@ async function loadCategories() {
   }
 }
 
-async function loadCoordinators() {
-  if (coordinators.value.length || loadingCoordinators.value) return
-  loadingCoordinators.value = true
-  try {
-    const res = await adviserApi.getCoordinators()
-    const body = res.data as any
-    coordinators.value = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : [])
-  } catch {
-    coordinators.value = []
-  } finally {
-    loadingCoordinators.value = false
-  }
-}
-
-// Eagerly load all reference data to avoid delays on first open
+// Eagerly load all reference data so dropdowns open instantly
 onMounted(() => {
   loadProvinces()
   loadCategories()
-  loadCoordinators()
+  adviserStore.loadCoordinators()
 })
 
-// ── File validation error (comes back from FormFileUpload) ───────────────────
+// ── File handling ─────────────────────────────────────────────────────────────
 function onFileUpdate(f: File | null) {
   selectedFile.value = f
-  if (!f) errors.value.document = 'Only PDF or Word documents are accepted.'
-  else errors.value.document = ''
+  errors.value.document = f ? '' : 'Only PDF or Word documents are accepted.'
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -119,13 +109,16 @@ async function handleSubmit() {
   }
 
   try {
-    await adviserStore.submitDocument({
-      submitting_party: submittingParty.value.trim(),
-      document_name: selectedFile.value!.name,
-      analysis_scope: scopeValue,
-      analysis_scope_detail: scopeDetail ?? null,
-      assigned_to: assignedTo.value !== 'unassigned' ? Number(assignedTo.value) : null,
-    })
+    await adviserStore.submitDocument(
+      {
+        submitting_party: submittingParty.value.trim(),
+        document_name: selectedFile.value!.name,
+        analysis_scope: scopeValue,
+        analysis_scope_detail: scopeDetail ?? null,
+        assigned_to: assignedTo.value !== 'unassigned' ? Number(assignedTo.value) : null,
+      },
+      selectedFile.value!,
+    )
     router.push('/adviser')
   } catch (err: any) {
     submitError.value = err?.response?.data?.message ?? 'Submission failed. Please try again.'
@@ -165,7 +158,7 @@ function cancel() {
         @update:model-value="onFileUpdate"
       />
 
-      <!-- Analysis scope + province / category sub-selects -->
+      <!-- Analysis scope + conditional province / category sub-selects -->
       <FormScopeSelect
         v-model="analysisScope"
         v-model:province="selectedProvince"
@@ -178,11 +171,11 @@ function cancel() {
         :error-category="errors.category"
       />
 
-      <!-- Assign to coordinator -->
+      <!-- Assign to coordinator (data from store) -->
       <FormCoordinatorSelect
         v-model="assignedTo"
         :coordinators="coordinators"
-        :loading="loadingCoordinators"
+        :loading="!adviserStore.coordinatorMap || Object.keys(adviserStore.coordinatorMap).length === 0"
       />
 
       <!-- Server error -->

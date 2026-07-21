@@ -25,8 +25,8 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ['nep_admin'] },
     },
     {
-      path: '/admin/map',
-      name: 'admin-map',
+      path: '/map',
+      name: 'map',
       component: () => import('@/views/MapView.vue'),
       meta: {
         requiresAuth: true,
@@ -129,7 +129,13 @@ router.beforeEach(async (to) => {
   }
 
   if (to.name === 'login' && isAuthenticated) {
-    return authStore.userRole === 'nep_admin' ? { name: 'admin-users' } : { name: 'dashboard' }
+    if (authStore.userRole === 'nep_admin') {
+      return { name: 'admin-dashboard' }
+    } else if (authStore.userRole === 'nep_coordinator') {
+      return { name: 'manager-dashboard' }
+    } else {
+      return { name: 'dashboard' }
+    }
   }
 
   if (isAuthenticated && !authStore.currentUser) {

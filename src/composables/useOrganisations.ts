@@ -32,7 +32,7 @@ export function useOrganisations() {
     saving.value = true
     try {
       const res = await organisationService.createOrganisation(data)
-      let newOrg = res.data.organisation
+      let newOrg = res.data
       if (data.logoFile) {
         try {
           const logoRes = await organisationService.uploadLogo(newOrg.id, data.logoFile)

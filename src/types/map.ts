@@ -11,6 +11,7 @@ export interface MapViewFilters {
   inclusion: string
   province: string
   district: string
+  commune: string
   village: string
   counterpart: string
   keyword: string

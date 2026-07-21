@@ -20,16 +20,15 @@ interface NavSection {
   items: NavItem[]
 }
 
-const navItems = computed<(NavItem | NavSection)[]>(() => {
+const navItems = computed<any>(() => {
   if (auth.userRole === 'nep_admin') {
     return [
       {
         section: 'COORDINATION',
         items: [
-          // { to: '/admin/dashboard', label: 'Overview', icon: 'home' },
-          { to: '/admin/map', label: 'The Map', icon: 'map' },
+          { to: '/admin/dashboard', label: 'Overview', icon: 'home' },
+          { to: '/map', label: 'The Map', icon: 'map' },
           { to: '/adviser', label: 'The Adviser', icon: 'bolt' },
-          // { to: '/adviser', label: 'The Adviser', icon: 'bolt', badge: 3 },
           { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
         ],
       },
@@ -39,7 +38,6 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
           { to: '/admin/taxonomy', label: 'Taxonomy data', icon: 'list' },
           { to: '/admin/organization', label: 'Organization', icon: 'building' },
           { to: '/admin/users', label: 'User Management', icon: 'users' },
-          // { to: '/policy', label: 'Policy library', icon: 'book' },
         ],
       },
     ]
@@ -50,8 +48,8 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
       {
         section: 'COORDINATION',
         items: [
-          // { to: '/manager/dashboard', label: 'Overview', icon: 'home' },
-          { to: '/admin/map', label: 'The Map', icon: 'map' },
+          { to: '/manager/dashboard', label: 'Overview', icon: 'home' },
+          { to: '/map', label: 'The Map', icon: 'map' },
           { to: '/adviser', label: 'The Adviser', icon: 'bolt' },
           { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
         ],
@@ -59,7 +57,7 @@ const navItems = computed<(NavItem | NavSection)[]>(() => {
       {
         section: 'REFERENCE',
         items: [
-          { to: '/policy', label: 'Policy library', icon: 'book' },
+          // { to: '/policy', label: 'Policy library', icon: 'book' },
         ],
       },
     ]

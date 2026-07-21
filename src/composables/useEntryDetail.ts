@@ -54,13 +54,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
   }
 
   function analyseInAdviser() {
-    router.push({
-      name: 'admin-map',
-      query: {
-        province: entry.value!.provinces[0],
-        org: organisations.nameOf(entry.value!.organisationId)
-      }
-    })
+    router.push({ name: 'adviser' })
   }
 
   return {

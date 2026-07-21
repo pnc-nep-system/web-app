@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import AppShell from '@/components/AppShell.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import ExportButtons from '@/components/map/ExportButtons.vue'
 import MapFilterBar from '@/components/map/MapFilterBar.vue'
 import MapTable from '@/components/map/MapTable.vue'
@@ -11,10 +12,6 @@ import { useMapStore } from '@/stores/map'
 /**
  * Programme Map page — the main view for admins and coordinators to browse,
  * filter, sort, and export programme entries across all member organisations.
- *
- * Orchestrates the AppShell layout, title header with ExportButtons,
- * MapFilterBar, result summary, and a card containing either a loading
- * spinner, an EmptyState, or the MapTable + MapPagination.
  */
 const mapStore = useMapStore()
 
@@ -24,11 +21,9 @@ onMounted(() => mapStore.fetchMapEntries())
 <template>
   <AppShell>
     <template #header>
-      <div class="flex items-center gap-2 text-sm min-w-0">
-        <span class="text-gray-400">NEP</span>
-        <span class="text-gray-300">&gt;</span>
-        <span class="text-gray-700 font-medium truncate">Programme Map</span>
-      </div>
+      <HeaderBreadcrumb title="Programme Map">
+        <ExportButtons />
+      </HeaderBreadcrumb>
     </template>
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -57,9 +52,17 @@ onMounted(() => mapStore.fetchMapEntries())
         </svg>
       </div>
       <div v-else-if="!mapStore.paged.length" class="card-pad">
-        <EmptyState icon="search" title="No entries match these filters" message="Try widening your date range or clearing a filter.">
-          <template #action><button class="btn btn-secondary btn-sm" @click="mapStore.clearFilters">Clear filters</button></template>
+        <EmptyState
+          v-if="mapStore.hasActiveFilters"
+          icon="search"
+          title="No entries match these filters"
+          message="Try widening your date range or clearing a filter."
+        >
+          <template #action>
+            <button class="btn btn-secondary btn-sm" @click="mapStore.clearFilters">Clear filters</button>
+          </template>
         </EmptyState>
+        <EmptyState v-else icon="search" title="No data" message="No programme entries found." />
       </div>
 
       <MapTable v-else />

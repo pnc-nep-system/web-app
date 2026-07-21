@@ -7,32 +7,13 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import AdviserSubmissionTable from '@/components/adviser/AdviserSubmissionTable.vue'
 import { useAdviserStore } from '@/stores/adviser'
-import { adviserApi } from '@/api/adviser.api'
 
 const router = useRouter()
 const adviserStore = useAdviserStore()
 
-// ── Coordinator lookup ────────────────────────────────────────────────────────
-const coordinatorMap = ref<Record<number, string>>({})
-
-async function loadCoordinators() {
-  try {
-    const res = await adviserApi.getCoordinators()
-    const body = res.data as any
-    const raw = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : [])
-    const map: Record<number, string> = {}
-    raw
-      .filter((u: any) => u.role === 'nep_coordinator')
-      .forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
-    coordinatorMap.value = map
-  } catch {
-    coordinatorMap.value = {}
-  }
-}
-
 onMounted(() => {
   adviserStore.fetchSubmissions()
-  loadCoordinators()
+  adviserStore.loadCoordinators()
 })
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -123,7 +104,7 @@ function openSubmission(id: number) {
     <AdviserSubmissionTable
       v-else
       :submissions="filteredSubmissions"
-      :coordinator-map="coordinatorMap"
+      :coordinator-map="adviserStore.coordinatorMap"
       @open="openSubmission"
     />
   </AppShell>
