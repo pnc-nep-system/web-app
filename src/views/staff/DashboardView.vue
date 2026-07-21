@@ -62,8 +62,8 @@ onMounted(() => {
         subtitle="Top provinces by entry count"
         :items="provincialCoverage"
         :loading="provincialLoading"
-        action-text="Open full map →"
-        @action="router.push('/admin/map')"
+        action-text="Open full map"
+        @action="router.push('/map')"
       />
     </div>
 

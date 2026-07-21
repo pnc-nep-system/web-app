@@ -129,8 +129,7 @@ onMounted(() => {
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr v-for="(entry, index) in entries.entriesWithStatus" :key="entry.id ?? index"
-              class="hover:bg-gray-50 transition-colors cursor-pointer"
-              @click="router.push(`/entries/new?id=${entry.id}`)">
+              class="hover:bg-gray-50 transition-colors cursor-pointer">
               <td class="px-5 py-3.5">
                 <div class="text-sm font-medium text-gray-800">{{ entry.name || 'Untitled' }}</div>
                 <div class="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-1.5">
@@ -170,8 +169,15 @@ onMounted(() => {
                     Still current
                   </button>
                   <button
-                    class="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap"
+                    class="px-2.5 py-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 transition-colors whitespace-nowrap"
                     @click="router.push(`/entries/new?id=${entry.id}`)">
+                    Edit
+                  </button>
+                  <button
+                    class="px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap"
+                    :class="entry.isDraft ? 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed' : 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100'"
+                    :disabled="entry.isDraft"
+                    @click="router.push(`/entries/${entry.id}`)">
                     Open →
                   </button>
                 </div>
@@ -184,7 +190,6 @@ onMounted(() => {
       <!-- Mobile Card View (visible on screens < sm) -->
       <div class="sm:hidden divide-y divide-gray-100">
         <div v-for="(entry, index) in entries.entriesWithStatus" :key="entry.id ?? index"
-          @click="router.push(`/entries/new?id=${entry.id}`)"
           class="p-4 hover:bg-gray-50/50 transition-colors cursor-pointer space-y-3"
         >
           <div class="flex items-start justify-between gap-4">
@@ -210,8 +215,15 @@ onMounted(() => {
                 Still current
               </button>
               <button
-                class="px-2.5 py-1 text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap cursor-pointer"
+                class="px-2.5 py-1 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 transition-colors whitespace-nowrap cursor-pointer"
                 @click="router.push(`/entries/new?id=${entry.id}`)">
+                Edit
+              </button>
+              <button
+                class="px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors whitespace-nowrap cursor-pointer"
+                :class="entry.isDraft ? 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed' : 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100'"
+                :disabled="entry.isDraft"
+                @click="router.push(`/entries/${entry.id}`)">
                 Open →
               </button>
             </div>

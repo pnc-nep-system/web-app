@@ -1,7 +1,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { organisationService } from '@/api/organisation.service'
 import { memberApi } from '@/api/member.api'
+import { organisationService } from '@/api/organisation.service'
 import { formatRelativeTime } from '@/utils/date'
 import type { Organisation } from '@/api/organisation.service'
 import type { EntryRow } from '@/types/adminProgrammes'
@@ -9,20 +9,21 @@ import type { EntryRow } from '@/types/adminProgrammes'
 export function useAdminProgrammes() {
   const router = useRouter()
 
-  const orgs = ref<Organisation[]>([])
-  const orgsLoading = ref(false)
-
   const entries = ref<EntryRow[]>([])
   const entriesLoading = ref(false)
   const entriesError = ref('')
   const currentPage = ref(1)
   const lastPage = ref(1)
   const total = ref(0)
-  const selectedOrgId = ref<number | null>(null)
+  const selectedOrgName = ref('')
+
+  const orgNameById = ref<Record<number, string>>({})
 
   const showOrgPicker = ref(false)
   const pickerSearch = ref('')
   const pickerOrgId = ref<number | null>(null)
+  const orgsPicker = ref<Organisation[]>([])
+  const orgsPickerLoading = ref(false)
 
   function toOrganisation(value: unknown): Organisation | null {
     if (!value || typeof value !== 'object') return null
@@ -49,34 +50,61 @@ export function useAdminProgrammes() {
     }
   }
 
-  const filteredOrgs = computed<Organisation[]>(() => {
+  const orgOptions = computed(() => {
+    const names = new Set<string>()
+    entries.value.forEach(e => {
+      if (e.organisation?.name) names.add(e.organisation.name)
+    })
+    return Array.from(names).sort()
+  })
+
+  const filteredEntries = computed(() => {
+    const name = selectedOrgName.value
+    if (!name) return entries.value
+    return entries.value.filter(e => e.organisation?.name === name)
+  })
+
+  const displayTotal = computed(() =>
+    selectedOrgName.value ? filteredEntries.value.length : total.value
+  )
+
+  async function loadOrgNames() {
+    try {
+      const res = await organisationService.getOrganisations(1, '', { per_page: 200 })
+      const data = res.data.data ?? []
+      if (Array.isArray(data)) {
+        const map: Record<number, string> = {}
+        for (const o of data) {
+          const id = Number((o as any).id)
+          const name = ((o as any).name || (o as any).organisation_name) as string | undefined
+          if (Number.isFinite(id) && name) map[id] = name
+        }
+        orgNameById.value = map
+      }
+    } catch {
+      // silently ignore — admin works, coordinator falls back to Org #ID
+    }
+  }
+
+  const filteredPickerOrgs = computed<Organisation[]>(() => {
     const q = pickerSearch.value.toLowerCase()
-    return orgs.value.filter((org) => {
+    return orgsPicker.value.filter((org) => {
       if (q && !org.name.toLowerCase().includes(q)) return false
       return true
     })
   })
 
-  async function loadOrgs() {
-    orgsLoading.value = true
+  async function loadPickerOrgs() {
+    orgsPickerLoading.value = true
     try {
       const res = await organisationService.getOrganisations(1, '', { per_page: 200 })
-      orgs.value = (res.data.data ?? [])
+      orgsPicker.value = (res.data.data ?? [])
         .map((org) => toOrganisation(org))
         .filter((org): org is Organisation => org !== null)
     } catch {
-      // Fallback: try the general organisations endpoint (for coordinators)
-      try {
-        const res = await memberApi.listAllOrganisations()
-        const data = res.data?.data ?? res.data ?? []
-        orgs.value = (Array.isArray(data) ? data : [])
-          .map((org: unknown) => toOrganisation(org))
-          .filter((org): org is Organisation => org !== null)
-      } catch {
-        orgs.value = []
-      }
+      orgsPicker.value = []
     } finally {
-      orgsLoading.value = false
+      orgsPickerLoading.value = false
     }
   }
 
@@ -84,16 +112,20 @@ export function useAdminProgrammes() {
     entriesLoading.value = true
     entriesError.value = ''
     try {
-      const res = await memberApi.getAdminAllProgrammeEntries(page, selectedOrgId.value)
+      const res = await memberApi.getSubmittedProgrammeEntries(page, 200)
       const body = res.data
       entries.value = (body.data || []).map((e: unknown): EntryRow => {
         const entry = e as Record<string, unknown>
         const org = entry.organisation as Record<string, unknown> | null | undefined
-        const orgName = (org && typeof org.name === 'string')
+        let orgName: string | null = org && typeof org.name === 'string'
           ? org.name
           : (typeof entry.organisation_name === 'string' ? entry.organisation_name : null)
-            ?? orgs.value.find(o => o.id === Number(entry.organisation_id))?.name
-            ?? null
+        if (!orgName) {
+          const orgId = Number(entry.organisation_id)
+          if (Number.isFinite(orgId)) {
+            orgName = orgNameById.value[orgId] ?? `Org #${orgId}`
+          }
+        }
         return {
           id: Number(entry.id),
           programme_name: String(entry.programme_name ?? ''),
@@ -116,9 +148,8 @@ export function useAdminProgrammes() {
   }
 
   function onOrgFilterChange(e: Event) {
-    const val = (e.target as HTMLSelectElement).value
-    selectedOrgId.value = val ? Number(val) : null
-    fetchEntries(1)
+    selectedOrgName.value = (e.target as HTMLSelectElement).value
+    currentPage.value = 1
   }
 
   function setPickerOrgId(id: number | null) {
@@ -134,13 +165,14 @@ export function useAdminProgrammes() {
   }
 
   function openEntry(id: number) {
-    router.push(`/entries/new?id=${id}`)
+    router.push(`/entries/${id}`)
   }
 
   function openCreatePicker() {
     pickerOrgId.value = null
     pickerSearch.value = ''
     showOrgPicker.value = true
+    loadPickerOrgs()
   }
 
   function confirmCreate() {
@@ -150,31 +182,33 @@ export function useAdminProgrammes() {
   }
 
   onMounted(async () => {
-    await loadOrgs()
+    await loadOrgNames()
     fetchEntries(1)
   })
 
   return reactive({
-    orgs,
-    orgsLoading,
     entries,
+    filteredEntries,
     entriesLoading,
     entriesError,
     currentPage,
     lastPage,
     total,
-    selectedOrgId,
+    displayTotal,
+    orgOptions,
+    selectedOrgName,
     showOrgPicker,
     pickerSearch,
     pickerOrgId,
-    filteredOrgs,
-    fetchEntries,
-    onOrgFilterChange,
+    filteredPickerOrgs,
+    orgsPickerLoading,
     setPickerOrgId,
     onPickerSearchInput,
     closeOrgPicker,
     openEntry,
     openCreatePicker,
     confirmCreate,
+    fetchEntries,
+    onOrgFilterChange,
   })
 }

@@ -1,18 +1,14 @@
 <script setup lang="ts">
 import AppShell from '@/components/AppShell.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import AdviserSubmissionForm from '@/components/adviser/AdviserSubmissionForm.vue'
 </script>
 
 <template>
   <AppShell>
     <template #header>
-      <div class="flex flex-1 items-center justify-between w-full">
-        <!-- Breadcrumbs -->
-        <div class="flex items-center gap-1">
-          <span class="text-gray-400 text-[13px]">NEP</span>
-          <span class="mx-2 text-gray-300 text-[13px]">&gt;</span>
-          <span class="text-gray-700 font-semibold text-[13px]">New submission</span>
-        </div>
+      <HeaderBreadcrumb :crumbs="['The Adviser', 'New submission']" />
+    </template>
         
         <!-- Right Header Elements -->
         <div class="flex items-center gap-3">

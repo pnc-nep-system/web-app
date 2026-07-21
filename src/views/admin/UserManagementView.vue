@@ -2,6 +2,7 @@
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import UserManagementPanel from '@/components/user/UserManagementPanel.vue'
 import { usePermission } from '@/composables/usePermission'
 import { useUsersAdminStore } from '@/stores/usersAdmin'
@@ -26,9 +27,7 @@ onMounted(async () => {
   <AppShell>
     <!-- Breadcrumb -->
     <template #header>
-      <span class="text-gray-400">Admin</span>
-      <span class="mx-1.5 text-gray-300">›</span>
-      <span class="text-gray-700 font-medium">User Management</span>
+      <HeaderBreadcrumb title="User Management" />
     </template>
 
     <UserManagementPanel />

@@ -53,8 +53,10 @@ export const memberApi = {
   getDraftProgrammeEntries(page = 1) {
     return api.get(`/programme-entries/draft?page=${page}`);
   },
-  getSubmittedProgrammeEntries(page = 1) {
-    return api.get(`/programme-entries/submitted?page=${page}`);
+  getSubmittedProgrammeEntries(page = 1, perPage?: number) {
+    const params: Record<string, any> = { page }
+    if (perPage) params.per_page = perPage
+    return api.get('/programme-entries/submitted', { params })
   },
   saveKeywords(id: number | string, keywords: string[]) {
     return api.put(`/programme-entries/${id}/keywords`, { keywords });

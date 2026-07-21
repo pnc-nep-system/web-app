@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useProgrammeGeographyStore } from './programmeGeography'
 import { useTaxonomyStore } from './taxonomy'
 import { getMapEntries, type MapFilters } from '@/api/map.api'
@@ -12,6 +12,7 @@ const DEFAULT_FILTERS: MapViewFilters = {
   inclusion: '',
   province: '',
   district: '',
+  commune: '',
   village: '',
   counterpart: '',
   keyword: '',
@@ -32,6 +33,11 @@ export const useMapStore = defineStore('map', () => {
 
   /** Current UI filter values bound to MapFilterBar controls. */
   const filters = ref<MapViewFilters>({ ...DEFAULT_FILTERS })
+  /** Whether any filter has a non-empty value. */
+  const hasActiveFilters = computed(() =>
+    Object.values(filters.value).some(v => v !== '')
+  )
+
   /** Current pagination page (1-indexed). */
   const page = ref(1)
   /** Number of entries shown per page. */
@@ -51,6 +57,13 @@ export const useMapStore = defineStore('map', () => {
    */
   function toApiFilters(): MapFilters {
     const f = filters.value
+    let communeId: number | null = null
+    if (f.commune) {
+      for (const list of Object.values(geographyStore.value.communesCache)) {
+        const match = list.find(c => c.name === f.commune)
+        if (match) { communeId = match.id; break }
+      }
+    }
     return {
       category_id: null,
       subcategory_id: null,
@@ -60,7 +73,7 @@ export const useMapStore = defineStore('map', () => {
       inclusion_type: null,
       province_id: null,
       district_id: null,
-      commune_id: null,
+      commune_id: communeId,
       keyword: f.keyword || null,
       organisation_name: null,
     }
@@ -82,26 +95,52 @@ export const useMapStore = defineStore('map', () => {
     geographyStore.value.provinces.map(p => p.province_name)
   )
 
-  /** District display names for the "District" filter dropdown. */
-  const districtsList = computed(() => {
-    const all: string[] = []
-    for (const list of Object.values(geographyStore.value.districtsCache)) {
-      for (const d of list) {
-        all.push(d.name)
-      }
+  /** Lookup province ID from a province name. */
+  const provinceIdByName = computed(() => {
+    const map: Record<string, number> = {}
+    for (const p of geographyStore.value.provinces) {
+      map[p.province_name] = p.id
     }
-    return all
+    return map
   })
 
-  /** Village display names for the "Village" filter dropdown. */
-  const villagesList = computed(() => {
-    const all: string[] = []
-    for (const list of Object.values(geographyStore.value.villagesCache)) {
-      for (const v of list) {
-        all.push(v.name)
+  /** District display names for the "District" filter dropdown, filtered by selected province. */
+  const districtsList = computed(() => {
+    const name = filters.value.province
+    if (!name) return []
+    const pId = provinceIdByName.value[name]
+    if (!pId) return []
+    const dists = geographyStore.value.districtsCache[pId]
+    if (!dists) return []
+    return dists.map(d => d.name)
+  })
+
+  /** Commune display names for the "Commune" filter dropdown, filtered by selected district. */
+  const communesList = computed(() => {
+    const name = filters.value.district
+    if (!name) return []
+    for (const list of Object.values(geographyStore.value.districtsCache)) {
+      const dist = list.find(d => d.name === name)
+      if (dist) {
+        const communes = geographyStore.value.communesCache[dist.id] ?? []
+        return communes.map(c => c.name)
       }
     }
-    return all
+    return []
+  })
+
+  /** Village display names for the "Village" filter dropdown, filtered by selected commune. */
+  const villagesList = computed(() => {
+    const name = filters.value.commune
+    if (!name) return []
+    for (const list of Object.values(geographyStore.value.communesCache)) {
+      const commune = list.find(c => c.name === name)
+      if (commune) {
+        const villages = geographyStore.value.villagesCache[commune.id] ?? []
+        return villages.map(v => v.name)
+      }
+    }
+    return []
   })
 
   /**
@@ -144,6 +183,10 @@ export const useMapStore = defineStore('map', () => {
       if (f.district) {
         const districts = e.locations?.map((l: any) => l.district?.name ?? l.district_name).filter(Boolean) ?? []
         if (districts.length && !districts.includes(f.district)) return false
+      }
+      if (f.commune) {
+        const communes = e.locations?.map((l: any) => l.commune?.name ?? l.commune_name).filter(Boolean) ?? []
+        if (communes.length && !communes.includes(f.commune)) return false
       }
       if (f.village) {
         const villages = e.locations?.map((l: any) => l.village?.name ?? l.village_name).filter(Boolean) ?? []
@@ -226,6 +269,51 @@ export const useMapStore = defineStore('map', () => {
     page.value = 1
   }
 
+  // ── Cascading geography watchers ──────────────────────────────────────────
+
+  watch(() => filters.value.province, (newProvince, oldProvince) => {
+    if (newProvince !== oldProvince) {
+      filters.value.district = ''
+      filters.value.commune = ''
+      filters.value.village = ''
+    }
+    if (newProvince) {
+      const pId = provinceIdByName.value[newProvince]
+      if (pId) geographyStore.value.fetchDistricts(pId)
+    }
+  })
+
+  watch(() => filters.value.district, (newDistrict, oldDistrict) => {
+    if (newDistrict !== oldDistrict) {
+      filters.value.commune = ''
+      filters.value.village = ''
+    }
+    if (newDistrict) {
+      for (const list of Object.values(geographyStore.value.districtsCache)) {
+        const dist = list.find(d => d.name === newDistrict)
+        if (dist) {
+          geographyStore.value.fetchCommunes(dist.id)
+          break
+        }
+      }
+    }
+  })
+
+  watch(() => filters.value.commune, (newCommune, oldCommune) => {
+    if (newCommune !== oldCommune) {
+      filters.value.village = ''
+    }
+    if (newCommune) {
+      for (const list of Object.values(geographyStore.value.communesCache)) {
+        const commune = list.find(c => c.name === newCommune)
+        if (commune) {
+          geographyStore.value.fetchVillages(commune.id)
+          break
+        }
+      }
+    }
+  })
+
   /**
    * Toggles sort column or direction.
    *
@@ -285,6 +373,7 @@ export const useMapStore = defineStore('map', () => {
     mapEntries,
     loading,
     filters,
+    hasActiveFilters,
     page,
     pageSize,
     sortKey,
@@ -292,6 +381,7 @@ export const useMapStore = defineStore('map', () => {
     toApiFilters,
     provincesList,
     districtsList,
+    communesList,
     villagesList,
     counterpartOptions,
     filtered,

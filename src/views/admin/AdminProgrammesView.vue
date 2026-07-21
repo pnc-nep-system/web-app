@@ -7,21 +7,20 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useAdminProgrammes } from '@/composables/useAdminProgrammes'
 
 const programmes = useAdminProgrammes()
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 </script>
 
 <template>
   <AppShell>
     <template #header>
-      <span class="text-gray-400">NEP</span>
-      <span class="mx-1.5 text-gray-300">›</span>
-      <span class="text-gray-700 font-medium">Programme Entries</span>
+      <HeaderBreadcrumb title="Programme entries" />
     </template>
 
     <!-- Header -->
     <div class="flex items-start justify-between gap-4 mb-6 flex-col sm:flex-row">
       <div>
         <h1 class="text-[22px] font-bold text-[var(--ink-900)] tracking-tight">Programme Entries</h1>
-        <p class="text-xs text-[var(--ink-400)] mt-1">View all entries. Create on behalf of an organisation.</p>
+        <p class="text-xs text-[var(--ink-400)] mt-1">Submitted entries from all organisations.</p>
       </div>
       <button class="btn btn-primary" @click="programmes.openCreatePicker">
         <BaseIcon name="plus" :size="14" />
@@ -32,14 +31,14 @@ const programmes = useAdminProgrammes()
     <!-- Org filter -->
     <div class="flex gap-3 items-center flex-wrap mb-4">
       <select
-        :value="programmes.selectedOrgId"
+        :value="programmes.selectedOrgName"
         class="border border-[var(--line)] rounded-xl py-2.5 px-3.5 text-xs text-[var(--ink-900)] bg-[var(--card)] focus:outline-none focus:border-[var(--teal-600)] focus:ring-3 focus:ring-[var(--teal-100)]"
         @change="programmes.onOrgFilterChange"
       >
-        <option :value="null">All organisations</option>
-        <option v-for="org in programmes.orgs" :key="org.id" :value="org.id">{{ org.name }}</option>
+        <option value="">All organisations</option>
+        <option v-for="name in programmes.orgOptions" :key="name" :value="name">{{ name }}</option>
       </select>
-      <span class="text-xs text-[var(--ink-400)]">{{ programmes.total }} total entries</span>
+      <span class="text-xs text-[var(--ink-400)]">{{ programmes.displayTotal }} total entries</span>
     </div>
 
     <!-- Table -->
@@ -53,7 +52,7 @@ const programmes = useAdminProgrammes()
 
       <div v-else-if="programmes.entriesError" class="py-12 text-center text-sm text-red-500">{{ programmes.entriesError }}</div>
 
-      <div v-else-if="programmes.entries.length === 0" class="py-16 text-center text-sm text-[var(--ink-400)]">No programme entries found.</div>
+      <div v-else-if="programmes.filteredEntries.length === 0" class="py-16 text-center text-sm text-[var(--ink-400)]">No programme entries found.</div>
 
       <table v-else class="w-full text-sm">
         <thead>
@@ -62,24 +61,18 @@ const programmes = useAdminProgrammes()
             <th class="text-left px-5 py-3 hidden sm:table-cell">Organisation</th>
             <th class="text-left px-5 py-3 hidden md:table-cell">Status</th>
             <th class="text-left px-5 py-3 hidden sm:table-cell">Updated</th>
-            <th class="text-left px-5 py-3"></th>
+            <th class="text-left px-5 py-3">Action</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-[var(--line-soft)]">
           <tr
-            v-for="entry in programmes.entries"
+            v-for="entry in programmes.filteredEntries"
             :key="entry.id"
-            class="hover:bg-[var(--bg)] transition-colors cursor-pointer"
-            @click="programmes.openEntry(entry.id)"
+            class="hover:bg-[var(--bg)] transition-colors"
           >
             <td class="px-5 py-3.5">
               <div class="font-medium text-[var(--ink-900)]">{{ entry.programme_name || 'Untitled' }}</div>
-              <div class="text-xs text-[var(--ink-400)] mt-0.5">
-                <span :class="entry.is_submitted ? 'text-green-600 bg-green-50' : 'text-yellow-600 bg-yellow-50'" class="px-1.5 py-0.5 rounded text-[10px] font-medium">
-                  {{ entry.is_submitted ? 'Submitted' : 'Draft' }}
-                </span>
-                <span class="ml-1.5">{{ entry.start_year }}–{{ entry.end_year || 'ongoing' }}</span>
-              </div>
+              <div class="text-xs text-[var(--ink-400)] mt-0.5">{{ entry.start_year }}–{{ entry.end_year || 'ongoing' }}</div>
             </td>
             <td class="px-5 py-3.5 text-xs text-[var(--ink-500)] hidden sm:table-cell">
               {{ entry.organisation?.name ?? '—' }}
@@ -133,9 +126,15 @@ const programmes = useAdminProgrammes()
           @input="programmes.onPickerSearchInput"
         />
 
-        <div class="max-h-60 overflow-y-auto flex flex-col gap-1">
+        <div v-if="programmes.orgsPickerLoading" class="flex items-center justify-center py-8">
+          <svg class="animate-spin h-5 w-5 text-[var(--ink-400)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        </div>
+        <div v-else class="max-h-60 overflow-y-auto flex flex-col gap-1">
           <button
-            v-for="org in programmes.filteredOrgs"
+            v-for="org in programmes.filteredPickerOrgs"
             :key="org.id"
             class="flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all text-sm"
             :class="programmes.pickerOrgId === org.id ? 'border-[var(--teal-600)] bg-[var(--teal-50)] text-[var(--teal-800)]' : 'border-[var(--line)] hover:border-[var(--teal-400)] text-[var(--ink-700)]'"
@@ -150,7 +149,7 @@ const programmes = useAdminProgrammes()
               <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </button>
-          <p v-if="programmes.filteredOrgs.length === 0" class="text-xs text-[var(--ink-400)] text-center py-4">No organisations found.</p>
+          <p v-if="programmes.filteredPickerOrgs.length === 0" class="text-xs text-[var(--ink-400)] text-center py-4">No organisations found.</p>
         </div>
 
         <div class="flex justify-end gap-2.5 mt-5 pt-4 border-t border-[var(--line-soft)]">
