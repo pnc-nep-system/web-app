@@ -12,7 +12,6 @@ const password = ref('')
 const emailError = ref('')
 const passwordError = ref('')
 const showPassword = ref(false)
-const failedAttempts = ref(0)
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -49,7 +48,6 @@ async function submit() {
   const success = await authStore.login(email.value, password.value)
 
   if (success) {
-    failedAttempts.value = 0
     if (authStore.userRole === 'nep_admin') {
       await router.push({ name: 'admin-dashboard' })
     } else if (authStore.userRole === 'nep_coordinator') {
@@ -58,8 +56,6 @@ async function submit() {
       await router.push({ name: 'dashboard' })
     }
   } else {
-    failedAttempts.value++
-
     // Clear password input immediately for security
     password.value = ''
 
@@ -124,7 +120,7 @@ async function submit() {
         </div>
       </BaseFormField>
 
-      <div v-if="failedAttempts >= 3" class="text-sm text-right">
+      <div class="text-sm text-right">
         <router-link to="/forgot-password" class="text-teal-700 font-semibold hover:underline"
           >Forgot your password?</router-link
         >
