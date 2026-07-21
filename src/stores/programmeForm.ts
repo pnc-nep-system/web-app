@@ -469,8 +469,12 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       const isEditMode = !!section1Data.value.id
       let orgId = getCreateOrgId()
       const authStore = useAuthStore() as any
-      if (!orgId && ['nep_admin', 'nep_coordinator'].includes(authStore.userRole || '') && (authStore.currentUser?.organisation_id || authStore.user?.organisation_id)) {
-        orgId = authStore.currentUser?.organisation_id || authStore.user?.organisation_id
+      if (!orgId && ['nep_admin', 'nep_coordinator'].includes(authStore.userRole || '')) {
+        if (!section1Data.value.id) {
+          toast.error('Please select a member organisation before creating an entry.')
+          isSaving.value = false
+          return false
+        }
       }
 
       const activitiesData = section2Data.value
@@ -723,8 +727,14 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       mapStore.fetchMapEntries()
 
       if (exitAfterSave) {
-        const destTab = shouldSubmit ? 'submitted' : 'draft'
-        router.push(`/dashboard?tab=${destTab}`)
+        const authStore = useAuthStore() as any
+        const role = authStore.userRole || ''
+        if (['nep_admin', 'nep_coordinator'].includes(role)) {
+          router.push('/admin/programmes?tab=my-drafts')
+        } else {
+          const destTab = shouldSubmit ? 'submitted' : 'draft'
+          router.push(`/dashboard?tab=${destTab}`)
+        }
       }
       return true
     } catch (err: any) {

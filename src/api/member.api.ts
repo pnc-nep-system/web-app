@@ -64,6 +64,9 @@ export const memberApi = {
     if (perPage) params.per_page = perPage
     return api.get('/programme-entries/submitted', { params })
   },
+  getMyDraftEntries() {
+    return api.get('/programme-entries/my-drafts')
+  },
   saveKeywords(id: number | string, keywords: string[]) {
     return api.put(`/programme-entries/${id}/keywords`, { keywords });
   },

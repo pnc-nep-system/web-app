@@ -10,6 +10,8 @@ import type { EntryRow } from '@/types/adminProgrammes'
 export function useAdminProgrammes() {
   const router = useRouter()
 
+  const activeTab = ref<'submitted' | 'my-drafts'>('submitted')
+
   const entries = ref<EntryRow[]>([])
   const entriesLoading = ref(false)
   const entriesError = ref('')
@@ -17,6 +19,10 @@ export function useAdminProgrammes() {
   const lastPage = ref(1)
   const total = ref(0)
   const selectedOrgName = ref('')
+
+  const myDrafts = ref<EntryRow[]>([])
+  const myDraftsLoading = ref(false)
+  const myDraftsError = ref('')
 
   const orgNameById = ref<Record<number, string>>({})
 
@@ -151,6 +157,51 @@ export function useAdminProgrammes() {
     }
   }
 
+  async function fetchMyDrafts() {
+    myDraftsLoading.value = true
+    myDraftsError.value = ''
+    try {
+      const res = await memberApi.getMyDraftEntries()
+      const body = res.data
+      myDrafts.value = (body.data || []).map((e: unknown): EntryRow => {
+        const entry = e as Record<string, unknown>
+        const org = entry.organisation as Record<string, unknown> | null | undefined
+        let orgName: string | null = org && typeof org.name === 'string'
+          ? org.name
+          : (typeof entry.organisation_name === 'string' ? entry.organisation_name : null)
+        if (!orgName) {
+          const orgId = Number(entry.organisation_id)
+          if (Number.isFinite(orgId)) {
+            orgName = orgNameById.value[orgId] ?? `Org #${orgId}`
+          }
+        }
+        const primaryActivities = extractPrimaryActivityCodes(entry.activities as any[])
+        return {
+          id: Number(entry.id),
+          programme_name: String(entry.programme_name ?? ''),
+          is_submitted: !!entry.is_submitted,
+          is_unverified: !!entry.is_unverified,
+          start_year: entry.start_year as number | null,
+          end_year: entry.end_year as number | null,
+          organisation: orgName ? { name: orgName } : null,
+          primaryActivities,
+          relativeUpdated: formatRelativeTime(entry.updated_at as string) || '—',
+        }
+      })
+    } catch {
+      myDraftsError.value = 'Failed to load drafts.'
+    } finally {
+      myDraftsLoading.value = false
+    }
+  }
+
+  function setTab(tab: 'submitted' | 'my-drafts') {
+    activeTab.value = tab
+    if (tab === 'my-drafts' && myDrafts.value.length === 0 && !myDraftsLoading.value) {
+      fetchMyDrafts()
+    }
+  }
+
   function onOrgFilterChange(e: Event) {
     selectedOrgName.value = (e.target as HTMLSelectElement).value
     currentPage.value = 1
@@ -186,11 +237,17 @@ export function useAdminProgrammes() {
   }
 
   onMounted(async () => {
+    const route = router.currentRoute.value
+    if (route.query.tab === 'my-drafts') {
+      activeTab.value = 'my-drafts'
+    }
     await loadOrgNames()
     fetchEntries(1)
+    fetchMyDrafts()
   })
 
   return reactive({
+    activeTab,
     entries,
     filteredEntries,
     entriesLoading,
@@ -201,11 +258,15 @@ export function useAdminProgrammes() {
     displayTotal,
     orgOptions,
     selectedOrgName,
+    myDrafts,
+    myDraftsLoading,
+    myDraftsError,
     showOrgPicker,
     pickerSearch,
     pickerOrgId,
     filteredPickerOrgs,
     orgsPickerLoading,
+    setTab,
     setPickerOrgId,
     onPickerSearchInput,
     closeOrgPicker,
@@ -213,6 +274,7 @@ export function useAdminProgrammes() {
     openCreatePicker,
     confirmCreate,
     fetchEntries,
+    fetchMyDrafts,
     onOrgFilterChange,
   })
 }
