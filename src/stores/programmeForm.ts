@@ -7,6 +7,8 @@ import { BUDGET_BANDS } from '@/constants/programme'
 import { useCategoriesStore } from './categories'
 import { useTaxonomyStore } from './taxonomy'
 import { useAuthStore } from './auth'
+import { useEntriesStore } from './entries.store'
+import { useMapStore } from './map'
 import { useProgrammeIdentityStore } from './programmeIdentity'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 import { useProgrammeGeographyStore } from './programmeGeography'
@@ -45,31 +47,30 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     }
 
     // Step 2: activities
-    const selectedList = section2Data.value?.selected || []
-    if (selectedList.length > 0 || (activitiesStore.selected && activitiesStore.selected.length > 0)) {
+    const hasActivities = (activitiesStore.selected && activitiesStore.selected.length > 0) ||
+                          ((section2Data.value?.selected || []).length > 0)
+    if (hasActivities) {
       completed.add(2)
     }
 
     // Step 3: geographic coverage
-    const provincesList = section3Data.value?.provinceIds || []
-    if (provincesList.length > 0 || section3Data.value?.otherCountries) {
+    const hasGeography = (geographyStore.section3Data?.provinceIds || []).length > 0 ||
+                         (section3Data.value?.provinceIds || []).length > 0 ||
+                         !!geographyStore.section3Data?.otherCountries ||
+                         !!section3Data.value?.otherCountries
+    if (hasGeography) {
       completed.add(3)
     }
 
     // Step 4: agreements
-    const agreements = section4Data.value || []
-    const isAgreementsValid = agreements.every((a: any) =>
-      a.counterpart_agency?.trim() !== '' &&
-      a.nature?.trim() !== '' &&
-      a.status?.trim() !== '' &&
-      a.institution_name?.trim() !== ''
-    )
-    if (isAgreementsValid && agreements.length > 0) {
+    const agreementsList = agreementsStore.section4Data || section4Data.value || []
+    if (agreementsList.length > 0) {
       completed.add(4)
     }
 
     // Step 5: keywords
-    if (keywordsData.value.length > 0) {
+    const keywordsList = keywordsStore.keywordsData || keywordsData.value || []
+    if (keywordsList.length > 0) {
       completed.add(5)
     }
 
@@ -80,6 +81,18 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
   const dbIdToCodeMap = ref<Record<number, string>>({})
   const taxonomyMap = ref<Record<string, number>>({})
+
+  function formatUserFriendlyError(rawMsg: string): string {
+    if (!rawMsg) return 'Please review your selections and try saving again.'
+    const lower = rawMsg.toLowerCase()
+    if (lower.includes('timeout') || lower.includes('econnaborted') || lower.includes('exceeded')) {
+      return 'The request timed out. Please try saving again.'
+    }
+    return rawMsg
+      .replace(/activities\.\d+\.education_level_ids(?:\.\d+)?/g, 'education levels')
+      .replace(/activities\.\d+\.[\w.-]+/g, 'activity details')
+      .replace(/provinces\.\d+\.[\w.-]+/g, 'geographic location')
+  }
 
   // Element / form references
   const identityFormRef = ref<any>(null)
@@ -285,8 +298,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
               hasInclusion: !!a.inclusion_group,
               dimensions: a.inclusion_group ? [{ group: a.inclusion_group, type: a.inclusion_type }] : []
             }
-            const rawL = a.activity_levels?.map((l: any) => l.education_level_id) || []
-            educationLevelsMap[code] = Array.from(new Set(rawL.map(Number))).filter((n: number) => !isNaN(n) && n > 0)
+            const rawL = (a.activity_levels?.map((l: any) => Number(l.education_level_id)) || []) as number[]
+            educationLevelsMap[code] = Array.from(new Set(rawL)).filter((n: number) => !isNaN(n) && n > 0)
           }
         })
 
@@ -564,15 +577,16 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
             console.warn(`[saveEntry] No taxonomy mapping found for code: ${code}, skipping`)
             return null
           }
-          const rawLevels = activitiesData?.educationLevels?.[code] || activitiesStore.educationLevels?.[code] || []
-          const uniqueLevels = Array.from(new Set(rawLevels.map(Number))).filter((n: number) => !isNaN(n) && n > 0)
-          const finalLevels = uniqueLevels.length > 0 ? uniqueLevels : [1]
-          const inc = activitiesData?.inclusions?.[code] || activitiesStore.inclusions?.[code]
+          const rawLevels = (activitiesStore.educationLevels?.[code] || activitiesData?.educationLevels?.[code] || section2Data.value?.educationLevels?.[code] || []) as any[]
+          const levelNumbers = rawLevels.map(v => parseInt(String(v), 10)).filter((n: number) => !isNaN(n) && n >= 1 && n <= 5)
+          const finalLevels = Array.from(new Set(levelNumbers))
+          const validLevelsPayload = finalLevels.length > 0 ? finalLevels : [1]
+          const inc = activitiesData?.inclusions?.[code] || activitiesStore.inclusions?.[code] || section2Data.value?.inclusions?.[code]
 
           const payloadAct: any = {
             activity_item_id: dbId,
             is_primary: primaryArray.includes(code),
-            education_level_ids: finalLevels,
+            education_level_ids: validLevelsPayload,
             source: 'human_entered'
           }
 
@@ -588,9 +602,21 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         })
         .filter(Boolean)
 
+      const seenItemIds = new Set<number>()
+      const uniqueMappedActivities = mappedActivities.filter((act: any) => {
+        if (!act || !act.activity_item_id) return false
+        if (seenItemIds.has(act.activity_item_id)) return false
+        seenItemIds.add(act.activity_item_id)
+
+        const rawIds = Array.isArray(act.education_level_ids) ? act.education_level_ids : [1]
+        const cleanIds = Array.from(new Set(rawIds.map((v: any) => parseInt(String(v), 10)).filter((n: number) => !isNaN(n) && n >= 1 && n <= 5)))
+        act.education_level_ids = cleanIds.length > 0 ? cleanIds : [1]
+        return true
+      })
+
       const agreementsPromise = memberApi.saveGovernmentAgreements(savedId, mappedAgreements)
       const geographyPromise = memberApi.saveGeography(savedId, geographyPayload)
-      const activitiesPromise = memberApi.saveActivities(savedId, mappedActivities)
+      const activitiesPromise = memberApi.saveActivities(savedId, uniqueMappedActivities)
       const keywordsList = (keywordsData.value || []).map(k => typeof k === 'string' ? k.trim() : '').filter(Boolean)
       const keywordsPromise = keywordsList.length > 0
         ? memberApi.saveKeywords(savedId, keywordsList)
@@ -662,8 +688,8 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
               hasInclusion: !!a.inclusion_group,
               dimensions: a.inclusion_group ? [{ group: a.inclusion_group, type: a.inclusion_type }] : []
             }
-            const rawL = a.activity_levels?.map((l: any) => l.education_level_id) || []
-            resLevels[code] = Array.from(new Set(rawL.map(Number))).filter((n: number) => !isNaN(n) && n > 0)
+            const rawL = (a.activity_levels?.map((l: any) => Number(l.education_level_id)) || []) as number[]
+            resLevels[code] = Array.from(new Set(rawL)).filter((n: any) => typeof n === 'number' && !isNaN(n) && n > 0)
           }
         })
         
@@ -690,6 +716,9 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         await router.replace({ query: { ...currentQuery, id: String(savedId) } })
       }
 
+      const mapStore = useMapStore()
+      mapStore.fetchMapEntries()
+
       if (exitAfterSave) {
         const destTab = shouldSubmit ? 'submitted' : 'draft'
         router.push(`/dashboard?tab=${destTab}`)
@@ -701,17 +730,14 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       if (err.response && err.response.status === 422) {
         const firstErrorField = err.response.data?.errors ? Object.values(err.response.data.errors)[0] : null
         const firstErrorMsg = Array.isArray(firstErrorField) ? firstErrorField[0] : firstErrorField
-        const apiMessage = firstErrorMsg || serverMessage || 'Please correct the validation errors below.'
-        toast.error(apiMessage)
-        if (exitAfterSave) {
-          const destTab = shouldSubmit ? 'submitted' : 'draft'
-          router.push(`/dashboard?tab=${destTab}`)
-        } else {
-          errors.value = err.response.data.errors || {}
-        }
+        const rawApiMessage = firstErrorMsg || serverMessage || 'Please correct the validation errors below.'
+        const friendlyMessage = formatUserFriendlyError(rawApiMessage)
+        toast.error(friendlyMessage)
+        errors.value = err.response.data?.errors || {}
       } else {
-        const apiMessage = serverMessage || 'An unexpected error occurred while saving.'
-        toast.error(apiMessage)
+        const rawApiMessage = serverMessage || 'An unexpected error occurred while saving.'
+        const friendlyMessage = formatUserFriendlyError(rawApiMessage)
+        toast.error(friendlyMessage)
       }
       return false
     } finally {
@@ -733,10 +759,24 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   }
 
   function syncRefsToStore() {
-    if (currentStep.value === 2 && activitiesFormRef.value) {
+    if (activitiesFormRef.value) {
       section2Data.value = activitiesFormRef.value.getData()
-    } else if (currentStep.value === 4 && agreementsFormRef.value) {
+    } else if (activitiesStore.selected && activitiesStore.selected.length > 0) {
+      section2Data.value = activitiesStore.getData()
+    }
+
+    if (agreementsFormRef.value) {
       section4Data.value = agreementsFormRef.value.getData()
+    } else if (agreementsStore.section4Data && agreementsStore.section4Data.length > 0) {
+      section4Data.value = agreementsStore.getData()
+    }
+
+    if (geographyStore.section3Data) {
+      section3Data.value = geographyStore.getData()
+    }
+
+    if (keywordsStore.keywordsData && keywordsStore.keywordsData.length > 0) {
+      keywordsData.value = keywordsStore.keywordsData
     }
   }
 

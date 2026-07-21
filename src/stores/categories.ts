@@ -23,6 +23,8 @@ export const useCategoriesStore = defineStore('categories', () => {
   }
 
   function toggleCategory(code: string) {
+    const activitiesStore = useProgrammeActivitiesStore()
+    activitiesStore.clearError()
     if (openCategories.value.has(code)) {
       openCategories.value = new Set()
     } else {
@@ -31,6 +33,8 @@ export const useCategoriesStore = defineStore('categories', () => {
   }
 
   function toggleSubcategory(code: string) {
+    const activitiesStore = useProgrammeActivitiesStore()
+    activitiesStore.clearError()
     if (openSubcategories.value.has(code)) {
       openSubcategories.value = new Set()
     } else {

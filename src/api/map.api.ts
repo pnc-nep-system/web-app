@@ -6,7 +6,7 @@ import api from './axios'
  * @returns Axios response whose `data.data` contains the entry list.
  */
 export async function getMapEntries() {
-  return api.get('/map/entries', { params: { format: 'flat' } })
+  return api.get('/map/entries', { params: { format: 'flat', per_page: 1000 } })
 }
 
 /**

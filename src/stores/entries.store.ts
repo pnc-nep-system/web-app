@@ -40,7 +40,11 @@ function mapEntry(e: any): ProgrammeIdentity {
     isUnverified: !!e.is_unverified,
     provinces: (e.locations || []).map((loc: any) => loc.province?.province_name ?? loc.province_name).filter(Boolean),
     activities: (e.activities || []).map((a: any) => {
-      const code = a.activity_item?.code || a.code || (typeof a === 'string' ? a : '')
+      let code = a.activity_item?.code || a.code || (typeof a === 'string' ? a : '')
+      if (!code && a.activity_item_id) {
+        // Search taxonomy by ID fallback
+        code = (window as any).__taxonomyIdMap?.[a.activity_item_id] || ''
+      }
       const isPrimary = !!(a.is_primary ?? a.primary)
       return {
         code,

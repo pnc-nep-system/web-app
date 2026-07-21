@@ -20,6 +20,26 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     educationLevels: {}
   })
 
+  let autoHideTimer: ReturnType<typeof setTimeout> | null = null
+
+  function clearError() {
+    showError.value = false
+    errorMessage.value = ''
+    if (autoHideTimer) {
+      clearTimeout(autoHideTimer)
+      autoHideTimer = null
+    }
+  }
+
+  function triggerError(msg: string) {
+    errorMessage.value = msg
+    showError.value = true
+    if (autoHideTimer) clearTimeout(autoHideTimer)
+    autoHideTimer = setTimeout(() => {
+      clearError()
+    }, 4000)
+  }
+
   watch([selected, primary, aiText, inclusions, educationLevels], () => {
     section2Data.value = {
       selected: [...selected.value],
@@ -33,6 +53,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   // Actions
 
   function initFromPayload(val: any) {
+    clearError()
     if (!val) return
 
     selected.value = Array.isArray(val.selected) ? [...val.selected] : []
@@ -46,15 +67,23 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
       nextInclusions = { ...val.inclusions }
     }
     if (val.educationLevels && typeof val.educationLevels === 'object') {
-      nextEdLevels = { ...val.educationLevels }
+      const cleaned: Record<string, number[]> = {}
+      for (const [code, levels] of Object.entries(val.educationLevels)) {
+        if (Array.isArray(levels)) {
+          cleaned[code] = Array.from(new Set(levels.map(Number))).filter(n => !isNaN(n) && n > 0)
+        } else {
+          cleaned[code] = []
+        }
+      }
+      nextEdLevels = cleaned
     }
 
     selected.value.forEach(code => {
       if (!nextInclusions[code]) {
         nextInclusions[code] = { hasInclusion: false, dimensions: [] }
       }
-      if (!nextEdLevels[code]) {
-        nextEdLevels[code] = []
+      if (!nextEdLevels[code] || nextEdLevels[code].length === 0) {
+        nextEdLevels[code] = [1]
       }
     })
     inclusions.value = nextInclusions
@@ -74,22 +103,27 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   }
 
   const toggleGroupSelection = (itemCode: string, groupName: InclusionGroup) => {
+    clearError()
     inclusions.value = InclusionHelpers.toggleGroupSelection(inclusions.value, itemCode, groupName)
   }
 
   const setGroupType = (itemCode: string, groupName: InclusionGroup, type: 'A' | 'B') => {
+    clearError()
     inclusions.value = InclusionHelpers.setGroupType(inclusions.value, itemCode, groupName, type)
   }
 
   const setGroupOtherText = (itemCode: string, otherText: string) => {
+    clearError()
     inclusions.value = InclusionHelpers.setGroupOtherText(inclusions.value, itemCode, otherText)
   }
 
   const updateInclusionToggle = (itemCode: string, hasInclusion: boolean) => {
+    clearError()
     inclusions.value = InclusionHelpers.updateInclusionToggle(inclusions.value, itemCode, hasInclusion)
   }
 
   function toggleItem(code: string) {
+    clearError()
     const isSelected = selected.value.includes(code)
     if (isSelected) {
       selected.value = selected.value.filter(c => c !== code)
@@ -115,10 +149,10 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
           [code]: { hasInclusion: false, dimensions: [] }
         }
       }
-      if (!educationLevels.value[code]) {
+      if (!educationLevels.value[code] || educationLevels.value[code].length === 0) {
         educationLevels.value = {
           ...educationLevels.value,
-          [code]: []
+          [code]: [1]
         }
       }
       collapsedItems.value = collapsedItems.value.filter(c => c !== code)
@@ -126,6 +160,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   }
 
   function toggleItemCollapse(code: string) {
+    clearError()
     if (collapsedItems.value.includes(code)) {
       collapsedItems.value = collapsedItems.value.filter(c => c !== code)
     } else {
@@ -134,6 +169,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   }
 
   function setActivityImportance(code: string, importance: 'primary' | 'secondary') {
+    clearError()
     if (!selected.value.includes(code)) return
     if (importance === 'primary') {
       if (!primary.value.includes(code)) {
@@ -151,22 +187,22 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   const errorMessage = ref('')
 
   function validate(): boolean {
-    errorMessage.value = ''
+    clearError()
 
     // 1. At least one activity must be selected
     if (selected.value.length === 0) {
-      errorMessage.value = 'Please select at least one activity before continuing.'
-      showError.value = true
+      triggerError('Please select at least one activity before continuing.')
       return false
     }
 
-    // 2. Education level must be chosen for every selected activity
+    // 2. Ensure every selected activity has a default education level
     for (const code of selected.value) {
       const levels = educationLevels.value[code] || []
       if (levels.length === 0) {
-        errorMessage.value = `Please select at least one education level for selected activity ${code}.`
-        showError.value = true
-        return false
+        educationLevels.value = {
+          ...educationLevels.value,
+          [code]: [1]
+        }
       }
     }
 
@@ -176,26 +212,23 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
       if (inc && inc.hasInclusion) {
         const dims = inc.dimensions || []
         if (dims.length === 0) {
-          errorMessage.value = `Please select an inclusion dimension for activity ${code}.`
-          showError.value = true
+          triggerError(`Please select an inclusion dimension for activity ${code}.`)
           return false
         }
         for (const dim of dims) {
           if (!dim.group || !dim.type) {
-            errorMessage.value = `Please select the inclusion category and type for activity ${code}.`
-            showError.value = true
+            triggerError(`Please select the inclusion category and type for activity ${code}.`)
             return false
           }
           if ((dim.group as string) === 'other' && !dim.otherText?.trim()) {
-            errorMessage.value = `Please specify the inclusion detail for activity ${code}.`
-            showError.value = true
+            triggerError(`Please specify the inclusion detail for activity ${code}.`)
             return false
           }
         }
       }
     }
 
-    showError.value = false
+    clearError()
     return true
   }
 
@@ -220,9 +253,10 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   }
 
   function setEducationLevels(code: string, levels: number[]) {
+    const cleanLevels = Array.from(new Set((levels || []).map(Number))).filter(n => !isNaN(n) && n > 0)
     educationLevels.value = {
       ...educationLevels.value,
-      [code]: levels
+      [code]: cleanLevels
     }
   }
 
@@ -252,5 +286,6 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     getData,
     reset,
     setEducationLevels,
+    clearError,
   }
 })

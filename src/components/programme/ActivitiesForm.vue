@@ -30,17 +30,25 @@ defineExpose({ validate, getData })
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="space-y-4" @click="store.clearError">
 
     <!-- Validation error banner -->
     <div
       v-if="store.showError"
-      class="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+      class="flex items-center justify-between gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 cursor-pointer shadow-sm animate-fade-in"
+      @click.stop="store.clearError"
     >
-      <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-      </svg>
-      {{ store.errorMessage || 'Please select at least one activity before continuing.' }}
+      <div class="flex items-center gap-2.5">
+        <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <span>{{ store.errorMessage || 'Please select at least one activity before continuing.' }}</span>
+      </div>
+      <button type="button" class="text-red-500 hover:text-red-800 transition-colors p-1" @click.stop="store.clearError">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
     <!-- Instruction -->
