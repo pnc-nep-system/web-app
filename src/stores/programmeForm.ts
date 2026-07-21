@@ -237,9 +237,10 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         await catsStore.loadCategories()
         const cats = catsStore.categories
 
-        const [entryResult, geoResult] = await Promise.all([
+        const [entryResult, geoResult, agreementsResult] = await Promise.all([
           entryId ? memberApi.getProgrammeEntry(entryId) : Promise.resolve(null),
           entryId ? memberApi.getGeography(entryId) : Promise.resolve(null),
+          entryId ? memberApi.getGovernmentAgreements(entryId) : Promise.resolve(null),
         ])
 
       cats.forEach((cat: any) => {
@@ -362,7 +363,9 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
         geographyStore.initFromPayload(tempSection3Data)
 
-        section4Data.value = entry.government_agreements || []
+        const rawAgreements = agreementsResult?.data?.data || (Array.isArray(agreementsResult?.data) ? agreementsResult.data : null) || entry.government_agreements || []
+        section4Data.value = rawAgreements
+        agreementsStore.initFromPayload(rawAgreements)
 
         if (entry.keywords?.length) {
           const keywordList = entry.keywords.map((k: any) => k.keyword).filter(Boolean)

@@ -33,6 +33,9 @@ export const memberApi = {
   saveGovernmentAgreements(id: number | string, agreements: any[]) {
     return api.put(`/programme-entries/${id}/government-agreements`, { agreements });
   },
+  getGovernmentAgreements(id: number | string) {
+    return api.get(`/programme-entries/${id}/government-agreements`);
+  },
   saveActivities(id: number | string, activities: any[]) {
     return api.post(`/programme-entries/${id}/activities`, { activities });
   },
