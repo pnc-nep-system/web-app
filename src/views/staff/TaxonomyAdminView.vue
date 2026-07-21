@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import AppShell from '@/components/AppShell.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import TaxonomyAdminPanel from '@/components/programme/TaxonomyAdminPanel.vue'
-import { useTaxonomyAdminStore } from '@/stores/taxonomyAdmin'
+import { useTaxonomyStore } from '@/stores/taxonomy'
 
-const store = useTaxonomyAdminStore()
+const taxonomyStore = useTaxonomyStore()
 
-onMounted(async () => {
-  await store.taxonomy.fetchTaxonomy()
-  const firstCategory = store.taxonomy.categories[0]
-  if (firstCategory) {
-    store.expandedCategories.add(firstCategory.code)
-  }
+onMounted(() => {
+  taxonomyStore.fetchTaxonomy()
 })
 </script>
 
@@ -19,9 +16,7 @@ onMounted(async () => {
   <AppShell>
     <!-- Breadcrumb -->
     <template #header>
-      <span class="text-gray-400">Admin</span>
-      <span class="mx-1.5 text-gray-300">›</span>
-      <span class="text-gray-700 font-medium">Activity Taxonomy Directory</span>
+      <HeaderBreadcrumb title="Taxonomy Data" />
     </template>
 
     <TaxonomyAdminPanel />

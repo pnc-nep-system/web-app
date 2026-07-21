@@ -1,11 +1,5 @@
 <template>
-  <div class="flex w-full items-center justify-between gap-4">
-    <div class="flex items-center gap-1.5 text-sm min-w-0">
-      <span class="text-gray-400">NEP</span>
-      <span class="text-gray-300">›</span>
-      <span class="text-gray-700 font-medium truncate">Overview</span>
-    </div>
-    
+  <HeaderBreadcrumb title="Overview">
     <div class="flex items-center gap-3">
       <!-- Search box -->
       <div class="relative w-72 hidden md:block">
@@ -23,9 +17,10 @@
         <BaseIcon name="bell" :size="16" />
       </button>
     </div>
-  </div>
+  </HeaderBreadcrumb>
 </template>
 
 <script setup lang="ts">
 import BaseIcon from '@/components/common/BaseIcon.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 </script>

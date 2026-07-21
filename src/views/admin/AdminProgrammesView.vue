@@ -7,14 +7,13 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useAdminProgrammes } from '@/composables/useAdminProgrammes'
 
 const programmes = useAdminProgrammes()
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 </script>
 
 <template>
   <AppShell>
     <template #header>
-      <span class="text-gray-400">NEP</span>
-      <span class="mx-1.5 text-gray-300">›</span>
-      <span class="text-gray-700 font-medium">Programme Entries</span>
+      <HeaderBreadcrumb title="Programme entries" />
     </template>
 
     <!-- Header -->

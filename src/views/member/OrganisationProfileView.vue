@@ -51,15 +51,15 @@ async function save() {
   }
 }
 
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
+
 onMounted(loadOrg)
 </script>
 
 <template>
   <AppShell>
     <template #header>
-      <span class="text-gray-400">NEP</span>
-      <span class="mx-1.5 text-gray-300">›</span>
-      <span class="text-gray-700 font-medium">Organisation Profile</span>
+      <HeaderBreadcrumb title="Organisation Profile" />
     </template>
 
     <div class="page-head">

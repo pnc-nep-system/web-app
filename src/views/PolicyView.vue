@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppShell from '@/components/AppShell.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/utils/toast'
@@ -84,16 +85,11 @@ function handleAddPolicy(payload: { title: string; authority: string; version: s
 <template>
   <AppShell>
     <template #header>
-      <div class="flex w-full items-center justify-between gap-4">
-        <div class="flex items-center gap-1.5 text-sm min-w-0">
-          <span class="text-gray-400">NEP</span>
-          <span class="text-gray-300">›</span>
-          <span class="text-gray-700 font-medium truncate">Policy library</span>
-        </div>
+      <HeaderBreadcrumb title="Policy Library">
         <button v-if="isAdmin" @click="showAdd = true" class="btn btn-secondary shadow-sm shrink-0">
           <Icon name="plus" :size="15" /> Add document
         </button>
-      </div>
+      </HeaderBreadcrumb>
     </template>
 
     <!-- Page heading -->
