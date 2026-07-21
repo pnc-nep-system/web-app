@@ -38,6 +38,7 @@ const navItems = computed<any>(() => {
           { to: '/admin/taxonomy', label: 'Taxonomy data', icon: 'list' },
           { to: '/admin/organization', label: 'Organization', icon: 'building' },
           { to: '/admin/users', label: 'User Management', icon: 'users' },
+          { to: '/policy', label: 'Policy library', icon: 'book' },
         ],
       },
     ]

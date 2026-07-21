@@ -42,23 +42,44 @@ onMounted(() => {
 
 const showAdd = ref(false)
 const submitting = ref(false)
+const editingPolicy = ref<PolicyDocument | null>(null)
 
-async function handleAddPolicy(payload: { title: string; authority: string; version: string; date: string }) {
+function openAddModal() {
+  editingPolicy.value = null
+  showAdd.value = true
+}
+
+function handleEdit(doc: PolicyDocument) {
+  editingPolicy.value = doc
+  showAdd.value = true
+}
+
+async function handleDelete(id: number) {
+  if (!confirm('Are you sure you want to delete this policy document?')) return
+  
+  try {
+    await policyApi.deletePolicy(id)
+    toast.success('Policy document deleted')
+    await fetchPolicies()
+  } catch (err: any) {
+    toast.error(err?.response?.data?.message ?? 'Failed to delete policy document')
+  }
+}
+
+async function handleSavePolicy(payload: { title: string; authority: string; version: string; date: string; status: 'active' | 'superseded' | 'inactive' }) {
   submitting.value = true
   try {
-    await policyApi.createPolicy({
-      title: payload.title,
-      authority: payload.authority,
-      version: payload.version,
-      date: payload.date,
-      status: 'active',
-    })
-
-    toast.success('Policy document created successfully')
+    if (editingPolicy.value) {
+      await policyApi.updatePolicy(editingPolicy.value.id, payload)
+      toast.success('Policy document updated successfully')
+    } else {
+      await policyApi.createPolicy(payload)
+      toast.success('Policy document created successfully')
+    }
     showAdd.value = false
     await fetchPolicies()
   } catch (err: any) {
-    toast.error(err?.response?.data?.message ?? 'Failed to create policy document')
+    toast.error(err?.response?.data?.message ?? 'Failed to save policy document')
   } finally {
     submitting.value = false
   }
@@ -69,7 +90,7 @@ async function handleAddPolicy(payload: { title: string; authority: string; vers
   <AppShell>
     <template #header>
       <HeaderBreadcrumb title="Policy Library">
-        <button v-if="isAdmin" @click="showAdd = true" class="btn btn-secondary shadow-sm shrink-0">
+        <button v-if="isAdmin" @click="openAddModal" class="btn btn-secondary shadow-sm shrink-0">
           <Icon name="plus" :size="15" /> Add document
         </button>
       </HeaderBreadcrumb>
@@ -107,14 +128,21 @@ async function handleAddPolicy(payload: { title: string; authority: string; vers
       <EmptyState v-else-if="items.length === 0" title="No matching entries found" description="Try adjusting or clearing your filters." />
 
       <!-- Data Table -->
-      <PolicyTable v-else :items="items" />
+      <PolicyTable 
+        v-else 
+        :items="items" 
+        :is-admin="isAdmin"
+        @edit="handleEdit"
+        @delete="handleDelete"
+      />
     </div>
 
     <!-- Modal Form (Extracted Component) -->
     <PolicyFormModal
       :show="showAdd"
+      :initial-data="editingPolicy"
       @close="showAdd = false"
-      @submit="handleAddPolicy"
+      @submit="handleSavePolicy"
     />
   </AppShell>
 </template>

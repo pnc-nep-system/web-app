@@ -1,28 +1,39 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import Icon from '@/components/common/BaseIcon.vue'
+import type { PolicyDocument } from '@/api/policy.api'
 
 const props = defineProps<{
   show: boolean
+  initialData?: PolicyDocument | null
 }>()
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'submit', payload: { title: string; authority: string; version: string; date: string }): void
+  (e: 'submit', payload: { title: string; authority: string; version: string; date: string; status: 'active' | 'superseded' | 'inactive' }): void
 }>()
 
-const form = reactive({ title: '', authority: '', version: '', date: '' })
+const form = reactive({ title: '', authority: '', version: '', date: '', status: 'active' as 'active' | 'superseded' | 'inactive' })
 const errors = reactive({ title: '', authority: '', version: '', date: '' })
 
-// Reset form and errors when modal is opened/closed
+// Reset or populate form when modal opens
 watch(
   () => props.show,
   (val) => {
     if (val) {
-      form.title = ''
-      form.authority = ''
-      form.version = ''
-      form.date = ''
+      if (props.initialData) {
+        form.title = props.initialData.title
+        form.authority = props.initialData.authority
+        form.version = props.initialData.version
+        form.date = props.initialData.date ? props.initialData.date.substring(0, 10) : ''
+        form.status = props.initialData.status
+      } else {
+        form.title = ''
+        form.authority = ''
+        form.version = ''
+        form.date = ''
+        form.status = 'active'
+      }
       errors.title = ''
       errors.authority = ''
       errors.version = ''
@@ -43,7 +54,8 @@ function submit() {
     title: form.title.trim(),
     authority: form.authority.trim(),
     version: form.version.trim(),
-    date: form.date
+    date: form.date,
+    status: form.status
   })
 }
 </script>
@@ -52,7 +64,9 @@ function submit() {
   <Teleport to="body">
     <div v-if="show" class="modal-backdrop" @click.self="emit('close')">
       <div class="modal-panel">
-        <h3 class="text-[16px] font-semibold mb-[14px]">Add policy document</h3>
+        <h3 class="text-[16px] font-semibold mb-[14px]">
+          {{ initialData ? 'Edit policy document' : 'Add policy document' }}
+        </h3>
 
         <div class="field">
           <label>Title</label>
@@ -87,17 +101,25 @@ function submit() {
           </div>
         </div>
 
-        <div class="text-[11.5px] text-[var(--ink-500)] mt-3 mb-[18px] leading-normal">
+        <div class="field" v-if="initialData">
+          <label>Status</label>
+          <select v-model="form.status" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-[13px] bg-white outline-none focus:border-[var(--teal-500)] focus:ring-1 focus:ring-[var(--teal-500)]">
+            <option value="active">Active</option>
+            <option value="superseded">Superseded</option>
+          </select>
+        </div>
+
+        <div v-if="!initialData" class="text-[11.5px] text-[var(--ink-500)] mt-3 mb-[18px] leading-normal">
           If a document with this exact title is already active, it will be marked superseded and retained for
           historical reference.
         </div>
 
-        <div class="flex justify-end gap-[10px]">
+        <div class="flex justify-end gap-[10px] mt-[18px]">
           <button @click="emit('close')" class="btn btn-secondary btn-sm">
             Cancel
           </button>
           <button @click="submit" class="btn btn-primary btn-sm">
-            Add document
+            {{ initialData ? 'Save changes' : 'Add document' }}
           </button>
         </div>
       </div>

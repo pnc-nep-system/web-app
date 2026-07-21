@@ -4,6 +4,12 @@ import type { PolicyDocument } from '@/api/policy.api'
 
 defineProps<{
   items: PolicyDocument[]
+  isAdmin?: boolean
+}>()
+
+const emit = defineEmits<{
+  (e: 'edit', doc: PolicyDocument): void
+  (e: 'delete', id: number): void
 }>()
 
 function formatDate(dateStr: string) {
@@ -17,11 +23,12 @@ function formatDate(dateStr: string) {
   <div class="overflow-x-auto">
     <table class="w-full table-fixed text-left border-collapse min-w-[860px]">
       <colgroup>
-        <col style="width: 32%" />
-        <col style="width: 28%" />
+        <col style="width: 30%" />
+        <col style="width: 25%" />
         <col style="width: 12%" />
-        <col style="width: 14%" />
-        <col style="width: 14%" />
+        <col style="width: 13%" />
+        <col style="width: 12%" />
+        <col v-if="isAdmin" style="width: 8%" />
       </colgroup>
 
       <!-- Header -->
@@ -32,6 +39,7 @@ function formatDate(dateStr: string) {
           <th class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Version</th>
           <th class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Date</th>
           <th class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Status</th>
+          <th v-if="isAdmin" class="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-right whitespace-nowrap">Actions</th>
         </tr>
       </thead>
 
@@ -89,6 +97,26 @@ function formatDate(dateStr: string) {
               ></span>
               {{ d.status === 'active' ? 'Active' : 'Superseded' }}
             </span>
+          </td>
+
+          <!-- Actions -->
+          <td v-if="isAdmin" class="px-5 h-12 align-middle text-right">
+            <div class="flex items-center justify-end gap-1 transition-opacity">
+              <button
+                @click.stop="emit('edit', d)"
+                class="p-1.5 text-gray-500 hover:text-[var(--teal-600)] hover:bg-[var(--teal-50)] rounded transition-colors"
+                title="Edit document"
+              >
+                <BaseIcon name="edit" size="15" />
+              </button>
+              <button
+                @click.stop="emit('delete', d.id)"
+                class="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                title="Delete document"
+              >
+                <BaseIcon name="trash" size="15" />
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>
