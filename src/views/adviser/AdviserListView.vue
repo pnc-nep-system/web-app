@@ -33,10 +33,8 @@ function coordinatorLabel(id: number | null): string {
 }
 
 onMounted(() => {
-  // Only fetch if empty, to preserve our frontend-only status changes!
-  if (adviserStore.submissions.length === 0) {
-    adviserStore.fetchSubmissions()
-  }
+  // Always fetch fresh data so status changes are reflected after returning from detail view
+  adviserStore.fetchSubmissions()
   loadCoordinators()
 })
 
@@ -45,29 +43,33 @@ const activeTab = computed({
   get: () => _activeTab.value,
   set: (v) => { _activeTab.value = v },
 })
-const _activeTab = ref<'all' | 'submitted_for_review' | 'advice_delivered'>('all')
+const _activeTab = ref<'all' | 'submitted_for_review' | 'advice_delivered'>('submitted_for_review')
 
 const filteredSubmissions = computed<Submission[]>(() => {
   const list = adviserStore.submissions
   if (_activeTab.value === 'all') return list
+  if (_activeTab.value === 'submitted_for_review') {
+    // Everything that is NOT advice_delivered is considered "Submitted for review"
+    return list.filter((s) => s.status !== 'advice_delivered')
+  }
   return list.filter((s) => s.status === _activeTab.value)
 })
 
 const countAll = computed(() => adviserStore.submissions.length)
-const countReview = computed(() => adviserStore.submissions.filter((s) => s.status === 'submitted_for_review').length)
+const countReview = computed(() => adviserStore.submissions.filter((s) => s.status !== 'advice_delivered').length)
 const countDelivered = computed(() => adviserStore.submissions.filter((s) => s.status === 'advice_delivered').length)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function statusLabel(status: SubmissionStatus): string {
-  if (status === 'submitted_for_review') return 'Submitted for review'
   if (status === 'advice_delivered') return 'Advice delivered'
-  return 'Pending'
+  // 'pending' and 'submitted_for_review' both show as "Submitted for review"
+  return 'Submitted for review'
 }
 
 function statusClass(status: SubmissionStatus): string {
-  if (status === 'submitted_for_review') return 'bg-[#FFEDD5] text-[#C2410C]' // light orange bg, orange/brown text
-  if (status === 'advice_delivered') return 'bg-[#DCFCE7] text-[#15803D]' // light green bg, green text
-  return 'bg-gray-100 text-gray-500'
+  if (status === 'advice_delivered') return 'bg-[#DCFCE7] text-[#15803D]'
+  // Everything else gets the orange "in review" style
+  return 'bg-[#FFEDD5] text-[#C2410C]'
 }
 
 function formatScope(s: Submission): string {
@@ -112,14 +114,17 @@ function openSubmission(id: number) {
       </div>
       <router-link
         to="/adviser/new"
-        class="shrink-0 inline-flex items-center px-4 py-2 bg-[#0F5A4D] !text-white text-[13px] font-semibold rounded-[6px] hover:bg-[#0C4A3F] transition-colors shadow-sm"
+        class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] !text-white text-[13px] font-semibold rounded-lg hover:bg-[#0C4A3F] transition-colors shadow-sm"
       >
-        + Submit document for analysis
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        Submit document for analysis
       </router-link>
     </div>
 
     <!-- Tabs -->
-    <div class="flex items-center gap-8 border-b border-gray-100 mb-6 px-1">
+    <div class="flex items-center gap-1 mb-6">
       <button
         v-for="tab in [
           { key: 'all', label: 'All', count: countAll },
@@ -129,12 +134,16 @@ function openSubmission(id: number) {
         :key="tab.key"
         type="button"
         @click="_activeTab = tab.key as any"
-        class="pb-3 text-[14px] font-medium border-b-[3px] transition -mb-[2px] px-1"
+        class="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-medium transition-all"
         :class="_activeTab === tab.key
-          ? 'border-[#125B4D] text-[#125B4D]'
-          : 'border-transparent text-gray-500 hover:text-gray-900'"
+          ? 'bg-[#0F5A4D]/10 text-[#0F5A4D] font-semibold'
+          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'"
       >
-        {{ tab.label }} ({{ tab.count }})
+        {{ tab.label }}
+        <span
+          class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold"
+          :class="_activeTab === tab.key ? 'bg-[#0F5A4D] text-white' : 'bg-gray-100 text-gray-500'"
+        >{{ tab.count }}</span>
       </button>
     </div>
 
@@ -144,7 +153,7 @@ function openSubmission(id: number) {
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
-      Loading submissions…
+      <span class="text-[14px]">Loading submissions…</span>
     </div>
 
     <!-- Error state -->
@@ -153,65 +162,101 @@ function openSubmission(id: number) {
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="filteredSubmissions.length === 0" class="py-20 text-center text-gray-400 text-sm">
-      No submissions found.
+    <div v-else-if="filteredSubmissions.length === 0" class="py-24 flex flex-col items-center justify-center text-center">
+      <div class="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
+        <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+        </svg>
+      </div>
+      <p class="text-[14px] font-semibold text-gray-600">No submissions found</p>
+      <p class="text-[13px] text-gray-400 mt-1">Submissions will appear here once documents are submitted.</p>
     </div>
 
-    <!-- Table -->
-    <div v-else class="bg-white border border-gray-100 rounded-lg overflow-hidden">
-      <table class="w-full text-[13px]">
-        <thead>
-          <tr class="border-b border-gray-100 bg-white text-[11px] uppercase tracking-wide text-gray-400 font-bold">
-            <th class="text-left px-5 py-4 w-[22%]">Submitting party</th>
-            <th class="text-left px-5 py-4 w-[22%]">Document</th>
-            <th class="text-left px-5 py-4 w-[18%]">Analysis scope</th>
-            <th class="text-left px-5 py-4 w-[12%]">Status</th>
-            <th class="text-left px-5 py-4 w-[12%]">Assigned to</th>
-            <th class="text-left px-5 py-4 w-[14%]">Submitted</th>
-            <th class="px-5 py-4"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="sub in filteredSubmissions"
-            :key="sub.id"
-            class="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors"
+    <!-- Card list -->
+    <div v-else class="space-y-3">
+      <!-- Column headers -->
+      <div class="grid grid-cols-[1fr_1fr_1fr_140px_120px_100px_80px] gap-4 px-5 pb-2">
+        <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Submitting party</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Document</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Analysis scope</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Status</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Assigned to</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400">Submitted</span>
+        <span></span>
+      </div>
+
+      <!-- Row cards -->
+      <div
+        v-for="sub in filteredSubmissions"
+        :key="sub.id"
+        @click="openSubmission(sub.id)"
+        class="group grid grid-cols-[1fr_1fr_1fr_140px_120px_100px_80px] gap-4 items-center px-5 py-4 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md hover:border-[#0F5A4D]/20 transition-all cursor-pointer relative overflow-hidden"
+      >
+        <!-- Left accent border on hover -->
+        <div class="absolute left-0 top-0 bottom-0 w-[3px] bg-[#0F5A4D] opacity-0 group-hover:opacity-100 transition-opacity rounded-l-xl"></div>
+
+        <!-- Submitting party -->
+        <div class="min-w-0">
+          <p class="text-[13px] font-bold text-gray-900 truncate">{{ sub.submitting_party }}</p>
+        </div>
+
+        <!-- Document -->
+        <div class="min-w-0 flex items-center gap-2.5">
+          <div class="w-7 h-7 rounded-md bg-gray-100 flex items-center justify-center shrink-0">
+            <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+            </svg>
+          </div>
+          <span class="text-[13px] text-gray-500 truncate">{{ sub.document_name }}</span>
+        </div>
+
+        <!-- Analysis scope -->
+        <div class="min-w-0">
+          <span class="text-[13px] text-gray-700 truncate block">{{ formatScope(sub) }}</span>
+        </div>
+
+        <!-- Status badge -->
+        <div>
+          <span
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
+            :class="statusClass(sub.status)"
           >
-            <td class="px-5 py-4 font-bold text-gray-900 align-middle">
-              {{ sub.submitting_party }}
-            </td>
-            <td class="px-5 py-4 text-gray-500 truncate max-w-[200px] align-middle">
-              {{ sub.document_name }}
-            </td>
-            <td class="px-5 py-4 text-gray-700 align-middle">
-              {{ formatScope(sub) }}
-            </td>
-            <td class="px-5 py-4 align-middle">
-              <span
-                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wide"
-                :class="statusClass(sub.status)"
-              >
-                {{ statusLabel(sub.status) }}
-              </span>
-            </td>
-            <td class="px-5 py-4 text-gray-700 align-middle whitespace-pre-line leading-snug">
-              {{ coordinatorLabel(sub.assign_to_staff_user_id) }}
-            </td>
-            <td class="px-5 py-4 text-gray-700 whitespace-nowrap align-middle">
-              {{ timeAgo(sub.submitted_at) }}
-            </td>
-            <td class="px-5 py-4 text-right align-middle">
-              <button
-                type="button"
-                @click="openSubmission(sub.id)"
-                class="text-gray-700 hover:text-gray-900 font-medium whitespace-nowrap transition-colors"
-              >
-                {{ sub.status === 'advice_delivered' ? 'View →' : 'Open →' }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            <span class="w-1.5 h-1.5 rounded-full shrink-0"
+              :class="sub.status === 'advice_delivered' ? 'bg-[#15803D]' : 'bg-[#C2410C]'"
+            ></span>
+            {{ statusLabel(sub.status) }}
+          </span>
+        </div>
+
+        <!-- Assigned to -->
+        <div class="min-w-0">
+          <span
+            class="text-[13px] truncate block"
+            :class="coordinatorLabel(sub.assign_to_staff_user_id) === 'Unassigned' ? 'text-gray-400 italic' : 'text-gray-700'"
+          >
+            {{ coordinatorLabel(sub.assign_to_staff_user_id) }}
+          </span>
+        </div>
+
+        <!-- Submitted time -->
+        <div>
+          <span class="text-[13px] text-gray-400 whitespace-nowrap">{{ timeAgo(sub.submitted_at) }}</span>
+        </div>
+
+        <!-- Action -->
+        <div class="flex justify-end">
+          <span
+            class="inline-flex items-center gap-1 text-[13px] font-semibold transition-colors"
+            :class="sub.status === 'advice_delivered' ? 'text-[#15803D] group-hover:text-[#0f5a4d]' : 'text-gray-400 group-hover:text-[#0F5A4D]'"
+          >
+            {{ sub.status === 'advice_delivered' ? 'View' : 'Open' }}
+            <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+            </svg>
+          </span>
+        </div>
+      </div>
     </div>
   </AppShell>
 </template>
+

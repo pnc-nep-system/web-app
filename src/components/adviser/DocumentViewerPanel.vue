@@ -50,30 +50,8 @@ defineProps<{
       </div>
     </div>
 
-    <!-- Document Metadata Card -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-      <h2 class="text-[14px] font-bold text-gray-900 mb-4">Document details</h2>
-      <dl class="space-y-3">
-        <div class="flex justify-between">
-          <dt class="text-[12px] text-gray-500 font-medium">Submitted by</dt>
-          <dd class="text-[13px] text-gray-900 font-medium">{{ submittingParty }}</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-[12px] text-gray-500 font-medium">Analysis scope</dt>
-          <dd class="text-[13px] text-gray-900 font-medium">{{ analysisScope }}</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-[12px] text-gray-500 font-medium">Submitted</dt>
-          <dd class="text-[13px] text-gray-900 font-medium">{{ submittedDate }}</dd>
-        </div>
-        <div class="flex justify-between">
-          <dt class="text-[12px] text-gray-500 font-medium">Assigned to</dt>
-          <dd class="text-[13px] text-gray-900 font-medium">{{ assignee }}</dd>
-        </div>
-      </dl>
-    </div>
 
-    <!-- Reasoning Card -->
+<!-- Reasoning Card -->
     <div class="bg-gray-50/80 border border-gray-200 rounded-xl shadow-sm p-5">
       <h2 class="text-[13px] font-bold text-gray-900 mb-2">Reasoning for AI recommendations</h2>
       <p class="text-[12px] text-gray-600 leading-relaxed">

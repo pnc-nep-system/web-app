@@ -55,13 +55,11 @@ onMounted(async () => {
 const statusMeta = computed(() => {
   if (!submission.value) return { label: '', dot: '', bg: '', text: '', border: '' }
   const s = submission.value.status
-  if (s === 'submitted_for_review') {
-    return { label: 'Submitted for review', dot: '#d97706', bg: '#fef3e2', text: '#b45309', border: '#fde68a' }
-  }
   if (s === 'advice_delivered') {
     return { label: 'Advice delivered', dot: '#16a34a', bg: '#dcfce7', text: '#15803d', border: '#bbf7d0' }
   }
-  return { label: 'Pending', dot: '#8b9a97', bg: '#f3f5f4', text: '#647572', border: '#e4eae8' }
+  // 'pending' and 'submitted_for_review' both show as "Submitted for review"
+  return { label: 'Submitted for review', dot: '#d97706', bg: '#fef3e2', text: '#b45309', border: '#fde68a' }
 })
 
 function ucFirst(str: string): string {

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import { useAdviserStore } from '@/stores/adviser'
+import { adviserApi } from '@/api/adviser.api'
 
 // Import split components
 import DocumentViewerPanel from '@/components/adviser/DocumentViewerPanel.vue'
@@ -17,6 +18,7 @@ const router = useRouter()
 const adviserStore = useAdviserStore()
 
 const loading = ref(true)
+const delivering = ref(false)
 const submissionId = Number(route.params.id)
 const currentStatus = ref('submitted_for_review')
 const form = ref({
@@ -29,24 +31,33 @@ const form = ref({
 
 const customToasts = ref<{id: number, text: string}[]>([])
 
-onMounted(() => {
-  const existing = adviserStore.submissions.find(s => s.id === submissionId)
-  if (existing) {
-    currentStatus.value = existing.status
-  }
-  if (existing?.section_profile) {
-    form.value.sectionA = existing.section_profile
-  }
-  if (existing?.section_gaps) {
-    form.value.sectionC = [{ text: existing.section_gaps }]
-  }
-  if (existing?.section_coordinators_notes) {
-    form.value.sectionD = existing.section_coordinators_notes
-  }
-  
-  setTimeout(() => {
+onMounted(async () => {
+  // Try store first (fast path – no extra request when navigating within the app)
+  const cached = adviserStore.submissions.find(s => s.id === submissionId)
+  if (cached) {
+    currentStatus.value = cached.status
+    if (cached.section_profile) form.value.sectionA = cached.section_profile
+    if (cached.section_gaps) form.value.sectionC = [{ text: cached.section_gaps }]
+    if (cached.section_coordinators_notes) form.value.sectionD = cached.section_coordinators_notes
     loading.value = false
-  }, 400)
+    return
+  }
+
+  // Fallback: fetch from API (page refresh or direct URL)
+  try {
+    const res = await adviserApi.getById(submissionId)
+    const data = (res.data as any)?.data ?? res.data
+    if (data) {
+      currentStatus.value = data.status
+      if (data.section_profile) form.value.sectionA = data.section_profile
+      if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
+      if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes
+    }
+  } catch {
+    // silently fall back to defaults
+  } finally {
+    loading.value = false
+  }
 })
 
 function saveDraft() {
@@ -55,15 +66,27 @@ function saveDraft() {
   setTimeout(() => { customToasts.value = customToasts.value.filter(t => t.id !== id) }, 4000)
 }
 
-function markDelivered() {
-  currentStatus.value = 'advice_delivered'
-  const id = Date.now()
-  customToasts.value.push({ id, text: 'Advisory note marked as delivered' })
-  setTimeout(() => { customToasts.value = customToasts.value.filter(t => t.id !== id) }, 4000)
-  
-  const existing = adviserStore.submissions.find(s => s.id === submissionId)
-  if (existing) {
-    existing.status = 'advice_delivered'
+async function markDelivered() {
+  if (delivering.value) return
+  delivering.value = true
+  try {
+    const res = await adviserApi.markDelivered(submissionId)
+    const data = (res.data as any)?.data ?? res.data
+    const newStatus = data?.status ?? 'advice_delivered'
+    currentStatus.value = newStatus
+
+    const existing = adviserStore.submissions.find(s => s.id === submissionId)
+    if (existing) existing.status = newStatus
+
+    const id = Date.now()
+    customToasts.value.push({ id, text: 'Advisory note marked as delivered' })
+    setTimeout(() => { customToasts.value = customToasts.value.filter(t => t.id !== id) }, 4000)
+  } catch {
+    const id = Date.now()
+    customToasts.value.push({ id, text: 'Failed to update status — please try again' })
+    setTimeout(() => { customToasts.value = customToasts.value.filter(t => t.id !== id) }, 4000)
+  } finally {
+    delivering.value = false
   }
 }
 
@@ -133,8 +156,13 @@ function removeGap(idx: number) {
             <button @click="saveDraft" class="px-4 py-2 border border-gray-200 rounded-lg text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm">
               Save draft
             </button>
-            <button @click="markDelivered" class="px-4 py-2 bg-[#0F5A4D] text-white rounded-lg text-[13px] font-semibold hover:bg-[#0c4a3f] transition shadow-sm">
-              Mark advice delivered →
+            <button
+              @click="markDelivered"
+              :disabled="delivering"
+              class="px-4 py-2 bg-[#0F5A4D] text-white rounded-lg text-[13px] font-semibold hover:bg-[#0c4a3f] transition shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <BaseIcon v-if="delivering" name="refresh" size="14" class="animate-spin" />
+              {{ delivering ? 'Saving…' : 'Mark advice delivered →' }}
             </button>
           </template>
         </div>

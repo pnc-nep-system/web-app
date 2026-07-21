@@ -54,4 +54,11 @@ export const adviserApi = {
     submit(payload: SubmissionPayload) {
         return api.post<SubmissionCreateResponse>('/adviser/submissions', payload)
     },
+
+    /**
+     * Mark a submission's status as advice_delivered.
+     */
+    markDelivered(id: number) {
+        return api.patch<{ data: Submission }>(`/adviser/submissions/${id}/deliver`)
+    },
 }
