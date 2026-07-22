@@ -14,7 +14,7 @@ defineProps<{
 <template>
   <div class="space-y-6">
     <!-- Document Preview Card -->
-    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+    <div v-if="false" class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
       <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
         <h2 class="text-[14px] font-bold text-gray-900">Uploaded document</h2>
       </div>
