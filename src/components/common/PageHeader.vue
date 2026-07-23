@@ -22,7 +22,7 @@ defineProps<{
       </p>
     </div>
     
-    <div v-if="$slots.default" class="flex items-center gap-2 shrink-0 self-start md:self-auto">
+    <div v-if="$slots.default" class="flex items-center gap-2 flex-wrap shrink-0 self-start md:self-auto">
       <slot />
     </div>
   </div>

@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -173,7 +174,7 @@ function cancel() {
       />
 
       <!-- Assign to coordinator (data from store) -->
-      <FormCoordinatorSelect
+      <FormCoordinatorSelect 
         v-model="assignedTo"
         :coordinators="coordinators"
         :loading="!adviserStore.coordinatorMap || Object.keys(adviserStore.coordinatorMap).length === 0"
