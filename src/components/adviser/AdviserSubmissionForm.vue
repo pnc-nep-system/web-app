@@ -29,6 +29,10 @@ const selectedProvince = ref('')
 const selectedCategory = ref('')
 const assignedTo = ref('unassigned')
 
+// ── Modal state ───────────────────────────────────────────────────────────────
+const showEntryModal = ref(false)
+const entrySearch = ref('')
+
 // ── Validation ────────────────────────────────────────────────────────────────
 const errors = ref<Record<string, string>>({})
 const submitError = ref<string | null>(null)
@@ -41,6 +45,23 @@ interface ProgrammeEntryOption {
 }
 const programmeEntries = ref<ProgrammeEntryOption[]>([])
 const loadingEntries = ref(false)
+
+const filteredEntries = computed(() => {
+  const q = entrySearch.value.toLowerCase().trim()
+  if (!q) return programmeEntries.value
+  return programmeEntries.value.filter(
+    (e) =>
+      e.name.toLowerCase().includes(q) ||
+      (e.organisation_name && e.organisation_name.toLowerCase().includes(q)),
+  )
+})
+
+const selectedEntryName = computed(() => {
+  if (!selectedEntryId.value) return ''
+  const entry = programmeEntries.value.find(e => e.id === Number(selectedEntryId.value))
+  if (!entry) return ''
+  return entry.organisation_name ? `${entry.name} (${entry.organisation_name})` : entry.name
+})
 
 async function loadProgrammeEntries() {
   loadingEntries.value = true
@@ -201,21 +222,23 @@ function switchMode(newMode: 'adviser' | 'entity') {
           </p>
         </div>
 
-        <!-- Select Entry (dropdown for Adviser Entity mode) -->
+        <!-- Select Entry (modal for Adviser Entity mode) -->
         <div v-else>
           <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Selecting Enty</label>
-          <select
-            v-model="selectedEntryId"
-            class="w-full border rounded-[8px] px-4 py-3 text-[15px] text-gray-900 focus:outline-none focus:ring-1 transition appearance-none bg-white"
+          <div
+            class="w-full border rounded-[8px] px-4 py-3 text-[15px] cursor-pointer flex items-center justify-between transition bg-white"
             :class="errors.selectedEntry
-              ? 'border-red-400 focus:ring-red-300'
-              : 'border-gray-200 focus:border-[#125B4D] focus:ring-[#125B4D]'"
+              ? 'border-red-400'
+              : 'border-gray-200 hover:border-[#125B4D]'"
+            @click="showEntryModal = true"
           >
-            <option value="" disabled>{{ loadingEntries ? 'Loading…' : '-- Choose a programme entry --' }}</option>
-            <option v-for="entry in programmeEntries" :key="entry.id" :value="String(entry.id)">
-              {{ entry.name }}{{ entry.organisation_name ? ` (${entry.organisation_name})` : '' }}
-            </option>
-          </select>
+            <span :class="selectedEntryName ? 'text-gray-900' : 'text-gray-400'">
+              {{ selectedEntryName || '-- Choose a programme entry --' }}
+            </span>
+            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </div>
           <p v-if="errors.selectedEntry" class="mt-2 text-[13px] text-red-500">
             {{ errors.selectedEntry }}
           </p>
@@ -300,5 +323,86 @@ function switchMode(newMode: 'adviser' | 'entity') {
         </div>
       </div>
     </div>
+
+    <!-- ── Modal: Select Programme Entry ────────────────────────────────── -->
+    <Teleport to="body">
+      <div
+        v-if="showEntryModal"
+        class="fixed inset-0 z-50 flex items-center justify-center"
+      >
+        <!-- Backdrop -->
+        <div
+          class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          @click="showEntryModal = false"
+        ></div>
+
+        <!-- Modal panel -->
+        <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+          <!-- Header -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-900">Select Programme Entry</h3>
+            <button
+              type="button"
+              @click="showEntryModal = false"
+              class="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Search -->
+          <div class="px-6 py-3 border-b border-gray-100">
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8" stroke-width="2"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65" stroke-width="2"/>
+              </svg>
+              <input
+                v-model="entrySearch"
+                type="text"
+                placeholder="Search by name or organisation..."
+                class="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#125B4D] focus:ring-1 focus:ring-[#125B4D] transition"
+              />
+            </div>
+          </div>
+
+          <!-- List -->
+          <div class="flex-1 overflow-y-auto px-6 py-2">
+            <div v-if="loadingEntries" class="py-8 text-center text-gray-400 text-sm">
+              Loading entries...
+            </div>
+            <div v-else-if="filteredEntries.length === 0" class="py-8 text-center text-gray-400 text-sm">
+              No entries found.
+            </div>
+            <div v-else class="divide-y divide-gray-100">
+              <button
+                v-for="entry in filteredEntries"
+                :key="entry.id"
+                type="button"
+                class="w-full text-left px-3 py-3 rounded-lg transition-colors hover:bg-[#F4FBFA]"
+                :class="{ 'bg-[#0F5A4D]/10': String(entry.id) === selectedEntryId }"
+                @click="
+                  selectedEntryId = String(entry.id);
+                  showEntryModal = false;
+                  entrySearch = '';
+                "
+              >
+                <div class="text-[14px] font-semibold text-gray-900">{{ entry.name }}</div>
+                <div v-if="entry.organisation_name" class="text-[12px] text-gray-500 mt-0.5">{{ entry.organisation_name }}</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+            <BaseButton variant="secondary" @click="showEntryModal = false">
+              Cancel
+            </BaseButton>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
