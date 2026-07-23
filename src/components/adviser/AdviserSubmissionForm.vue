@@ -295,26 +295,26 @@ function switchMode(newMode: 'adviser' | 'entity') {
           <p class="text-[13px] text-gray-500 mb-5">
             Access adviser submissions and create new adviser entity records.
           </p>
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-3 ">
             <router-link
               :to="{ query: { mode: 'adviser' } }"
-              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[11px] font-semibold transition-colors shadow-sm"
               :class="mode === 'adviser'
                 ? 'bg-[#0F5A4D] !text-white hover:bg-[#0C4A3F]'
                 : 'border-2 border-[#0F5A4D] text-[#0F5A4D] hover:bg-[#0F5A4D]/5'"
             >
-              <BaseIcon name="bolt" size="18" />
-              <span>Adviser</span>
+              <BaseIcon name="bolt" size="8" />
+              <span>Advice on not existing programmes</span>
             </router-link>
             <router-link
               :to="{ query: { mode: 'entity' } }"
-              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors"
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[11px] font-semibold transition-colors"
               :class="mode === 'entity'
                 ? 'bg-[#0F5A4D] !text-white hover:bg-[#0C4A3F]'
                 : 'border-2 border-[#0F5A4D] text-[#0F5A4D] hover:bg-[#0F5A4D]/5'"
             >
-              <BaseIcon name="plus" size="18" />
-              <span>Adviser Entity</span>
+              <BaseIcon name="plus" size="8" />
+              <span>Advice on existing programmes</span>
             </router-link>
           </div>
         </div>

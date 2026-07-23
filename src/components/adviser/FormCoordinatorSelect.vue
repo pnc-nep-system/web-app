@@ -1,7 +1,7 @@
 <!-- Coordinator assignment dropdown -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { userService } from '@/api/user.service'
+import { adviserApi } from '@/api/adviser.api'
 import type { User } from '@/types/user'
 
 const props = defineProps<{
@@ -18,13 +18,9 @@ const error = ref<string | null>(null)
 
 onMounted(async () => {
   try {
-    const res = await userService.getUsers(1, '', {
-      role: 'nep_coordinator',
-      status: 'active',
-      per_page: 100,
-    })
-    const body = res.data
-    coordinators.value = body?.data ?? []
+    const res = await adviserApi.listStaffUsers()
+    const body = res.data as any
+    coordinators.value = body?.data || body?.users || (Array.isArray(body) ? body : [])
   } catch (err: any) {
     error.value = err?.response?.data?.message || err?.response?.status || err.message || 'Failed to load coordinators.'
     console.error('[CoordinatorSelect] Error:', error.value)
