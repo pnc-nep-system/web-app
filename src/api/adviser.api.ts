@@ -81,4 +81,23 @@ export const adviserApi = {
             assign_to_staff_user_id: userId,
         })
     },
+
+    /**
+     * Generate an AI advisory note for a submission.
+     */
+    generateAdvisoryNote(id: number, programmeProfile: object) {
+        return api.post(`/adviser/submissions/${id}/generate-advisory-note`, {
+            programme_profile: programmeProfile,
+        }, { timeout: 60000 })
+    },
+
+    /**
+     * Create a programme entry draft from AI-extracted profile data.
+     */
+    createProgrammeEntry(id: number, payload: object) {
+        return api.post<{ message: string; data: { id: number } }>(
+            `/adviser/submissions/${id}/create-programme-entry`,
+            payload
+        )
+    },
 }

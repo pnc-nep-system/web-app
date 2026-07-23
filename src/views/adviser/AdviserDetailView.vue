@@ -7,6 +7,7 @@ import ToastStack from '@/components/common/ToastStack.vue'
 import { useToast } from '@/composables/useToast'
 import { useAdviserStore } from '@/stores/adviser'
 import { adviserApi } from '@/api/adviser.api'
+import { organisationService } from '@/api/organisation.service'
 import type { Submission } from '@/types/adviser'
 
 // Adviser-specific sub-components
@@ -37,6 +38,73 @@ const form = ref({
   sectionD: '',
 })
 
+// ── AI Draft Programme Modal State ────────────────────────────────────────────
+const showDraftModal = ref(false)
+const draftGenerating = ref(false)
+const organisations = ref<{ id: number; name: string }[]>([])
+const selectedOrgId = ref<number | null>(null)
+const programmeName = ref('')
+const startYear = ref<number>(new Date().getFullYear())
+const programmeProfile = ref({
+  activities: { category_ids: [] as number[], education_level_ids: [] as number[], inclusion_groups: [] as string[] },
+  geography: { province_ids: [] as number[] },
+  audiences: { inclusion_types: [] as string[] },
+})
+
+async function openDraftModal() {
+  showDraftModal.value = true
+  if (!organisations.value.length) {
+    try {
+      const res = await organisationService.getOrganisations(1, '', { per_page: 200 })
+      const data = (res.data as any)?.data ?? res.data
+      organisations.value = Array.isArray(data) ? data : data?.data ?? []
+    } catch {
+      pushToast('Failed to load organisations')
+    }
+  }
+}
+
+async function generateAndDraft() {
+  if (!selectedOrgId.value) {
+    pushToast('Please select an organisation')
+    return
+  }
+  if (!programmeName.value.trim()) {
+    pushToast('Please enter a programme name')
+    return
+  }
+  draftGenerating.value = true
+  try {
+    // Step 1: generate advisory note to get AI analysis
+    const aiRes = await adviserApi.generateAdvisoryNote(submissionId, programmeProfile.value)
+    const aiData = (aiRes.data as any)?.data ?? {}
+
+    // Step 2: create the programme entry draft
+    const payload = {
+      organisation_id: selectedOrgId.value,
+      programme_name: programmeName.value.trim(),
+      start_year: startYear.value,
+      activities: [],
+      geography: programmeProfile.value.geography,
+      keywords: aiData.executive_summary
+        ? aiData.executive_summary.split(' ').slice(0, 3).map((w: string) => w.replace(/[^a-zA-Z]/g, '').toLowerCase()).filter(Boolean)
+        : [],
+    }
+
+    const entryRes = await adviserApi.createProgrammeEntry(submissionId, payload)
+    const newId = entryRes.data?.data?.id
+
+    showDraftModal.value = false
+    pushToast('AI programme draft created — redirecting to form')
+    router.push(`/entries/new?id=${newId}`)
+  } catch (err: any) {
+    const msg = err?.response?.data?.message ?? 'Failed to generate programme draft'
+    pushToast(msg)
+  } finally {
+    draftGenerating.value = false
+  }
+}
+
 // Coordinators are loaded into the store (shared, cached, role-filtered)
 const coordinators = computed(() =>
   Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({
@@ -47,10 +115,8 @@ const coordinators = computed(() =>
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
 onMounted(async () => {
-  // Load coordinators via store (cached, role-filtered)
   adviserStore.loadCoordinators()
 
-  // Fast path: use cached store data if available
   const cached = adviserStore.submissions.find(s => s.id === submissionId)
   if (cached) {
     applySubmission(cached)
@@ -58,7 +124,6 @@ onMounted(async () => {
     return
   }
 
-  // Fallback: fetch from API (direct URL / page refresh)
   try {
     const res = await adviserApi.getById(submissionId)
     const data = (res.data as any)?.data ?? res.data
@@ -167,6 +232,19 @@ function removeGap(idx: number) {
         @mark-delivered="markDelivered"
       />
 
+      <!-- AI Draft Programme button -->
+      <div class="flex justify-end mb-4">
+        <button
+          @click="openDraftModal"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-sm"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.346A3.001 3.001 0 0112 21a3 3 0 01-2.121-.879l-.346-.346z" />
+          </svg>
+          AI Draft Programme
+        </button>
+      </div>
+
       <!-- Dual-pane workspace -->
       <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
 
@@ -231,6 +309,81 @@ function removeGap(idx: number) {
 
     <!-- Toast notifications -->
     <ToastStack :toasts="toasts" />
+
+    <!-- AI Draft Programme Modal -->
+    <Teleport to="body">
+      <div v-if="showDraftModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+          <div class="flex items-center justify-between">
+            <h2 class="text-[16px] font-bold text-gray-900">AI Draft Programme</h2>
+            <button @click="showDraftModal = false" class="text-gray-400 hover:text-gray-600 transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <p class="text-[13px] text-gray-500 leading-relaxed">
+            The AI will analyse this submission and create a programme entry draft pre-filled across all 5 sections. You can review and edit before submitting.
+          </p>
+
+          <!-- Organisation -->
+          <div>
+            <label class="block text-[12px] font-semibold text-gray-700 mb-1">Member organisation <span class="text-red-500">*</span></label>
+            <select
+              v-model="selectedOrgId"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option :value="null" disabled>Select organisation…</option>
+              <option v-for="org in organisations" :key="org.id" :value="org.id">{{ org.name }}</option>
+            </select>
+          </div>
+
+          <!-- Programme name -->
+          <div>
+            <label class="block text-[12px] font-semibold text-gray-700 mb-1">Programme name <span class="text-red-500">*</span></label>
+            <input
+              v-model="programmeName"
+              type="text"
+              placeholder="e.g. Education Support Initiative 2026"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <!-- Start year -->
+          <div>
+            <label class="block text-[12px] font-semibold text-gray-700 mb-1">Start year <span class="text-red-500">*</span></label>
+            <input
+              v-model.number="startYear"
+              type="number"
+              min="2000"
+              max="2100"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div class="flex gap-3 pt-1">
+            <button
+              @click="showDraftModal = false"
+              class="flex-1 px-4 py-2 border border-gray-200 text-gray-700 text-[13px] font-semibold rounded-lg hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              @click="generateAndDraft"
+              :disabled="draftGenerating"
+              class="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-[13px] font-semibold rounded-lg transition flex items-center justify-center gap-2"
+            >
+              <svg v-if="draftGenerating" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              {{ draftGenerating ? 'Generating…' : 'Generate & open draft' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
   </AppShell>
 </template>

@@ -76,6 +76,23 @@ export const useCategoriesStore = defineStore('categories', () => {
     openSubcategories.value = new Set()
   }
 
+  function openForCodes(codes: string[]) {
+    const newCats = new Set(openCategories.value)
+    const newSubs = new Set(openSubcategories.value)
+    for (const cat of categories.value) {
+      for (const sub of (cat.subcategories ?? [])) {
+        for (const item of (sub.items ?? [])) {
+          if (codes.includes(item.code)) {
+            newCats.add(cat.code)
+            newSubs.add(sub.code)
+          }
+        }
+      }
+    }
+    openCategories.value = newCats
+    openSubcategories.value = newSubs
+  }
+
   return {
     categories,
     isLoading,
@@ -86,6 +103,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     toggleSubcategory,
     categoryCount,
     subcategoryCount,
-    reset
+    reset,
+    openForCodes,
   }
 })

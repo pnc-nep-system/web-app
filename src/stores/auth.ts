@@ -17,6 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => isLoggedIn.value)
   const isAdmin = computed(() => userRole.value === 'nep_admin')
+  const isCoordinatorOrAdmin = computed(() => ['nep_admin', 'nep_coordinator'].includes(userRole.value))
 
   function clearErrors() {
     authError.value = ''
@@ -151,6 +152,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     isAdmin,
+    isCoordinatorOrAdmin,
     userRole,
     login,
     logout,

@@ -90,7 +90,7 @@ export const useProgrammeAgreementsStore = defineStore('programmeAgreements', ()
   }
 
   function getData() {
-    section4Data.value = agreements.value
+    section4Data.value = [...agreements.value]
     return agreements.value
   }
 

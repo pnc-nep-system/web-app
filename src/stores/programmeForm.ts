@@ -155,10 +155,13 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   })
 
   const continueButtonText = computed(() => {
+    const authStore = useAuthStore() as any
+    const isStaff = ['nep_admin', 'nep_coordinator'].includes(authStore.userRole || '')
     if (currentStep.value === 1) return 'Continue: Activities'
     if (currentStep.value === 2) return 'Continue: Geographic coverage'
     if (currentStep.value === 3) return 'Continue: Government agreements'
     if (currentStep.value === 4) return 'Continue: Keywords'
+    if (isStaff) return 'Save draft for organisation'
     return hasCompletedAllRequired.value ? 'Finish & save' : 'Save draft & exit'
   })
 
@@ -425,7 +428,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
   }
 
   function shouldCreateAsDraft(isSubmit: boolean): boolean {
-    return isSubmit && !section1Data.value.id && !!getCreateOrgId()
+    return false
   }
 
   async function ensureTaxonomyMaps() {
@@ -462,19 +465,19 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     saveStatus.value = 'saving'
     errors.value = {}
     clearSubmissionResult()
-    const shouldSubmit = isSubmit && !shouldCreateAsDraft(isSubmit)
+    const authStore = useAuthStore() as any
+    const isStaff = ['nep_admin', 'nep_coordinator'].includes(authStore.userRole || '')
+    const shouldSubmit = isSubmit && !isStaff
 
     try {
       await ensureTaxonomyMaps()
       const isEditMode = !!section1Data.value.id
       let orgId = getCreateOrgId()
-      const authStore = useAuthStore() as any
-      if (!orgId && ['nep_admin', 'nep_coordinator'].includes(authStore.userRole || '')) {
-        if (!section1Data.value.id) {
-          toast.error('Please select a member organisation before creating an entry.')
-          isSaving.value = false
-          return false
-        }
+
+      if (!isEditMode && !orgId && isStaff) {
+        toast.error('Please select a member organisation before creating an entry.')
+        isSaving.value = false
+        return false
       }
 
       const activitiesData = section2Data.value
@@ -816,16 +819,16 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
   async function saveAndExit(isSubmit = false, loadingAlreadySet = false): Promise<boolean> {
     syncRefsToStore()
-    const shouldSubmit = isSubmit && !shouldCreateAsDraft(isSubmit)
+    const authStore = useAuthStore() as any
+    const isStaff = ['nep_admin', 'nep_coordinator'].includes(authStore.userRole || '')
 
-      if (shouldSubmit) {
-        const requiredSteps = new Set([1, 2, 3, 5])
-        const missing = [...requiredSteps].filter(s => !completedSteps.value.has(s))
-        if (missing.length > 0) {
-          toast.error("Please complete steps 1, 2, 3, and 5 to submit. If you're not ready, you can save your draft and exit by clicking 'Save & exit' in the top right corner.")
-          return false
-        }
-
+    if (isSubmit && !isStaff) {
+      const requiredSteps = new Set([1, 2, 3, 5])
+      const missing = [...requiredSteps].filter(s => !completedSteps.value.has(s))
+      if (missing.length > 0) {
+        toast.error("Please complete steps 1, 2, 3, and 5 to submit. If you're not ready, you can save your draft and exit by clicking 'Save & exit' in the top right corner.")
+        return false
+      }
       if (keywordsError.value) {
         toast.error('Please remove duplicate keywords before saving.')
         return false
@@ -836,7 +839,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
         return false
       }
     }
-    return await saveEntry(true, shouldSubmit, loadingAlreadySet)
+    return await saveEntry(true, isSubmit, loadingAlreadySet)
   }
 
   function goBack() {

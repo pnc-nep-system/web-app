@@ -9,7 +9,7 @@ export const useProgrammeIdentityStore = defineStore('programmeIdentity', () => 
   const section1Data = ref<ProgrammeIdentity>({
     id: null,
     name: '',
-    startYear: new Date().getFullYear(),
+    startYear: null,
     endYear: null,
     isOngoing: false,
     fteStaff: null,
@@ -169,7 +169,7 @@ export const useProgrammeIdentityStore = defineStore('programmeIdentity', () => 
     section1Data.value = {
       id: null,
       name: '',
-      startYear: new Date().getFullYear(),
+      startYear: null,
       endYear: null,
       isOngoing: false,
       fteStaff: null,

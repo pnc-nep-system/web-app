@@ -17,11 +17,11 @@ const store = useProgrammeAgreementsStore()
 watch(
   () => props.modelValue,
   (val) => {
-    if (val) {
-      const current = store.getData()
-      if (JSON.stringify(val) !== JSON.stringify(current)) {
-        store.initFromPayload(val)
-      }
+    if (!val) return
+    // Only sync from props if it differs from what's already in the store
+    // (prevents overwriting AI-filled data when component mounts)
+    if (JSON.stringify(val) !== JSON.stringify(store.agreements)) {
+      store.initFromPayload(val)
     }
   },
   { immediate: true, deep: true }
