@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import ToastStack from '@/components/common/ToastStack.vue'
 import { useToast } from '@/composables/useToast'
@@ -139,12 +140,6 @@ function removeGap(idx: number) {
   form.value.sectionC.splice(idx, 1)
 }
 </script>
-
-import AppShell from '@/components/AppShell.vue'
-import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
-import BaseIcon from '@/components/common/BaseIcon.vue'
-
-...
 
 <template>
   <AppShell>
