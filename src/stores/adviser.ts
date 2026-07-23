@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { adviserApi } from '@/api/adviser.api'
-import { userService } from '@/api/user.service'
 import type { SubmissionPayload, SubmissionListParams } from '@/api/adviser.api'
 import type { Submission } from '@/types/adviser'
 
@@ -20,18 +19,23 @@ export const useAdviserStore = defineStore('adviser', () => {
     const coordinatorMap = ref<Record<number, string>>({})
     const coordinatorsLoaded = ref(false)
     const isLoadingCoordinators = ref(false)
+    const coordinatorError = ref<string | null>(null)
 
-    async function loadCoordinators() {
-        if (coordinatorsLoaded.value || isLoadingCoordinators.value) return
+    async function loadCoordinators(force = false) {
+        if (!force && (coordinatorsLoaded.value || isLoadingCoordinators.value)) return
         isLoadingCoordinators.value = true
+        coordinatorsLoaded.value = false
+        coordinatorError.value = null
         try {
-            const res = await userService.getUsers(1, '', { role: 'nep_coordinator', status: 'active', per_page: 100 })
-            const raw = res.data.data || []
+            const res = await adviserApi.listStaffUsers()
+            const body = res.data as any
+            const raw = body?.data || body?.users || (Array.isArray(body) ? body : [])
             const map: Record<number, string> = {}
             raw.forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
             coordinatorMap.value = map
             coordinatorsLoaded.value = true
-        } catch {
+        } catch (err: any) {
+            coordinatorError.value = err?.response?.data?.message || err?.response?.status || err.message || 'Unknown error'
             coordinatorMap.value = {}
         } finally {
             isLoadingCoordinators.value = false
@@ -47,13 +51,16 @@ export const useAdviserStore = defineStore('adviser', () => {
         loading.value = true
         error.value = null
         try {
-            const response = await adviserApi.list({
-                page: currentPage.value,
-                per_page: perPage.value,
-                ...params,
-            })
+            const [response] = await Promise.all([
+                adviserApi.list({
+                    page: currentPage.value,
+                    per_page: perPage.value,
+                    ...params,
+                }),
+                loadCoordinators(),
+            ])
             const paginated = response.data
-            submissions.value = paginated.data
+            submissions.value = paginated.data.map((s: any) => enrichSubmission(s))
             currentPage.value = paginated.current_page
             lastPage.value = paginated.last_page
             total.value = paginated.total
@@ -69,12 +76,25 @@ export const useAdviserStore = defineStore('adviser', () => {
         await fetchSubmissions(params)
     }
 
+    function enrichSubmission(s: any): Submission {
+        const id = s.assign_to_staff_user_id ?? s.assigned_to ?? null
+        const name = s.assigned_user?.name
+            ?? s.coordinator?.name
+            ?? (id ? coordinatorMap.value[id] : null)
+            ?? null
+        return {
+            ...s,
+            assign_to_staff_user_id: id,
+            assigned_user: name ? { id, name } : null,
+        }
+    }
+
     async function submitDocument(payload: SubmissionPayload, file?: File): Promise<Submission> {
         submitting.value = true
         error.value = null
         try {
             const response = await adviserApi.submit(payload, file)
-            const created = response.data.data
+            const created = enrichSubmission(response.data.data ?? response.data)
             submissions.value.unshift(created)
             total.value += 1
             return created
@@ -98,6 +118,7 @@ export const useAdviserStore = defineStore('adviser', () => {
         coordinatorMap,
         coordinatorsLoaded,
         isLoadingCoordinators,
+        coordinatorError,
         coordinatorLabel,
         loadCoordinators,
         fetchSubmissions,

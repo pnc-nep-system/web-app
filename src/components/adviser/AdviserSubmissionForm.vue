@@ -11,7 +11,6 @@ import BaseButton from '@/components/common/BaseButton.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import type { Province } from '@/types/programmeGeographic'
 import type { Category } from '@/types/taxonomy'
-import type { User } from '@/types/user'
 
 const router = useRouter()
 const route = useRoute()
@@ -86,13 +85,6 @@ const categories = ref<Category[]>([])
 const loadingProvinces = ref(false)
 const loadingCategories = ref(false)
 
-const coordinators = computed<User[]>(() =>
-  Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({
-    id: Number(id),
-    name,
-  } as User))
-)
-
 async function loadProvinces() {
   if (provinces.value.length) return
   loadingProvinces.value = true
@@ -123,7 +115,6 @@ onMounted(() => {
   loadProvinces()
   loadCategories()
   loadProgrammeEntries()
-  adviserStore.loadCoordinators()
 })
 
 // ── File handling ─────────────────────────────────────────────────────────────
@@ -264,11 +255,9 @@ function switchMode(newMode: 'adviser' | 'entity') {
           :error-category="errors.category"
         />
 
-        <!-- Assign to coordinator (data from store) -->
+        <!-- Assign to coordinator -->
         <FormCoordinatorSelect
           v-model="assignedTo"
-          :coordinators="coordinators"
-          :loading="adviserStore.isLoadingCoordinators"
         />
 
         <!-- Server error -->

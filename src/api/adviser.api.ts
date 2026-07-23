@@ -35,10 +35,10 @@ export const adviserApi = {
     },
 
     /**
-     * Fetch all users with role nep_coordinator for the assignment dropdown.
+     * Fetch all staff users (nep_coordinator, nep_admin) for assignment dropdown.
      */
-    getCoordinators() {
-        return api.get<{ data: User[] } | User[]>('/adviser/coordinators')
+    listStaffUsers() {
+        return api.get<{ data: User[] } | User[]>('/adviser/staff-users')
     },
 
     /**
@@ -54,9 +54,11 @@ export const adviserApi = {
     submit(payload: SubmissionPayload, file?: File) {
         if (file) {
             const form = new FormData()
-            Object.entries(payload).forEach(([k, v]) => {
-                if (v !== null && v !== undefined) form.append(k, String(v))
-            })
+            if (payload.submitting_party) form.append('submitting_party', payload.submitting_party)
+            if (payload.document_name) form.append('document_name', payload.document_name)
+            if (payload.analysis_scope) form.append('analysis_scope', payload.analysis_scope)
+            if (payload.analysis_scope_detail != null) form.append('analysis_scope_detail', payload.analysis_scope_detail)
+            if (payload.assigned_to != null) form.append('assigned_to', String(payload.assigned_to))
             form.append('document', file)
             return api.post<SubmissionCreateResponse>('/adviser/submissions', form, {
                 headers: { 'Content-Type': 'multipart/form-data' },

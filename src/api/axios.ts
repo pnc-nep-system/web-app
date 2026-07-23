@@ -2,16 +2,27 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api',
   timeout: 30000,
   withCredentials: true,
-  withXSRFToken: true,
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
   headers: {
+    'Content-Type': 'application/json',
     Accept: 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
   },
+})
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+
+  // Attach XSRF token from cookie if present (Laravel CSRF)
+  const xsrf = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('XSRF-TOKEN='))
+    ?.split('=')[1]
+  if (xsrf) config.headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrf)
+
+  return config
 })
 
 api.interceptors.response.use(
