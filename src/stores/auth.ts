@@ -33,14 +33,13 @@ export const useAuthStore = defineStore('auth', () => {
     if (user) {
       sessionStorage.setItem('isLoggedIn', 'true')
       sessionStorage.setItem('userRole', userRole.value)
-      if (currentUserId.value) {
-        sessionStorage.setItem('currentUserId', currentUserId.value)
-      }
+      if (currentUserId.value) sessionStorage.setItem('currentUserId', currentUserId.value)
       connectRealtimeForRole(userRole.value, currentUserId.value).catch(err => {
         console.error('[Auth] Failed to connect realtime:', err)
       })
     } else {
       disconnectRealtime()
+      localStorage.removeItem('token')
       sessionStorage.removeItem('isLoggedIn')
       sessionStorage.removeItem('userRole')
       sessionStorage.removeItem('currentUserId')
@@ -76,11 +75,10 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
     clearErrors()
     try {
-      const hasCsrfToken = document.cookie.split(';').some(c => c.trim().startsWith('XSRF-TOKEN='))
-      if (!hasCsrfToken) {
-        await authApi.getCsrfCookie()
-      }
+      await authApi.getCsrfCookie()
       const response = await authApi.login({ email, password })
+      const token = response.data.token
+      if (token) localStorage.setItem('token', token)
       rememberUser(response.data.user ?? null)
       return true
     } catch (error) {

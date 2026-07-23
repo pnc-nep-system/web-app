@@ -4,7 +4,7 @@ import type { Submission, SubmissionStatus } from '@/types/adviser'
 
 const props = defineProps<{
   submissions: Submission[]
-  coordinatorMap: Record<number, string>
+  coordinatorMap?: Record<number, string>
 }>()
 
 const emit = defineEmits<{
@@ -21,9 +21,10 @@ function statusClass(status: SubmissionStatus): string {
   return 'bg-[#FFEDD5] text-[#C2410C]'
 }
 
-function coordinatorLabel(id: number | null): string {
-  if (!id) return 'Unassigned'
-  return props.coordinatorMap[id] ?? `User #${id}`
+function coordinatorLabel(sub: Submission): string {
+  if (sub.assigned_user?.name) return sub.assigned_user.name
+  if (!sub.assign_to_staff_user_id) return 'Unassigned'
+  return props.coordinatorMap?.[sub.assign_to_staff_user_id] ?? `User #${sub.assign_to_staff_user_id}`
 }
 
 function formatScope(s: Submission): string {
@@ -115,10 +116,10 @@ function timeAgo(dateStr: string): string {
             <td class="px-4 h-12 align-middle">
               <span
                 class="text-[13px] truncate block leading-none"
-                :class="coordinatorLabel(sub.assign_to_staff_user_id) === 'Unassigned' ? 'text-gray-400 italic' : 'text-gray-700'"
-                :title="coordinatorLabel(sub.assign_to_staff_user_id)"
+                :class="coordinatorLabel(sub) === 'Unassigned' ? 'text-gray-400 italic' : 'text-gray-700'"
+                :title="coordinatorLabel(sub)"
               >
-                {{ coordinatorLabel(sub.assign_to_staff_user_id) }}
+                {{ coordinatorLabel(sub) }}
               </span>
             </td>
 
