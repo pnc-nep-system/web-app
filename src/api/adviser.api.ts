@@ -20,6 +20,10 @@ export interface SubmissionPayload {
     analysis_scope: string
     analysis_scope_detail?: string | null
     assigned_to?: number | null
+    // New optional fields per integration guide
+    programme_entry_id?: number | null
+    assign_to_self?: boolean
+    assign_to_staff_user_id?: number | null
 }
 
 export interface CoordinatorListResponse {
@@ -54,11 +58,9 @@ export const adviserApi = {
     submit(payload: SubmissionPayload, file?: File) {
         if (file) {
             const form = new FormData()
-            if (payload.submitting_party) form.append('submitting_party', payload.submitting_party)
-            if (payload.document_name) form.append('document_name', payload.document_name)
-            if (payload.analysis_scope) form.append('analysis_scope', payload.analysis_scope)
-            if (payload.analysis_scope_detail != null) form.append('analysis_scope_detail', payload.analysis_scope_detail)
-            if (payload.assigned_to != null) form.append('assigned_to', String(payload.assigned_to))
+            Object.entries(payload).forEach(([k, v]) => {
+                if (v !== null && v !== undefined) form.append(k, String(v))
+            })
             form.append('document', file)
             return api.post<SubmissionCreateResponse>('/adviser/submissions', form, {
                 headers: { 'Content-Type': 'multipart/form-data' },

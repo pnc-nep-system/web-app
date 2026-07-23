@@ -13,6 +13,7 @@ const adviserStore = useAdviserStore()
 
 onMounted(() => {
   adviserStore.fetchSubmissions()
+  adviserStore.loadCoordinators() // ← Load coordinator names for display
 })
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ function openSubmission(id: number) {
   <AppShell>
     <template #header>
       <span class="text-gray-400 text-[13px]">NEP</span>
-      <span class="mx-2 text-gray-300 text-[13px]">&gt;</span>
+      <span class="mx-2 text-gray-300 text-[13px]">></span>
       <span class="text-gray-700 font-semibold text-[13px]">The Adviser</span>
     </template>
 

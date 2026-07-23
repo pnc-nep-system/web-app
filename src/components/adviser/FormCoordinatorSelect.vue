@@ -1,7 +1,7 @@
 <!-- Coordinator assignment dropdown -->
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { adviserApi } from '@/api/adviser.api'
+import { userService } from '@/api/user.service'
 import type { User } from '@/types/user'
 
 const props = defineProps<{
@@ -18,9 +18,13 @@ const error = ref<string | null>(null)
 
 onMounted(async () => {
   try {
-    const res = await adviserApi.listStaffUsers()
+    const res = await userService.getUsers(1, '', {
+      role: 'nep_coordinator',
+      status: 'active',
+      per_page: 100,
+    })
     const body = res.data
-    coordinators.value = Array.isArray(body) ? body : (body as any)?.data ?? []
+    coordinators.value = body?.data ?? []
   } catch (err: any) {
     error.value = err?.response?.data?.message || err?.response?.status || err.message || 'Failed to load coordinators.'
     console.error('[CoordinatorSelect] Error:', error.value)
@@ -45,12 +49,12 @@ onMounted(async () => {
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
-      Loading…
+      Loading coordinators…
     </div>
 
     <!-- Warning when query returns zero results -->
-    <div v-else-if="!loading && coordinators.length === 0" class="text-amber-600 text-[13px] mb-2">
-      ⚠ No staff users found in the system.
+    <div v-else-if="coordinators.length === 0" class="text-amber-600 text-[13px] mb-2">
+      ⚠ No coordinators found in the system.
     </div>
 
     <select

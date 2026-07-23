@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { adviserApi } from '@/api/adviser.api'
+import { userService } from '@/api/user.service'
 import type { SubmissionPayload, SubmissionListParams } from '@/api/adviser.api'
 import type { Submission } from '@/types/adviser'
 
@@ -27,6 +28,7 @@ export const useAdviserStore = defineStore('adviser', () => {
         coordinatorsLoaded.value = false
         coordinatorError.value = null
         try {
+            // Use /adviser/staff-users (still works, returns coordinator list)
             const res = await adviserApi.listStaffUsers()
             const body = res.data as any
             const raw = body?.data || body?.users || (Array.isArray(body) ? body : [])
@@ -51,14 +53,12 @@ export const useAdviserStore = defineStore('adviser', () => {
         loading.value = true
         error.value = null
         try {
-            const [response] = await Promise.all([
-                adviserApi.list({
-                    page: currentPage.value,
-                    per_page: perPage.value,
-                    ...params,
-                }),
-                loadCoordinators(),
-            ])
+            await loadCoordinators(true)
+            const response = await adviserApi.list({
+                page: currentPage.value,
+                per_page: perPage.value,
+                ...params,
+            })
             const paginated = response.data
             submissions.value = paginated.data.map((s: any) => enrichSubmission(s))
             currentPage.value = paginated.current_page
@@ -76,10 +76,11 @@ export const useAdviserStore = defineStore('adviser', () => {
         await fetchSubmissions(params)
     }
 
-    function enrichSubmission(s: any): Submission {
+    function enrichSubmission(s: any, coordinatorName?: string): Submission {
         const id = s.assign_to_staff_user_id ?? s.assigned_to ?? null
-        const name = s.assigned_user?.name
-            ?? s.coordinator?.name
+        const name = coordinatorName
+            ?? s.staff_user?.name
+            ?? s.assigned_user?.name
             ?? (id ? coordinatorMap.value[id] : null)
             ?? null
         return {
@@ -89,12 +90,12 @@ export const useAdviserStore = defineStore('adviser', () => {
         }
     }
 
-    async function submitDocument(payload: SubmissionPayload, file?: File): Promise<Submission> {
+    async function submitDocument(payload: SubmissionPayload, file?: File, coordinatorName?: string): Promise<Submission> {
         submitting.value = true
         error.value = null
         try {
             const response = await adviserApi.submit(payload, file)
-            const created = enrichSubmission(response.data.data ?? response.data)
+            const created = enrichSubmission(response.data.data ?? response.data, coordinatorName)
             submissions.value.unshift(created)
             total.value += 1
             return created

@@ -166,16 +166,24 @@ async function handleSubmit() {
   }
 
   try {
-    await adviserStore.submitDocument(
-      {
-        submitting_party: partyName,
-        document_name: selectedFile.value!.name,
-        analysis_scope: scopeValue,
-        analysis_scope_detail: scopeDetail ?? null,
-        assigned_to: assignedTo.value !== 'unassigned' ? Number(assignedTo.value) : null,
-      },
-      selectedFile.value!,
-    )
+    const payload: any = {
+      submitting_party: partyName,
+      document_name: selectedFile.value!.name,
+      analysis_scope: scopeValue,
+      analysis_scope_detail: scopeDetail ?? null,
+    }
+
+    // If a programme entry is selected (entity mode), link it
+    if (selectedEntryId.value) {
+      payload.programme_entry_id = Number(selectedEntryId.value)
+    }
+
+    // Assignment: old style or new style
+    if (assignedTo.value !== 'unassigned') {
+      payload.assign_to_staff_user_id = Number(assignedTo.value)
+    }
+
+    await adviserStore.submitDocument(payload, selectedFile.value!)
     router.push('/adviser')
   } catch (err: any) {
     submitError.value = err?.response?.data?.message ?? 'Submission failed. Please try again.'
@@ -198,7 +206,7 @@ function switchMode(newMode: 'adviser' | 'entity') {
       <div class="flex-1 min-w-0 space-y-6">
         <!-- Submitting party (text input for Adviser mode) -->
         <div v-if="mode === 'adviser'">
-          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Submitting Enty</label>
+          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Submitting Party</label>
           <input
             v-model="submittingParty"
             type="text"
@@ -215,7 +223,7 @@ function switchMode(newMode: 'adviser' | 'entity') {
 
         <!-- Select Entry (modal for Adviser Entity mode) -->
         <div v-else>
-          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Selecting Enty</label>
+          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Selecting Entry</label>
           <div
             class="w-full border rounded-[8px] px-4 py-3 text-[15px] cursor-pointer flex items-center justify-between transition bg-white"
             :class="errors.selectedEntry

@@ -5,6 +5,7 @@ export interface Submission {
     id: number
     programme_entry_id?: number | null
     assign_to_staff_user_id: number | null
+    staff_user?: { id: number; name: string; email?: string; role?: string } | null
     assigned_user?: { id: number; name: string } | null
     submitting_party: string
     document_name: string
