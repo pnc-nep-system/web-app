@@ -7,14 +7,37 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import AdviserSubmissionTable from '@/components/adviser/AdviserSubmissionTable.vue'
 import { useAdviserStore } from '@/stores/adviser'
+import { memberApi } from '@/api/member.api'
 
 const router = useRouter()
 const adviserStore = useAdviserStore()
+const submittingPartyMap = ref<Record<number, string>>({})
 
 onMounted(() => {
   adviserStore.fetchSubmissions()
   adviserStore.loadCoordinators()
+  loadSubmittingParties()
 })
+
+function programmeEntryLabel(entry: any): string {
+  const name = entry.name || entry.programme_name || `Entry #${entry.id}`
+  return entry.organisation_name ? `${name} (${entry.organisation_name})` : name
+}
+
+async function loadSubmittingParties() {
+  try {
+    const res = await memberApi.getAllProgrammeEntries()
+    const data = (res.data as any)?.data ?? res.data ?? []
+    const map: Record<number, string> = {}
+    const entries = Array.isArray(data) ? data : []
+    entries.forEach((entry: any) => {
+      map[entry.id] = programmeEntryLabel(entry)
+    })
+    submittingPartyMap.value = map
+  } catch {
+    submittingPartyMap.value = {}
+  }
+}
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 const _activeTab = ref<'all' | 'submitted_for_review' | 'advice_delivered'>('submitted_for_review')
@@ -105,6 +128,7 @@ function openSubmission(id: number) {
       v-else
       :submissions="filteredSubmissions"
       :coordinator-map="adviserStore.coordinatorMap"
+      :submitting-party-map="submittingPartyMap"
       @open="openSubmission"
     />
   </AppShell>

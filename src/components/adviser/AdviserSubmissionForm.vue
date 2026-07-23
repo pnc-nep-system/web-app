@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useAdviserStore } from '@/stores/adviser'
 import { memberApi } from '@/api/member.api'
 import { taxonomyApi } from '@/api/taxonomy.api'
@@ -14,10 +14,15 @@ import type { Category } from '@/types/taxonomy'
 import type { User } from '@/types/user'
 
 const router = useRouter()
+const route = useRoute()
 const adviserStore = useAdviserStore()
+
+// ── Mode: 'adviser' = text input, 'entity' = select from programme entries ───
+const mode = computed(() => (route.query.mode === 'entity' ? 'entity' : 'adviser'))
 
 // ── Form state ────────────────────────────────────────────────────────────────
 const submittingParty = ref('')
+const selectedEntryId = ref('')
 const selectedFile = ref<File | null>(null)
 const analysisScope = ref<'full_map' | 'geographic' | 'thematic'>('full_map')
 const selectedProvince = ref('')
@@ -28,13 +33,38 @@ const assignedTo = ref('unassigned')
 const errors = ref<Record<string, string>>({})
 const submitError = ref<string | null>(null)
 
+// ── Programme entries list (for entity mode) ──────────────────────────────────
+interface ProgrammeEntryOption {
+  id: number
+  name: string
+  organisation_name?: string
+}
+const programmeEntries = ref<ProgrammeEntryOption[]>([])
+const loadingEntries = ref(false)
+
+async function loadProgrammeEntries() {
+  loadingEntries.value = true
+  try {
+    const res = await memberApi.getAllProgrammeEntries()
+    const data = (res.data as any)?.data ?? res.data ?? []
+    programmeEntries.value = (Array.isArray(data) ? data : []).map((entry: any) => ({
+      id: entry.id,
+      name: entry.name || entry.programme_name || `Entry #${entry.id}`,
+      organisation_name: entry.organisation_name || '',
+    }))
+  } catch {
+    programmeEntries.value = []
+  } finally {
+    loadingEntries.value = false
+  }
+}
+
 // ── Reference data ────────────────────────────────────────────────────────────
 const provinces = ref<Province[]>([])
 const categories = ref<Category[]>([])
 const loadingProvinces = ref(false)
 const loadingCategories = ref(false)
 
-// Coordinators are owned by the store (shared, cached, role-filtered)
 const coordinators = computed<User[]>(() =>
   Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({
     id: Number(id),
@@ -68,10 +98,10 @@ async function loadCategories() {
   }
 }
 
-// Eagerly load all reference data so dropdowns open instantly
 onMounted(() => {
   loadProvinces()
   loadCategories()
+  loadProgrammeEntries()
   adviserStore.loadCoordinators()
 })
 
@@ -84,7 +114,11 @@ function onFileUpdate(f: File | null) {
 // ── Validation ────────────────────────────────────────────────────────────────
 function validate(): boolean {
   const e: Record<string, string> = {}
-  if (!submittingParty.value.trim()) e.submittingParty = 'Submitting party is required.'
+  if (mode.value === 'adviser') {
+    if (!submittingParty.value.trim()) e.submittingParty = 'Submitting party is required.'
+  } else {
+    if (!selectedEntryId.value) e.selectedEntry = 'Please select an entry.'
+  }
   if (!selectedFile.value) e.document = 'A PDF or Word document is required.'
   if (analysisScope.value === 'geographic' && !selectedProvince.value) e.province = 'Please select a province.'
   if (analysisScope.value === 'thematic' && !selectedCategory.value) e.category = 'Please select a category.'
@@ -110,10 +144,19 @@ async function handleSubmit() {
     scopeDetail = (cat as any)?.label ?? cat?.name ?? selectedCategory.value
   }
 
+  // Determine submitting_party based on mode
+  let partyName: string
+  if (mode.value === 'entity' && selectedEntryId.value) {
+    const selectedEntry = programmeEntries.value.find(e => e.id === Number(selectedEntryId.value))
+    partyName = selectedEntry?.name ?? selectedEntryId.value
+  } else {
+    partyName = submittingParty.value.trim()
+  }
+
   try {
     await adviserStore.submitDocument(
       {
-        submitting_party: submittingParty.value.trim(),
+        submitting_party: partyName,
         document_name: selectedFile.value!.name,
         analysis_scope: scopeValue,
         analysis_scope_detail: scopeDetail ?? null,
@@ -130,6 +173,10 @@ async function handleSubmit() {
 function cancel() {
   router.push('/adviser')
 }
+
+function switchMode(newMode: 'adviser' | 'entity') {
+  router.push({ query: { mode: newMode } })
+}
 </script>
 
 <template>
@@ -137,9 +184,9 @@ function cancel() {
     <div class="flex flex-col lg:flex-row gap-6">
       <!-- Form - left side -->
       <div class="flex-1 min-w-0 space-y-6">
-        <!-- Submitting party -->
-        <div>
-          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Submitting party</label>
+        <!-- Submitting party (text input for Adviser mode) -->
+        <div v-if="mode === 'adviser'">
+          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Submitting Enty</label>
           <input
             v-model="submittingParty"
             type="text"
@@ -151,6 +198,26 @@ function cancel() {
           />
           <p v-if="errors.submittingParty" class="mt-2 text-[13px] text-red-500">
             {{ errors.submittingParty }}
+          </p>
+        </div>
+
+        <!-- Select Entry (dropdown for Adviser Entity mode) -->
+        <div v-else>
+          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Selecting Enty</label>
+          <select
+            v-model="selectedEntryId"
+            class="w-full border rounded-[8px] px-4 py-3 text-[15px] text-gray-900 focus:outline-none focus:ring-1 transition appearance-none bg-white"
+            :class="errors.selectedEntry
+              ? 'border-red-400 focus:ring-red-300'
+              : 'border-gray-200 focus:border-[#125B4D] focus:ring-[#125B4D]'"
+          >
+            <option value="" disabled>{{ loadingEntries ? 'Loading…' : '-- Choose a programme entry --' }}</option>
+            <option v-for="entry in programmeEntries" :key="entry.id" :value="String(entry.id)">
+              {{ entry.name }}{{ entry.organisation_name ? ` (${entry.organisation_name})` : '' }}
+            </option>
+          </select>
+          <p v-if="errors.selectedEntry" class="mt-2 text-[13px] text-red-500">
+            {{ errors.selectedEntry }}
           </p>
         </div>
 
@@ -210,18 +277,24 @@ function cancel() {
           </p>
           <div class="flex flex-col gap-3">
             <router-link
-              to="/adviser"
-              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg bg-[#0F5A4D] text-white text-[13px] font-semibold hover:bg-[#0C4A3F] transition-colors shadow-sm"
+              :to="{ query: { mode: 'adviser' } }"
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors shadow-sm"
+              :class="mode === 'adviser'
+                ? 'bg-[#0F5A4D] !text-white hover:bg-[#0C4A3F]'
+                : 'border-2 border-[#0F5A4D] text-[#0F5A4D] hover:bg-[#0F5A4D]/5'"
             >
               <BaseIcon name="bolt" size="18" />
-              Adviser
+              <span>Adviser</span>
             </router-link>
             <router-link
-              to="/adviser/new"
-              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg border-2 border-[#0F5A4D] text-[#0F5A4D] text-[13px] font-semibold hover:bg-[#0F5A4D]/5 transition-colors"
+              :to="{ query: { mode: 'entity' } }"
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[13px] font-semibold transition-colors"
+              :class="mode === 'entity'
+                ? 'bg-[#0F5A4D] !text-white hover:bg-[#0C4A3F]'
+                : 'border-2 border-[#0F5A4D] text-[#0F5A4D] hover:bg-[#0F5A4D]/5'"
             >
               <BaseIcon name="plus" size="18" />
-              Adviser Entity
+              <span>Adviser Entity</span>
             </router-link>
           </div>
         </div>

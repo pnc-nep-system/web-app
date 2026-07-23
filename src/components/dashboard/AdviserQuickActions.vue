@@ -14,7 +14,7 @@ const router = useRouter()
     <div class="flex flex-wrap gap-3">
       <button
         type="button"
-        @click="router.push('/adviser')"
+        @click="router.push('/adviser/new?mode=adviser')"
         class="inline-flex items-center gap-2.5 px-5 py-3 rounded-lg bg-[#0F5A4D] text-white text-[13px] font-semibold hover:bg-[#0C4A3F] transition-colors shadow-sm"
       >
         <BaseIcon name="bolt" size="18" />
@@ -22,8 +22,8 @@ const router = useRouter()
       </button>
       <button
         type="button"
-        @click="router.push('/adviser/new')"
-        class="inline-flex items-center gap-2.5 px-5 py-3 rounded-lg border-2 border-[#0F5A4D] text-[#0F5A4D] text-[13px] font-semibold hover:bg-[#0F5A4D]/5 transition-colors"
+        @click="router.push('/adviser/new?mode=entity')"
+        class="inline-flex items-center gap-2.5 px-5 py-3 rounded-lg bg-[#0F5A4D] text-white text-[13px] font-semibold hover:bg-[#0C4A3F] transition-colors shadow-sm"
       >
         <BaseIcon name="plus" size="18" />
         Adviser Entity
