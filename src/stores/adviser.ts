@@ -18,20 +18,23 @@ export const useAdviserStore = defineStore('adviser', () => {
     // ── Coordinator map (shared) ──────────────────────────────────────────────
     const coordinatorMap = ref<Record<number, string>>({})
     const coordinatorsLoaded = ref(false)
+    const isLoadingCoordinators = ref(false)
 
     async function loadCoordinators() {
-        if (coordinatorsLoaded.value) return
+        if (coordinatorsLoaded.value || isLoadingCoordinators.value) return
+        isLoadingCoordinators.value = true
         try {
             const res = await adviserApi.getCoordinators()
             const body = res.data as any
             const raw = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : [])
             const map: Record<number, string> = {}
-            raw.filter((u: any) => u.role === 'nep_coordinator')
-               .forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
+            raw.forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
             coordinatorMap.value = map
             coordinatorsLoaded.value = true
         } catch {
             coordinatorMap.value = {}
+        } finally {
+            isLoadingCoordinators.value = false
         }
     }
 
@@ -93,6 +96,8 @@ export const useAdviserStore = defineStore('adviser', () => {
         total,
         perPage,
         coordinatorMap,
+        coordinatorsLoaded,
+        isLoadingCoordinators,
         coordinatorLabel,
         loadCoordinators,
         fetchSubmissions,
