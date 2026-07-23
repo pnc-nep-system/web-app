@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
@@ -13,7 +14,7 @@ const adviserStore = useAdviserStore()
 
 onMounted(() => {
   adviserStore.fetchSubmissions()
-  adviserStore.loadCoordinators()
+  adviserStore.loadCoordinators() // ← Load coordinator names for display
 })
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
@@ -39,9 +40,7 @@ function openSubmission(id: number) {
 <template>
   <AppShell>
     <template #header>
-      <span class="text-gray-400 text-[13px]">NEP</span>
-      <span class="mx-2 text-gray-300 text-[13px]">&gt;</span>
-      <span class="text-gray-700 font-semibold text-[13px]">The Adviser</span>
+      <HeaderBreadcrumb title="The Adviser" />
     </template>
 
     <!-- Page heading + CTA -->
