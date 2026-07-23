@@ -42,7 +42,9 @@ const {
           <!-- Content -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-0.5">
-              <span class="text-[10px] font-bold uppercase tracking-widest text-teal-600">New Programme</span>
+              <span class="text-[10px] font-bold uppercase tracking-widest text-teal-600">
+                {{ incomingAlert.notification.type === 'adviser_submission_assigned' ? 'Adviser Assignment' : 'New Programme' }}
+              </span>
               <span class="w-1 h-1 rounded-full bg-teal-400 inline-block" />
               <span class="text-[10px] text-slate-400">Just now</span>
             </div>
@@ -52,7 +54,7 @@ const {
               class="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-700 transition-colors"
               @click="openFromAlert"
             >
-              View programme
+              {{ incomingAlert.notification.type === 'adviser_submission_assigned' ? 'View submission' : 'View programme' }}
               <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
               </svg>
@@ -124,7 +126,7 @@ const {
           :key="n.id"
           class="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-start gap-3"
           :class="{ 'bg-teal-50/60': !n.read_at }"
-          @click="handleNotificationClick(n.id, n.programme_entry_id)"
+          @click="handleNotificationClick(n)"
         >
           <div class="mt-0.5 shrink-0 w-7 h-7 rounded-full bg-teal-100 flex items-center justify-center text-teal-600">
             <BaseIcon name="file" size="13" />

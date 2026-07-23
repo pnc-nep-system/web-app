@@ -207,7 +207,7 @@ function logout() {
         <div class="flex items-center gap-1 text-sm text-gray-500 w-full">
           <slot name="header" />
         </div>
-        <NotificationBell v-if="auth.userRole === 'member_org'" />
+        <NotificationBell v-if="auth.userRole === 'member_org' || auth.userRole === 'nep_coordinator' || auth.userRole === 'nep_admin'" />
       </header>
 
       <div class="p-4 sm:p-6 md:p-8 max-w-[1400px] w-full mx-auto flex-1">

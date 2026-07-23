@@ -18,9 +18,8 @@ const error = ref<string | null>(null)
 
 onMounted(async () => {
   try {
-    const res = await adviserApi.listStaffUsers()
-    const body = res.data as any
-    coordinators.value = body?.data || body?.users || (Array.isArray(body) ? body : [])
+    const res = await adviserApi.listCoordinators()
+    coordinators.value = res.data?.data ?? []
   } catch (err: any) {
     error.value = err?.response?.data?.message || err?.response?.status || err.message || 'Failed to load coordinators.'
     console.error('[CoordinatorSelect] Error:', error.value)
@@ -34,10 +33,6 @@ onMounted(async () => {
   <div>
     <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Assign to coordinator</label>
 
-    <!-- Error state -->
-    <div v-if="error" class="text-red-500 text-[13px] mb-2">
-      ⚠ {{ error }}
-    </div>
 
     <!-- Loading state -->
     <div v-if="loading" class="flex items-center gap-2 text-gray-400 text-[13px] mb-2">

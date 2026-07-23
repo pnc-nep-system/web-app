@@ -231,18 +231,6 @@ function removeGap(idx: number) {
         @mark-delivered="markDelivered"
       />
 
-      <!-- AI Draft Programme button -->
-      <div class="flex justify-end mb-4">
-        <button
-          @click="openDraftModal"
-          class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition shadow-sm"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.347.346A3.001 3.001 0 0112 21a3 3 0 01-2.121-.879l-.346-.346z" />
-          </svg>
-          AI Draft Programme
-        </button>
-      </div>
 
       <!-- Dual-pane workspace -->
       <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">

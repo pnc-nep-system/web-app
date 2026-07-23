@@ -179,9 +179,9 @@ async function handleSubmit() {
       payload.programme_entry_id = Number(selectedEntryId.value)
     }
 
-    // Assignment: old style or new style
+    // Assignment
     if (assignedTo.value !== 'unassigned') {
-      payload.assign_to_staff_user_id = Number(assignedTo.value)
+      payload.coordinator_id = Number(assignedTo.value)
     }
 
     await adviserStore.submitDocument(payload, selectedFile.value!)
@@ -296,7 +296,7 @@ function switchMode(newMode: 'adviser' | 'entity') {
           <p class="text-[13px] text-gray-500 mb-5">
             Access adviser submissions and create new adviser entity records.
           </p>
-          <div class="flex flex-col gap-3 ">
+          <div class="flex flex-col mt-4 gap-3 ">
             <router-link
               :to="{ query: { mode: 'adviser' } }"
               class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[11px] font-semibold transition-colors shadow-sm"

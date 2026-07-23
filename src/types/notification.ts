@@ -1,9 +1,10 @@
 export interface AppNotification {
   id: string
-  type: 'programme_sent' | string
+  type: 'programme_sent' | 'adviser_submission_assigned' | string
   title: string
   message: string
-  programme_entry_id: number
+  programme_entry_id: number | null
+  advisory_note_id: number | null
   read_at: string | null
   created_at: string
 }

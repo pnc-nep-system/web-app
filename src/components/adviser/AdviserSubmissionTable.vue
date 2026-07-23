@@ -22,9 +22,9 @@ function statusClass(status: SubmissionStatus): string {
 }
 
 function coordinatorLabel(sub: Submission): string {
-  if (sub.assigned_user?.name) return sub.assigned_user.name
-  if (!sub.assign_to_staff_user_id) return 'Unassigned'
-  return props.coordinatorMap?.[sub.assign_to_staff_user_id] ?? `User #${sub.assign_to_staff_user_id}`
+  if (sub.coordinator?.name) return sub.coordinator.name
+  if (!sub.coordinator_id) return 'Unassigned'
+  return props.coordinatorMap?.[sub.coordinator_id] ?? `User #${sub.coordinator_id}`
 }
 
 function formatScope(s: Submission): string {

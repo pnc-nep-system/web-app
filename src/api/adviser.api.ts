@@ -19,11 +19,8 @@ export interface SubmissionPayload {
     document_name: string
     analysis_scope: string
     analysis_scope_detail?: string | null
-    assigned_to?: number | null
-    // New optional fields per integration guide
+    coordinator_id?: number | null
     programme_entry_id?: number | null
-    assign_to_self?: boolean
-    assign_to_staff_user_id?: number | null
 }
 
 export interface CoordinatorListResponse {
@@ -39,10 +36,10 @@ export const adviserApi = {
     },
 
     /**
-     * Fetch all staff users (nep_coordinator, nep_admin) for assignment dropdown.
+     * Fetch all active coordinators for the assignment dropdown.
      */
-    listStaffUsers() {
-        return api.get<{ data: User[] } | User[]>('/adviser/staff-users')
+    listCoordinators() {
+        return api.get<CoordinatorListResponse>('/adviser/coordinators')
     },
 
     /**
@@ -82,7 +79,7 @@ export const adviserApi = {
      */
     updateAssignee(id: number, userId: number | null) {
         return api.patch<{ data: Submission }>(`/adviser/submissions/${id}`, {
-            assign_to_staff_user_id: userId,
+            coordinator_id: userId,
         })
     },
 

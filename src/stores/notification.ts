@@ -13,7 +13,18 @@ export const useNotificationStore = defineStore('notifications', () => {
     loading.value = true
     try {
       const res = await notificationApi.list()
-      items.value = res.data.data ?? []
+      const fresh = res.data.data ?? []
+      // Merge: prepend any IDs not already in items so watchers fire reliably
+      const existingIds = new Set(items.value.map(n => n.id))
+      const incoming = fresh.filter(n => !existingIds.has(n.id))
+      if (incoming.length > 0) {
+        items.value = [...incoming, ...items.value]
+      }
+      // Always sync read_at changes from server
+      fresh.forEach(n => {
+        const existing = items.value.find(i => i.id === n.id)
+        if (existing && existing.read_at !== n.read_at) existing.read_at = n.read_at
+      })
     } finally {
       loading.value = false
     }

@@ -27,7 +27,7 @@ const toggleItem = (itemId: number, active: boolean) => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3">
+  <div class="flex flex-col gap-2">
     <label class="text-sm font-medium text-slate-700">Items</label>
     <div v-if="items.length === 0" class="text-sm text-slate-500 italic py-4">
       Select a sub-category to view available items.

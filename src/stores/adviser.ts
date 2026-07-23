@@ -28,10 +28,8 @@ export const useAdviserStore = defineStore('adviser', () => {
         coordinatorsLoaded.value = false
         coordinatorError.value = null
         try {
-            // Use /adviser/staff-users (still works, returns coordinator list)
-            const res = await adviserApi.listStaffUsers()
-            const body = res.data as any
-            const raw = body?.data || body?.users || (Array.isArray(body) ? body : [])
+            const res = await adviserApi.listCoordinators()
+            const raw = res.data?.data ?? []
             const map: Record<number, string> = {}
             raw.forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
             coordinatorMap.value = map
@@ -76,26 +74,20 @@ export const useAdviserStore = defineStore('adviser', () => {
         await fetchSubmissions(params)
     }
 
-    function enrichSubmission(s: any, coordinatorName?: string): Submission {
-        const id = s.assign_to_staff_user_id ?? s.assigned_to ?? null
-        const name = coordinatorName
-            ?? s.staff_user?.name
-            ?? s.assigned_user?.name
-            ?? (id ? coordinatorMap.value[id] : null)
-            ?? null
+    function enrichSubmission(s: any): Submission {
         return {
             ...s,
-            assign_to_staff_user_id: id,
-            assigned_user: name ? { id, name } : null,
+            coordinator_id: s.coordinator_id ?? null,
+            coordinator: s.coordinator ?? null,
         }
     }
 
-    async function submitDocument(payload: SubmissionPayload, file?: File, coordinatorName?: string): Promise<Submission> {
+    async function submitDocument(payload: SubmissionPayload, file?: File): Promise<Submission> {
         submitting.value = true
         error.value = null
         try {
             const response = await adviserApi.submit(payload, file)
-            const created = enrichSubmission(response.data.data ?? response.data, coordinatorName)
+            const created = enrichSubmission(response.data.data ?? response.data)
             submissions.value.unshift(created)
             total.value += 1
             return created

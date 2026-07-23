@@ -38,7 +38,7 @@ function onSelectChange(e: Event) {
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
     <h2 class="text-[14px] font-bold text-gray-900 mb-6">Workflow</h2>
     
-    <div class="relative pl-8 space-y-7 border-l-2 border-gray-100 ml-3">
+    <div class="relative pl-8 space-y-7 mt-4 border-l-2 border-gray-100 ml-3">
       
       <div class="relative">
         <div class="absolute -left-[41px] top-0 w-6 h-6 rounded-full bg-[#DCFCE7] border-2 border-white flex items-center justify-center text-[#15803D]">
