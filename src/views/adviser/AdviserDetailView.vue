@@ -140,12 +140,16 @@ function removeGap(idx: number) {
 }
 </script>
 
+import AppShell from '@/components/AppShell.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
+import BaseIcon from '@/components/common/BaseIcon.vue'
+
+...
+
 <template>
   <AppShell>
     <template #header>
-      <span class="text-gray-400 text-sm">NEP</span>
-      <span class="mx-1.5 text-gray-300">›</span>
-      <router-link to="/adviser" class="text-gray-500 hover:text-gray-700 transition text-sm">Draft advisory note</router-link>
+      <HeaderBreadcrumb :crumbs="['The Adviser', 'Draft advisory note']" />
     </template>
 
     <!-- Loading -->
