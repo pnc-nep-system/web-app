@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useToast } from '@/utils/toast'
-import { authApi } from '@/api/auth.api'
+import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
+const auth = useAuthStore()
 const emit = defineEmits<{ close: []; success: [] }>()
 
 const form = reactive({ currentPassword: '', newPassword: '', confirmPassword: '' })
 const errors = reactive({ currentPassword: '', newPassword: '', confirmPassword: '', general: '' })
-const saving = ref(false)
 const showPasswords = ref(false)
 
 function validate() {
@@ -45,34 +45,22 @@ function validate() {
 async function submit() {
   if (!validate()) return
 
-  saving.value = true
-  errors.general = ''
+  const result = await auth.changePassword({
+    current_password: form.currentPassword,
+    password: form.newPassword,
+    password_confirmation: form.confirmPassword,
+  })
 
-  try {
-    await authApi.changePassword({
-      current_password: form.currentPassword,
-      password: form.newPassword,
-      password_confirmation: form.confirmPassword,
-    })
+  if (result.success) {
     toast.success('Password updated successfully')
     resetForm()
     emit('success')
     emit('close')
-  } catch (error: unknown) {
-    const res = (error as { response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } } }).response
-    if (res?.status === 401) {
-      errors.general = 'Current password is incorrect'
-    } else if (res?.status === 422 && res.data?.errors) {
-      const fieldErrors = res.data.errors
-      if (fieldErrors.current_password?.[0]) errors.currentPassword = fieldErrors.current_password[0]
-      if (fieldErrors.password?.[0]) errors.newPassword = fieldErrors.password[0]
-      if (fieldErrors.password_confirmation?.[0]) errors.confirmPassword = fieldErrors.password_confirmation[0]
-      errors.general = res.data.message || 'Please correct the errors below'
-    } else {
-      errors.general = res?.data?.message || 'Failed to update password. Please try again.'
-    }
-  } finally {
-    saving.value = false
+  } else {
+    errors.general = result.error || 'Failed to update password. Please try again.'
+    if (auth.fieldErrors.current_password?.[0]) errors.currentPassword = auth.fieldErrors.current_password[0]
+    if (auth.fieldErrors.password?.[0]) errors.newPassword = auth.fieldErrors.password[0]
+    if (auth.fieldErrors.password_confirmation?.[0]) errors.confirmPassword = auth.fieldErrors.password_confirmation[0]
   }
 }
 
@@ -149,10 +137,10 @@ function close() {
         </label>
 
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" @click="close" :disabled="saving">Cancel</button>
-          <button type="submit" class="btn btn-primary" :disabled="saving">
-            <span v-if="saving" class="spinner-sm"></span>
-            {{ saving ? 'Updating…' : 'Update password' }}
+          <button type="button" class="btn btn-secondary" @click="close" :disabled="auth.loading">Cancel</button>
+          <button type="submit" class="btn btn-primary" :disabled="auth.loading">
+            <span v-if="auth.loading" class="spinner-sm"></span>
+            {{ auth.loading ? 'Updating…' : 'Update password' }}
           </button>
         </div>
       </form>
