@@ -27,4 +27,11 @@ export const authApi = {
   }) {
     return api.post('/reset-password', payload)
   },
+  changePassword(payload: {
+    current_password: string
+    new_password: string
+    new_password_confirmation: string
+  }) {
+    return api.patch('/change-password', payload)
+  },
 }

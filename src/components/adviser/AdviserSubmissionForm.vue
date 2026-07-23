@@ -174,7 +174,8 @@ function cancel() {
       />
 
       <!-- Assign to coordinator (data from store) -->
-      <FormCoordinatorSelect 
+      <FormCoordinatorSelect
+        v-if="false"
         v-model="assignedTo"
         :coordinators="coordinators"
         :loading="!adviserStore.coordinatorMap || Object.keys(adviserStore.coordinatorMap).length === 0"

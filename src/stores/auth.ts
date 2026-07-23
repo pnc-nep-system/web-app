@@ -141,6 +141,31 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function changePassword(payload: { current_password: string; new_password: string; new_password_confirmation: string }) {
+    loading.value = true
+    clearErrors()
+    try {
+      await authApi.changePassword(payload)
+      return { success: true as const }
+    } catch (error: unknown) {
+      const axiosError = error as {
+        response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } }
+      }
+      const res = axiosError.response
+      if (res?.status === 401) {
+        authError.value = 'Current password is incorrect'
+      } else if (res?.status === 422 && res.data?.errors) {
+        fieldErrors.value = res.data.errors
+        authError.value = res.data.message ?? 'Please correct the errors below.'
+      } else {
+        authError.value = res?.data?.message ?? 'Failed to update password. Please try again.'
+      }
+      return { success: false as const, error: authError.value }
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     isLoggedIn,
     currentUserId,
@@ -157,6 +182,7 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuthState,
     clearErrors,
     fetchCurrentUser,
+    changePassword,
   }
 })
 

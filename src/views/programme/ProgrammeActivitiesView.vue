@@ -11,7 +11,6 @@ import TaxonomySelector from '../../components/programme/TaxonomySelector.vue';
           Configure the taxonomy structure and select the relevant activities for this programme phase.
         </p>
       </div>
-
       <main>
         <TaxonomySelector />
       </main>

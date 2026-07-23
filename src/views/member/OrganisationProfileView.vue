@@ -5,6 +5,8 @@ import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
 import AppShell from '@/components/AppShell.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
+import ChangePasswordForm from '@/components/user/ChangePasswordForm.vue'
+import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -16,6 +18,7 @@ const memberSince = ref('')
 const submittedCount = ref(0)
 const saving = ref(false)
 const loading = ref(true)
+const showChangePassword = ref(false)
 
 const orgId = computed(() => auth.currentUser?.organisation_id as number | null)
 
@@ -50,8 +53,6 @@ async function save() {
     saving.value = false
   }
 }
-
-import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 
 onMounted(loadOrg)
 </script>
@@ -117,6 +118,24 @@ onMounted(loadOrg)
           </div>
           <p style="font-size:11.5px;color:var(--ink-500);margin-top:10px;">Visibility is set centrally by NEP and applies to all members equally — it's not a per-organisation setting.</p>
         </div>
+
+        <div class="card card-pad" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div>
+            <div class="section-title" style="margin-bottom:6px;"><h3>Password</h3></div>
+            <p style="font-size:12.5px;color:var(--ink-500);margin:0;">
+              Keep your account secure by using a strong personal password.
+            </p>
+          </div>
+          <button class="btn btn-primary btn-sm" @click="showChangePassword = true">
+            Set new password
+          </button>
+        </div>
+
+        <ChangePasswordForm
+          v-if="showChangePassword"
+          @close="showChangePassword = false"
+          @success="showChangePassword = false"
+        />
       </div>
     </div>
   </AppShell>
