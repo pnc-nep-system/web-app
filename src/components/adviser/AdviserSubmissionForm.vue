@@ -8,6 +8,7 @@ import FormFileUpload from '@/components/adviser/FormFileUpload.vue'
 import FormScopeSelect from '@/components/adviser/FormScopeSelect.vue'
 import FormCoordinatorSelect from '@/components/adviser/FormCoordinatorSelect.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
+import BaseIcon from '@/components/common/BaseIcon.vue'
 import type { Province } from '@/types/programmeGeographic'
 import type { Category } from '@/types/taxonomy'
 import type { User } from '@/types/user'
@@ -132,79 +133,99 @@ function cancel() {
 </script>
 
 <template>
-  <div>
-    <div class="bg-white border border-gray-100 rounded-xl p-8 space-y-6 shadow-sm">
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Form - left side -->
+      <div class="flex-1 min-w-0 space-y-6">
+        <!-- Submitting party -->
+        <div>
+          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Submitting party</label>
+          <input
+            v-model="submittingParty"
+            type="text"
+            placeholder="Organisation or individual name"
+            class="w-full border rounded-[8px] px-4 py-3 text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 transition"
+            :class="errors.submittingParty
+              ? 'border-red-400 focus:ring-red-300'
+              : 'border-gray-200 focus:border-[#125B4D] focus:ring-[#125B4D]'"
+          />
+          <p v-if="errors.submittingParty" class="mt-2 text-[13px] text-red-500">
+            {{ errors.submittingParty }}
+          </p>
+        </div>
 
-      <!-- Submitting party -->
-      <div>
-        <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Submitting party</label>
-        <input
-          v-model="submittingParty"
-          type="text"
-          placeholder="Organisation or individual name"
-          class="w-full border rounded-[8px] px-4 py-3 text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 transition"
-          :class="errors.submittingParty
-            ? 'border-red-400 focus:ring-red-300'
-            : 'border-gray-200 focus:border-[#125B4D] focus:ring-[#125B4D]'"
+        <!-- Document upload -->
+        <FormFileUpload
+          :model-value="selectedFile"
+          :error="errors.document"
+          @update:model-value="onFileUpdate"
         />
-        <p v-if="errors.submittingParty" class="mt-2 text-[13px] text-red-500">
-          {{ errors.submittingParty }}
+
+        <!-- Analysis scope + conditional province / category sub-selects -->
+        <FormScopeSelect
+          v-model="analysisScope"
+          v-model:province="selectedProvince"
+          v-model:category="selectedCategory"
+          :provinces="provinces"
+          :categories="categories"
+          :loading-provinces="loadingProvinces"
+          :loading-categories="loadingCategories"
+          :error-province="errors.province"
+          :error-category="errors.category"
+        />
+
+        <!-- Assign to coordinator (data from store) -->
+        <FormCoordinatorSelect
+          v-model="assignedTo"
+          :coordinators="coordinators"
+          :loading="adviserStore.isLoadingCoordinators"
+        />
+
+        <!-- Server error -->
+        <p v-if="submitError" class="text-[14px] text-red-600 bg-red-50 border border-red-200 rounded-[8px] px-5 py-4">
+          {{ submitError }}
         </p>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-end gap-3 pt-6">
+          <BaseButton variant="secondary" @click="cancel">
+            Cancel
+          </BaseButton>
+          <BaseButton variant="primary" @click="handleSubmit" :disabled="adviserStore.submitting">
+            <svg v-if="adviserStore.submitting" class="animate-spin h-4 w-4 shrink-0 mr-1" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            {{ adviserStore.submitting ? 'Submitting…' : 'Continue →' }}
+          </BaseButton>
+        </div>
       </div>
 
-      <!-- Document upload -->
-      <FormFileUpload
-        :model-value="selectedFile"
-        :error="errors.document"
-        @update:model-value="onFileUpdate"
-      />
-
-      <!-- Analysis scope + conditional province / category sub-selects -->
-      <FormScopeSelect
-        v-model="analysisScope"
-        v-model:province="selectedProvince"
-        v-model:category="selectedCategory"
-        :provinces="provinces"
-        :categories="categories"
-        :loading-provinces="loadingProvinces"
-        :loading-categories="loadingCategories"
-        :error-province="errors.province"
-        :error-category="errors.category"
-      />
-
-      <!-- Assign to coordinator (data from store) -->
-      <FormCoordinatorSelect
-        v-model="assignedTo"
-        :coordinators="coordinators"
-        :loading="adviserStore.isLoadingCoordinators"
-      />
-
-      <!-- Server error -->
-      <p v-if="submitError" class="text-[14px] text-red-600 bg-red-50 border border-red-200 rounded-[8px] px-5 py-4">
-        {{ submitError }}
-      </p>
-
-      <!-- Actions -->
-      <div class="flex items-center justify-end gap-3 pt-6">
-        <BaseButton
-          variant="secondary"
-          @click="cancel"
-        >
-          Cancel
-        </BaseButton>
-        <BaseButton
-          variant="primary"
-          @click="handleSubmit"
-          :disabled="adviserStore.submitting"
-        >
-          <svg v-if="adviserStore.submitting" class="animate-spin h-4 w-4 shrink-0 mr-1" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-          </svg>
-          {{ adviserStore.submitting ? 'Submitting…' : 'Continue →' }}
-        </BaseButton>
+      <!-- Adviser Tools - right side -->
+      <div class="lg:w-80 shrink-0">
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <h2 class="text-base font-semibold text-gray-900 mb-1">Adviser Tools</h2>
+          <p class="text-[13px] text-gray-500 mb-5">
+            Access adviser submissions and create new adviser entity records.
+          </p>
+          <div class="flex flex-col gap-3">
+            <router-link
+              to="/adviser"
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg bg-[#0F5A4D] text-white text-[13px] font-semibold hover:bg-[#0C4A3F] transition-colors shadow-sm"
+            >
+              <BaseIcon name="bolt" size="18" />
+              Adviser
+            </router-link>
+            <router-link
+              to="/adviser/new"
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg border-2 border-[#0F5A4D] text-[#0F5A4D] text-[13px] font-semibold hover:bg-[#0F5A4D]/5 transition-colors"
+            >
+              <BaseIcon name="plus" size="18" />
+              Adviser Entity
+            </router-link>
+          </div>
+        </div>
       </div>
-
     </div>
   </div>
 </template>

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { adviserApi } from '@/api/adviser.api'
+import { userService } from '@/api/user.service'
 import type { SubmissionPayload, SubmissionListParams } from '@/api/adviser.api'
 import type { Submission } from '@/types/adviser'
 
@@ -24,9 +25,8 @@ export const useAdviserStore = defineStore('adviser', () => {
         if (coordinatorsLoaded.value || isLoadingCoordinators.value) return
         isLoadingCoordinators.value = true
         try {
-            const res = await adviserApi.getCoordinators()
-            const body = res.data as any
-            const raw = Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : [])
+            const res = await userService.getUsers(1, '', { role: 'nep_coordinator', status: 'active', per_page: 100 })
+            const raw = res.data.data || []
             const map: Record<number, string> = {}
             raw.forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
             coordinatorMap.value = map
