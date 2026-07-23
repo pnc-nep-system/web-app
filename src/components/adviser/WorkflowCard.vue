@@ -6,7 +6,7 @@ import type { User } from '@/types/user'
 const props = defineProps<{
   currentStatus: string
   assigneeId: number | null
-  coordinators: User[]
+  coordinators: Array<{ id: number; name: string; email?: string }>
   deliveredAt?: string | null
 }>()
 

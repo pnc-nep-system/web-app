@@ -9,7 +9,7 @@ const emit = defineEmits(['close'])
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="open" class="fixed inset-0 bg-[rgba(10,25,22,0.5)] backdrop-blur-[3px] flex items-center justify-center z-[150] p-5" @click.self="emit('close')">
-        <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(10,45,41,0.18),0_2px_8px_rgba(10,45,41,0.08)] w-full max-w-[460px] p-[26px]">
+        <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(10,45,41,0.18),0_2px_8px_rgba(10,45,41,0.08)] w-full max-w-[460px] max-h-[90vh] overflow-y-auto p-4 sm:p-[26px]">
           <slot />
         </div>
       </div>

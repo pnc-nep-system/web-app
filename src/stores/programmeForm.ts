@@ -282,9 +282,9 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
           if (a.activityItem?.code) return a.activityItem.code
           const itemId = a.activity_item_id ?? a.activityItemId
           if (itemId !== undefined && itemId !== null) {
-            if (dbIdToCodeMap.value[itemId]) return dbIdToCodeMap.value[itemId]
-            if (dbIdToCodeMap.value[Number(itemId)]) return dbIdToCodeMap.value[Number(itemId)]
-            if (dbIdToCodeMap.value[String(itemId)]) return dbIdToCodeMap.value[String(itemId)]
+            const mapObj = dbIdToCodeMap.value as Record<string | number, string>
+            const val = mapObj[itemId] || mapObj[Number(itemId)] || mapObj[String(itemId)]
+            if (val) return val
           }
           return ''
         }
@@ -788,11 +788,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     }
 
     if (geographyStore.section3Data) {
-      section3Data.value = geographyStore.getData()
+      ;(geographyStore as any).section3Data = geographyStore.getData()
     }
 
     if (keywordsStore.keywordsData && keywordsStore.keywordsData.length > 0) {
-      keywordsData.value = keywordsStore.keywordsData
+      ;(keywordsStore as any).keywordsData = [...keywordsStore.keywordsData]
     }
   }
 

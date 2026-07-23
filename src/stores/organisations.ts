@@ -70,12 +70,11 @@ export const useOrganisationsStore = defineStore('organisations', () => {
         member_since: data.member_since,
       }
       const res = await organisationService.createOrganisation(payload)
-      let created = res.data.organisation ?? res.data
-
+      let created = (res.data as any)?.organisation ?? res.data
       if (data.logoFile) {
         try {
           const logoRes = await organisationService.uploadLogo(created.id, data.logoFile)
-          created = logoRes.data.organisation ?? logoRes.data ?? created
+          created = (logoRes.data as any)?.organisation ?? logoRes.data ?? created
         } catch (e) {
           console.error('[uploadLogo] failed:', e)
         }

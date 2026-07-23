@@ -6,7 +6,7 @@ import { useToast } from '@/utils/toast'
 import AppShell from '@/components/AppShell.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import ChangePasswordForm from '@/components/user/ChangePasswordForm.vue'
-import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -20,22 +20,24 @@ const saving = ref(false)
 const loading = ref(true)
 const showChangePassword = ref(false)
 
-const orgId = computed(() => auth.currentUser?.organisation_id as number | null)
-
 async function loadOrg() {
-  if (!orgId.value) { loading.value = false; return }
+  loading.value = true
   try {
+    if (!auth.currentUser) {
+      await auth.fetchCurrentUser().catch(() => {})
+    }
     const [orgRes, entriesRes] = await Promise.all([
       memberApi.getMyOrganisation(),
-      memberApi.getSubmittedProgrammeEntries(1),
+      memberApi.getSubmittedProgrammeEntries(1).catch(() => ({ data: { total: 0 } })),
     ])
     const org = orgRes.data.data || orgRes.data
     orgName.value = org.name || ''
     userEmail.value = org.email || ''
     contactName.value = org.contact_name || ''
     memberSince.value = org.member_since ? String(org.member_since) : 'This year'
-    submittedCount.value = entriesRes.data.total ?? 0
-  } catch {
+    submittedCount.value = entriesRes.data?.total ?? entriesRes.data?.data?.length ?? 0
+  } catch (err) {
+    console.error('[loadOrg] Failed to load organisation profile:', err)
     toast.error('Failed to load organisation details.')
   } finally {
     loading.value = false
@@ -70,7 +72,12 @@ onMounted(loadOrg)
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Loading State -->
+    <div v-if="loading" class="bg-white rounded-xl border border-gray-100 shadow-sm p-16 flex items-center justify-center">
+      <LoadingSpinner message="Loading organisation profile..." />
+    </div>
+
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div>
         <div class="card card-pad">
           <div class="section-title"><h3>Account details</h3></div>

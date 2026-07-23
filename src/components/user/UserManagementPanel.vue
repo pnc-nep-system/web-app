@@ -38,7 +38,7 @@ const usersComposable = store.usersComposable
 
   <!-- ── Search + Filters ── -->
   <div class="flex gap-3 items-center flex-wrap mb-4">
-    <div class="relative max-w-[360px] flex-1 min-w-[280px]">
+    <div class="relative w-full md:w-[360px] flex-1 min-w-0">
       <span class="absolute left-[13px] top-1/2 -translate-y-1/2 text-[var(--ink-400)] pointer-events-none flex">
         <BaseIcon name="search" :size="15" />
       </span>
@@ -51,21 +51,21 @@ const usersComposable = store.usersComposable
       />
     </div>
 
-    <div class="flex gap-2.5 flex-wrap">
-      <select id="user-role-filter" v-model="usersComposable.roleFilter" class="min-w-[150px] border border-[var(--line)] rounded-xl bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--ink-700)]">
+    <div class="flex gap-2.5 flex-wrap w-full md:w-auto">
+      <select id="user-role-filter" v-model="usersComposable.roleFilter" class="flex-1 sm:flex-initial min-w-0 sm:min-w-[140px] border border-[var(--line)] rounded-xl bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--ink-700)]">
         <option value="">All roles</option>
         <option value="nep_admin">NEP Admin</option>
         <option value="nep_coordinator">Coordinator</option>
         <option value="member_org">Member Organisation</option>
       </select>
 
-      <select id="user-status-filter" v-model="usersComposable.statusFilter" class="min-w-[150px] border border-[var(--line)] rounded-xl bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--ink-700)]">
+      <select id="user-status-filter" v-model="usersComposable.statusFilter" class="flex-1 sm:flex-initial min-w-0 sm:min-w-[140px] border border-[var(--line)] rounded-xl bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--ink-700)]">
         <option value="">All statuses</option>
         <option value="active">Active</option>
         <option value="inactive">Inactive</option>
       </select>
 
-      <select id="user-per-page-filter" v-model.number="usersComposable.perPage" class="min-w-[150px] border border-[var(--line)] rounded-xl bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--ink-700)]">
+      <select id="user-per-page-filter" v-model.number="usersComposable.perPage" class="flex-1 sm:flex-initial min-w-0 sm:min-w-[140px] border border-[var(--line)] rounded-xl bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--ink-700)]">
         <option :value="10">10 per page</option>
         <option :value="25">25 per page</option>
         <option :value="50">50 per page</option>

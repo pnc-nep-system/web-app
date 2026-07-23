@@ -61,18 +61,19 @@ function logoSrc(url: string | null): string | null {
 
     <!-- Desktop Table -->
     <template v-else>
-      <table class="w-full border-collapse table-fixed hidden md:table">
-        <thead>
-          <tr class="border-b border-[var(--line)]">
-            <th class="w-[26%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Organisation</th>
-            <th class="w-[18%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Contact</th>
-            <th class="w-[20%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Email</th>
-            <th class="w-[9%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Since</th>
-            <th class="w-[8%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Users</th>
-            <th class="w-[10%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Status</th>
-            <th class="w-[9%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] whitespace-nowrap bg-[var(--bg)] text-right">Actions</th>
-          </tr>
-        </thead>
+      <div class="overflow-x-auto">
+        <table class="w-full border-collapse table-fixed hidden md:table min-w-[850px]">
+          <thead>
+            <tr class="border-b border-[var(--line)]">
+              <th class="w-[28%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Organisation</th>
+              <th class="w-[18%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Contact</th>
+              <th class="w-[20%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Email</th>
+              <th class="w-[8%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Since</th>
+              <th class="w-[7%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Users</th>
+              <th class="w-[9%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Status</th>
+              <th class="w-[10%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] whitespace-nowrap bg-[var(--bg)] text-right">Actions</th>
+            </tr>
+          </thead>
         <tbody>
           <tr
             v-for="org in organisations"
@@ -145,6 +146,7 @@ function logoSrc(url: string | null): string | null {
           </tr>
         </tbody>
       </table>
+      </div>
 
       <!-- Mobile Cards -->
       <div class="flex flex-col md:hidden">

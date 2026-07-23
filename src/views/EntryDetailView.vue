@@ -18,8 +18,9 @@ const props = defineProps({ id: String })
 const router = useRouter()
 
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
-const { entry, marking, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth }
+const { entry, loading, marking, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth }
   = useEntryDetail(toRef(props, 'id'))
 </script>
 
@@ -29,7 +30,11 @@ const { entry, marking, status, activityRows, relatedEntries, markVerified, anal
       <HeaderBreadcrumb :crumbs="['Programme entries', (entry as any)?.name || (entry as any)?.programme_name || 'Entry Detail']" />
     </template>
 
-    <div v-if="!entry">
+    <div v-if="loading" class="bg-white rounded-xl border border-gray-100 shadow-sm p-16 flex items-center justify-center">
+      <LoadingSpinner message="Loading programme entry details..." />
+    </div>
+
+    <div v-else-if="!entry">
       <EmptyState icon="search" title="Entry not found" message="It may have been removed, or the link is out of date.">
         <template #action><BaseButton variant="secondary" size="sm" @click="router.push({ name: 'map' })">← Back to
             map</BaseButton></template>

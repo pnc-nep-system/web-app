@@ -71,7 +71,7 @@ async function submit() {
 </script>
 
 <template>
-  <div class="w-full md:w-[600px] lg:w-[650px] bg-white flex flex-col justify-center p-8 md:p-14 lg:p-14 flex-shrink-0 min-h-screen md:min-h-fit lg:min-h-screen md:rounded-2xl lg:rounded-none md:shadow-2xl lg:shadow-none mx-auto lg:mx-0 md:my-auto lg:my-0">
+  <div class="w-full md:w-[600px] lg:w-[650px] bg-white flex flex-col justify-center p-6 sm:p-10 lg:p-14 flex-shrink-0 min-h-screen md:min-h-fit lg:min-h-screen md:rounded-2xl lg:rounded-none md:shadow-2xl lg:shadow-none mx-auto lg:mx-0 md:my-auto lg:my-0">
     <!-- Show logo only on small screens since left panel is hidden -->
     <div class="lg:hidden mb-8 flex flex-col items-start gap-4">
       <img src="@/assets/images/logoes/NEP-logoo.webp" alt="NEP Logo" class="w-16" />
@@ -138,7 +138,7 @@ async function submit() {
       <!-- Developer Quick Login Panel -->
       <div class="mt-6 border-t border-slate-100 pt-6">
         <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Developer Quick Sign In</p>
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
             type="button"
             @click="quickLogin('admin@example.com', 'password')"

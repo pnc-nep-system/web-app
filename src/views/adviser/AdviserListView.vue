@@ -45,16 +45,16 @@ function openSubmission(id: number) {
     </template>
 
     <!-- Page heading + CTA -->
-    <div class="flex items-start justify-between mb-8 gap-4 mt-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 mt-4">
       <div>
-        <h1 class="text-[28px] font-bold text-gray-900 tracking-tight">The Adviser</h1>
-        <p class="mt-1 text-[14px] text-gray-500">
+        <h1 class="text-[24px] sm:text-[28px] font-bold text-gray-900 tracking-tight">The Adviser</h1>
+        <p class="mt-1 text-xs sm:text-[14px] text-gray-500">
           Analyse any submitted document against the map and generate a draft coordination advisory note.
         </p>
       </div>
       <router-link
         to="/adviser/new"
-        class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] !text-white text-[13px] font-semibold rounded-lg hover:bg-[#0C4A3F] transition-colors shadow-sm"
+        class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] !text-white text-[13px] font-semibold rounded-lg hover:bg-[#0C4A3F] transition-colors shadow-sm self-start sm:self-auto"
       >
         <BaseIcon name="plus" size="16" />
         Submit document for analysis
@@ -62,7 +62,7 @@ function openSubmission(id: number) {
     </div>
 
     <!-- Tabs -->
-    <div class="flex items-center gap-1 mb-6">
+    <div class="flex items-center gap-1 mb-6 flex-wrap">
       <button
         v-for="tab in [
           { key: 'all', label: 'All', count: countAll },

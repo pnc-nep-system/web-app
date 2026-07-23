@@ -43,7 +43,7 @@ async function submit() {
   <div class="flex min-h-screen bg-teal-900 justify-center lg:justify-normal">
     <LoginVisual />
 
-    <div class="w-full md:w-[600px] lg:w-[650px] bg-white flex flex-col justify-center p-8 md:p-14 lg:p-14 flex-shrink-0 min-h-screen md:min-h-fit lg:min-h-screen md:rounded-2xl lg:rounded-none md:shadow-2xl lg:shadow-none mx-auto lg:mx-0 md:my-auto lg:my-0">
+    <div class="w-full md:w-[600px] lg:w-[650px] bg-white flex flex-col justify-center p-6 sm:p-10 lg:p-14 flex-shrink-0 min-h-screen md:min-h-fit lg:min-h-screen md:rounded-2xl lg:rounded-none md:shadow-2xl lg:shadow-none mx-auto lg:mx-0 md:my-auto lg:my-0">
 
       <!-- Mobile logo -->
       <div class="lg:hidden mb-8 flex flex-col items-start gap-4">
