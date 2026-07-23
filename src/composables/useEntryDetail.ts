@@ -16,11 +16,17 @@ export function useEntryDetail(id: Ref<string | undefined>) {
   const toast = useToast()
 
   const entry = ref<EntryDetail | null>(null)
+  const loading = ref(true)
   const marking = ref(false)
 
   watch(id, async (newId) => {
-    if (!newId) { entry.value = null; return }
-    entry.value = await entries.fetchById(newId)
+    loading.value = true
+    if (!newId) { entry.value = null; loading.value = false; return }
+    try {
+      entry.value = await entries.fetchById(newId)
+    } finally {
+      loading.value = false
+    }
   }, { immediate: true })
 
   const status = computed(() => entry.value ? (entry.value.isUnverified ? 'unverified' : 'verified') : null)
@@ -59,6 +65,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
 
   return {
     entry,
+    loading,
     marking,
     status,
     activityRows,
