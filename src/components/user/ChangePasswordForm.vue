@@ -11,11 +11,12 @@ const form = reactive({ currentPassword: '', newPassword: '', confirmPassword: '
 const errors = reactive({ currentPassword: '', newPassword: '', confirmPassword: '', general: '' })
 const showPasswords = ref(false)
 
+function clearFieldError(field: 'currentPassword' | 'newPassword' | 'confirmPassword') {
+  errors[field] = ''
+}
+
 function validate() {
-  errors.currentPassword = ''
-  errors.newPassword = ''
-  errors.confirmPassword = ''
-  errors.general = ''
+  clearErrors()
 
   if (!form.currentPassword.trim()) {
     errors.currentPassword = 'Current password is required'
@@ -47,8 +48,8 @@ async function submit() {
 
   const result = await auth.changePassword({
     current_password: form.currentPassword,
-    password: form.newPassword,
-    password_confirmation: form.confirmPassword,
+    new_password: form.newPassword,
+    new_password_confirmation: form.confirmPassword,
   })
 
   if (result.success) {
@@ -57,21 +58,27 @@ async function submit() {
     emit('success')
     emit('close')
   } else {
-    errors.general = result.error || 'Failed to update password. Please try again.'
+    const errorMessage = result.error || 'Failed to update password. Please try again.'
+    errors.general = errorMessage
+    toast.error(errorMessage)
     if (auth.fieldErrors.current_password?.[0]) errors.currentPassword = auth.fieldErrors.current_password[0]
-    if (auth.fieldErrors.password?.[0]) errors.newPassword = auth.fieldErrors.password[0]
-    if (auth.fieldErrors.password_confirmation?.[0]) errors.confirmPassword = auth.fieldErrors.password_confirmation[0]
+    if (auth.fieldErrors.new_password?.[0]) errors.newPassword = auth.fieldErrors.new_password[0]
+    if (auth.fieldErrors.new_password_confirmation?.[0]) errors.confirmPassword = auth.fieldErrors.new_password_confirmation[0]
   }
+}
+
+function clearErrors() {
+  errors.currentPassword = ''
+  errors.newPassword = ''
+  errors.confirmPassword = ''
+  errors.general = ''
 }
 
 function resetForm() {
   form.currentPassword = ''
   form.newPassword = ''
   form.confirmPassword = ''
-  errors.currentPassword = ''
-  errors.newPassword = ''
-  errors.confirmPassword = ''
-  errors.general = ''
+  clearErrors()
 }
 
 function close() {
@@ -98,6 +105,7 @@ function close() {
             :type="showPasswords ? 'text' : 'password'"
             id="current-password"
             v-model="form.currentPassword"
+            @input="clearFieldError('currentPassword')"
             :class="{ 'has-error': errors.currentPassword }"
             placeholder="Enter your current password"
             autocomplete="current-password"
@@ -111,6 +119,7 @@ function close() {
             :type="showPasswords ? 'text' : 'password'"
             id="new-password"
             v-model="form.newPassword"
+            @input="clearFieldError('newPassword')"
             :class="{ 'has-error': errors.newPassword }"
             placeholder="Enter new password (min. 8 characters)"
             autocomplete="new-password"
@@ -124,6 +133,7 @@ function close() {
             :type="showPasswords ? 'text' : 'password'"
             id="confirm-password"
             v-model="form.confirmPassword"
+            @input="clearFieldError('confirmPassword')"
             :class="{ 'has-error': errors.confirmPassword }"
             placeholder="Re-enter your new password"
             autocomplete="new-password"

@@ -141,13 +141,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function changePassword(payload: { current_password: string; password: string; password_confirmation: string }) {
+  async function changePassword(payload: { current_password: string; new_password: string; new_password_confirmation: string }) {
     loading.value = true
     clearErrors()
     try {
       await authApi.changePassword(payload)
       return { success: true as const }
-    } catch (error) {
+    } catch (error: unknown) {
       const axiosError = error as {
         response?: { status?: number; data?: { message?: string; errors?: Record<string, string[]> } }
       }

@@ -29,9 +29,9 @@ export const authApi = {
   },
   changePassword(payload: {
     current_password: string
-    password: string
-    password_confirmation: string
+    new_password: string
+    new_password_confirmation: string
   }) {
-    return api.post('/change-password', payload)
+    return api.patch('/change-password', payload)
   },
 }
