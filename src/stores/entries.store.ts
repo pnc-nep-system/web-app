@@ -118,7 +118,7 @@ export const useEntriesStore = defineStore('entries', () => {
 
   function mapDetailEntry(e: any): any {
     return {
-      id: `entry-${e.id}`,
+      id: String(e.id),
       name: e.programme_name || '',
       organisationId: e.organisation_id || e.organisation?.id,
       organisationName: e.organisation_name || e.organisation?.name,
@@ -132,7 +132,10 @@ export const useEntriesStore = defineStore('entries', () => {
       method: e.method || '',
       verifiedDate: e.verified_date || '',
       isUnverified: !!e.is_unverified,
-      provinces: (e.locations || []).map((loc: any) => loc.province?.province_name ?? loc.province_name).filter(Boolean),
+      locations: (e.locations || []).filter((loc: any) => loc.province).map((loc: any) => ({
+        label: loc.village?.name ?? loc.commune?.name ?? loc.district?.name ?? loc.province?.province_name,
+        provinceName: loc.province?.province_name ?? loc.province_name,
+      })).filter((loc: any) => loc.label),
       activities: (e.activities || []).map((a: any) => ({
         code: a.activity_item?.code || a.code || '',
         is_primary: !!(a.is_primary ?? a.primary),
@@ -306,6 +309,10 @@ export const useEntriesStore = defineStore('entries', () => {
     return [...draftItems.value, ...submittedItems.value]
   }
 
+  function clearEntryCache() {
+    entryCache.value = {}
+  }
+
   return {
     activeTab,
     allItems,
@@ -339,5 +346,6 @@ export const useEntriesStore = defineStore('entries', () => {
     goToPage,
     retry,
     forOrganisation,
+    clearEntryCache,
   }
 })

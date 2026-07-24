@@ -1,64 +1,77 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import BaseCard from '@/components/common/BaseCard.vue'
 // @ts-ignore
 import cambodiaMap from '@svg-maps/cambodia'
 
+const PROVINCE_NAME_MAP: Record<string, string> = {
+  'Takéo': 'Ta Keo',
+}
+
+function toMapName(name: string): string {
+  return PROVINCE_NAME_MAP[name] ?? name
+}
+
 const props = defineProps<{
-  provinces: string[]
+  locations: { label: string; provinceName: string }[]
   otherCountries: string
 }>()
 
-const selectedProvince = ref<string | null>(null)
-const currentViewBox = ref<string>(cambodiaMap.viewBox || "0 0 655 601")
+// Unique province names for map highlighting
+const provinceNames = computed(() => [...new Set(props.locations.map(l => l.provinceName))])
 
-function handleProvinceClick(loc: { id: string; name: string; path: string }, event: MouseEvent) {
-  if (selectedProvince.value === loc.name) {
-    resetZoom()
-    return
-  }
+const selectedProvince = ref<string | null>(null) // SVG map name
+const currentViewBox = ref<string>(cambodiaMap.viewBox || '0 0 655 601')
 
-  selectedProvince.value = loc.name
-  const target = event.currentTarget as SVGPathElement
-  if (target && target.getBBox) {
-    const bbox = target.getBBox()
-    // Add padding around the province bounding box
-    const padding = 25
-    const minX = Math.max(0, bbox.x - padding)
-    const minY = Math.max(0, bbox.y - padding)
-    const width = bbox.width + padding * 2
-    const height = bbox.height + padding * 2
-    
-    currentViewBox.value = `${minX} ${minY} ${width} ${height}`
+// Unique province names for default view
+const uniqueProvinceNames = computed(() => {
+  const seen = new Set<string>()
+  return props.locations
+    .map(loc => loc.provinceName)
+    .filter(name => { if (seen.has(name)) return false; seen.add(name); return true })
+})
+
+// Badges: show province names by default, filter to district/commune labels when a province is clicked
+const visibleBadges = computed(() => {
+  if (!selectedProvince.value) {
+    return uniqueProvinceNames.value.map(name => ({ label: name, provinceName: name }))
   }
+  const dbName = Object.entries(PROVINCE_NAME_MAP).find(([, v]) => v === selectedProvince.value)?.[0] ?? selectedProvince.value
+  return props.locations
+    .filter(loc => loc.provinceName === dbName)
+    .filter(loc => loc.label !== loc.provinceName) // only sub-province labels
+    .length
+    ? props.locations.filter(loc => loc.provinceName === dbName && loc.label !== loc.provinceName)
+    : props.locations.filter(loc => loc.provinceName === dbName) // fallback: province had no districts selected
+})
+
+function zoomTo(svgName: string, pathEl?: SVGPathElement | null) {
+  selectedProvince.value = svgName
+  const el = pathEl ?? document.getElementById(
+    cambodiaMap.locations.find((l: any) => l.name === svgName)?.id ?? ''
+  ) as SVGPathElement | null
+  if (el?.getBBox) {
+    const bbox = el.getBBox()
+    const pad = 25
+    currentViewBox.value = `${Math.max(0, bbox.x - pad)} ${Math.max(0, bbox.y - pad)} ${bbox.width + pad * 2} ${bbox.height + pad * 2}`
+  }
+}
+
+function handleProvinceClick(loc: { id: string; name: string }, event: MouseEvent) {
+  if (selectedProvince.value === loc.name) { resetZoom(); return }
+  zoomTo(loc.name, event.currentTarget as SVGPathElement)
 }
 
 function resetZoom() {
   selectedProvince.value = null
-  currentViewBox.value = cambodiaMap.viewBox || "0 0 655 601"
+  currentViewBox.value = cambodiaMap.viewBox || '0 0 655 601'
 }
 
-function selectProvinceByName(name: string) {
-  if (selectedProvince.value === name) {
-    resetZoom()
-    return
-  }
-  selectedProvince.value = name
-  // Find location element by ID / name
-  const loc = cambodiaMap.locations.find((l: any) => l.name === name)
-  if (loc) {
-    const pathEl = document.getElementById(loc.id) as unknown as SVGPathElement
-    if (pathEl && pathEl.getBBox) {
-      const bbox = pathEl.getBBox()
-      const padding = 25
-      const minX = Math.max(0, bbox.x - padding)
-      const minY = Math.max(0, bbox.y - padding)
-      const width = bbox.width + padding * 2
-      const height = bbox.height + padding * 2
-      currentViewBox.value = `${minX} ${minY} ${width} ${height}`
-    }
-  }
+function selectProvinceByName(dbProvinceName: string) {
+  const mapName = toMapName(dbProvinceName)
+  if (selectedProvince.value === mapName) { resetZoom(); return }
+  zoomTo(mapName)
 }
 </script>
 
@@ -109,7 +122,7 @@ function selectProvinceByName(name: string) {
           :d="loc.path"
           :id="loc.id"
           :class="[
-            provinces.includes(loc.name) ? 'fill-teal-500 stroke-teal-600 hover:fill-teal-600' : 'fill-slate-200 stroke-white hover:fill-slate-300',
+            provinceNames.map(toMapName).includes(loc.name) ? 'fill-teal-500 stroke-teal-600 hover:fill-teal-600' : 'fill-slate-200 stroke-white hover:fill-slate-300',
             selectedProvince === loc.name ? 'fill-teal-600 stroke-teal-800 ring-2 ring-teal-500' : ''
           ]"
           stroke-width="1.5"
@@ -121,16 +134,16 @@ function selectProvinceByName(name: string) {
       </svg>
     </div>
 
-    <!-- Operating Provinces Badges -->
+    <!-- Badges: province names by default, districts/communes after clicking a province -->
     <div class="flex flex-wrap gap-1.5">
-      <BaseBadge 
-        v-for="p in provinces" 
-        :key="p" 
-        :tone="selectedProvince === p ? 'teal' : 'gray'"
+      <BaseBadge
+        v-for="loc in visibleBadges"
+        :key="loc.provinceName + loc.label"
+        :tone="selectedProvince ? 'teal' : 'gray'"
         class="cursor-pointer transition-all hover:scale-105"
-        @click="selectProvinceByName(p)"
+        @click="selectProvinceByName(loc.provinceName)"
       >
-        {{ p }}
+        {{ loc.label }}
       </BaseBadge>
     </div>
 

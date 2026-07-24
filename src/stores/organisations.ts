@@ -110,8 +110,10 @@ export const useOrganisationsStore = defineStore('organisations', () => {
         try {
           const logoRes = await organisationService.uploadLogo(id, data.logoFile)
           updated = logoRes.data.organisation ?? logoRes.data ?? updated
-        } catch (e) {
+        } catch (e: any) {
           console.error('[uploadLogo] failed:', e)
+          console.error('[uploadLogo] response data:', e?.response?.data)
+          console.error('[uploadLogo] response status:', e?.response?.status)
           throw new Error('logo_upload_failed')
         }
       }
