@@ -27,11 +27,8 @@ const emit = defineEmits<{
       </svg>
       <span v-if="store.isSaving">Saving...</span>
       <template v-else>
-        <span class="sm:hidden">
-          {{ store.isFinalStep ? 'Finish & save' : 'Continue →' }}
-        </span>
-        <span class="hidden sm:inline">
-          {{ store.isFinalStep ? 'Finish & save' : store.nextStepLabel }}
+        <span>
+          {{ store.continueButtonText }}
         </span>
       </template>
     </button>

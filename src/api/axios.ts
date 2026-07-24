@@ -2,16 +2,38 @@ import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api',
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api',
+  timeout: 30000,
   withCredentials: true,
-  withXSRFToken: true,
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
   headers: {
+    'Content-Type': 'application/json',
     Accept: 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
   },
+})
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) config.headers.Authorization = `Bearer ${token}`
+
+  // Let browser set Content-Type automatically for FormData (includes boundary)
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+    console.log('[axios] FormData detected, Content-Type deleted')
+    console.log('[axios] headers:', JSON.stringify(config.headers))
+    console.log('[axios] FormData entries:')
+    for (const [k, v] of (config.data as FormData).entries()) {
+      console.log(' ', k, v)
+    }
+  }
+
+  // Attach XSRF token from cookie if present (Laravel CSRF)
+  const xsrf = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('XSRF-TOKEN='))
+    ?.split('=')[1]
+  if (xsrf) config.headers['X-XSRF-TOKEN'] = decodeURIComponent(xsrf)
+
+  return config
 })
 
 api.interceptors.response.use(
@@ -32,3 +54,23 @@ api.interceptors.response.use(
 )
 
 export default api
+
+// Global deduplication for concurrent GET requests
+const originalGet = api.get
+const pendingGetRequests = new Map<string, Promise<any>>()
+
+api.get = function (url: string, config?: any) {
+  // Generate a unique key based on URL and query parameters
+  const key = url + (config?.params ? '?' + JSON.stringify(config.params) : '')
+
+  if (pendingGetRequests.has(key)) {
+    return pendingGetRequests.get(key) as Promise<any>
+  }
+
+  const promise = originalGet.call(this, url, config).finally(() => {
+    pendingGetRequests.delete(key)
+  })
+
+  pendingGetRequests.set(key, promise)
+  return promise
+}

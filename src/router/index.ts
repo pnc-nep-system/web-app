@@ -1,106 +1,172 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    { path: '/', redirect: '/login' },
+    { path: "/", redirect: "/login" },
     {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/auth/LoginView.vue'),
+      path: "/login",
+      name: "login",
+      component: () => import("@/views/auth/LoginView.vue"),
       meta: { requiresAuth: false },
     },
 
     {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('@/views/member/DashboardView.vue'),
+      path: "/dashboard",
+      name: "dashboard",
+      component: () => import("@/views/member/DashboardView.vue"),
       meta: { requiresAuth: true },
     },
     {
-      path: '/admin/dashboard',
-      name: 'admin-dashboard',
-      component: () => import('@/views/staff/DashboardView.vue'),
-      meta: { requiresAuth: true, roles: ['nep_admin'] },
+      path: "/admin/dashboard",
+      name: "admin-dashboard",
+      component: () => import("@/views/staff/DashboardView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_admin"] },
     },
     {
-      path: '/admin/taxonomy',
-      name: 'admin-taxonomy',
-      component: () => import('@/views/staff/TaxonomyAdminView.vue'),
-      meta: { requiresAuth: true, roles: ['nep_admin'] },
+      path: "/map",
+      name: "map",
+      component: () => import("@/views/MapView.vue"),
+      meta: {
+        requiresAuth: true,
+        roles: ["nep_admin", "nep_coordinator"],
+      },
     },
     {
-      path: '/manager/dashboard',
-      name: 'manager-dashboard',
-      component: () => import('@/views/staff/DashboardView.vue'),
+      path: "/admin/taxonomy",
+      name: "admin-taxonomy",
+      component: () => import("@/views/staff/TaxonomyAdminView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_admin"] },
+    },
+    {
+      path: "/policy",
+      name: "policy",
+      component: () => import("@/views/PolicyView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_admin", "nep_coordinator"] },
+    },
+    {
+      path: "/manager/dashboard",
+      name: "manager-dashboard",
+      component: () => import("@/views/staff/DashboardView.vue"),
       meta: { requiresAuth: true },
     },
     {
-      path: '/entries/new',
-      name: 'entry-new',
-      component: () => import('@/views/programme/NewEntryView.vue'),
+      path: "/entries/new",
+      name: "entry-new",
+      component: () => import("@/views/programme/NewEntryView.vue"),
       meta: { requiresAuth: true },
     },
     {
-      path: '/admin/users',
-      name: 'admin-users',
-      component: () => import('@/views/admin/UserManagementView.vue'),
-      meta: { requiresAuth: true, roles: ['nep_admin'] },
-    },
-    {
-      path: '/403',
-      name: 'forbidden',
-      component: () => import('@/views/errors/403.vue'),
-    },
-    {
-      path: '/account',
-      name: 'organisation-profile',
-      component: () => import('@/views/member/OrganisationProfileView.vue'),
+      path: "/entries/:id",
+      name: "entry-detail",
+      component: () => import("@/views/EntryDetailView.vue"),
       meta: { requiresAuth: true },
+      props: true,
+    },
+    {
+      path: "/admin/users",
+      name: "admin-users",
+      component: () => import("@/views/admin/UserManagementView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_admin"] },
+    },
+    {
+      path: "/admin/coordinators",
+      name: "admin-coordinators",
+      component: () => import("@/views/admin/CoordinatorManagementView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_admin"] },
+    },
+    {
+      path: "/adviser",
+      name: "adviser",
+      component: () => import("@/views/adviser/AdviserListView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_coordinator", "nep_admin"] },
+    },
+    {
+      path: "/adviser/new",
+      name: "adviser-new",
+      component: () => import("@/views/adviser/NewSubmissionView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_coordinator", "nep_admin"] },
+    },
+    {
+      path: "/adviser/:id",
+      name: "adviser-detail",
+      component: () => import("@/views/adviser/AdviserDetailView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_coordinator", "nep_admin"] },
+    },
+    {
+      path: "/admin/programmes",
+      name: "admin-programmes",
+      component: () => import("@/views/admin/AdminProgrammesView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_admin", "nep_coordinator"] },
+    },
+    {
+      path: "/admin/organization",
+      name: "admin-organization",
+      component: () => import("@/views/admin/OrganizationManagementView.vue"),
+      meta: { requiresAuth: true, roles: ["nep_admin"] },
+    },
+    {
+      path: "/403",
+      name: "forbidden",
+      component: () => import("@/views/errors/403.vue"),
+    },
+    {
+      path: "/account",
+      name: "organisation-profile",
+      component: () => import("@/views/member/OrganisationProfileView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "/forgot-password",
+      name: "forgot-password",
+      component: () => import("@/views/auth/ForgotPasswordView.vue"),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: "/reset-password",
+      name: "reset-password",
+      component: () => import("@/views/auth/ResetPasswordView.vue"),
+      meta: { requiresAuth: false },
     },
   ],
-})
+});
 
 router.beforeEach(async (to) => {
-  const authStore = useAuthStore()
-  const isAuthenticated = authStore.isAuthenticated
+  const authStore = useAuthStore();
+  const isAuthenticated = authStore.isAuthenticated;
 
   if (to.meta.requiresAuth && !isAuthenticated) {
-    return { name: 'login' }
+    return { name: "login" };
+  }
+
+  if (to.name === "login" && isAuthenticated) {
+    if (authStore.userRole === "nep_admin") {
+      return { name: "admin-dashboard" };
+    } else if (authStore.userRole === "nep_coordinator") {
+      return { name: "manager-dashboard" };
+    } else {
+      return { name: "dashboard" };
+    }
+  }
+
+  if (isAuthenticated && !authStore.currentUser) {
+    try {
+      await authStore.fetchCurrentUser();
+    } catch {
+      authStore.clearAuthState(false);
+      return { name: "login" };
+    }
   }
 
   if (isAuthenticated) {
-    if (!authStore.currentUser) {
-      try {
-        await authStore.fetchCurrentUser()
-      } catch (err) {
-        console.error('Error fetching user profile in router guard:', err)
-        authStore.clearAuthState(false)
-        return { name: 'login' }
-      }
-    }
-
-    // Role-based authorization check
-    const allowedRoles = to.meta.roles as string[] | undefined
+    const allowedRoles = to.meta.roles as string[] | undefined;
     if (allowedRoles?.length && !allowedRoles.includes(authStore.userRole)) {
-      return { name: 'forbidden' }
+      return { name: "forbidden" };
     }
   }
 
-  if (to.name === 'login' && isAuthenticated) {
-    if (authStore.userRole === 'nep_admin') {
-      return { name: 'admin-users' }
-    }
-    return { name: 'dashboard' }
-  } else if ((to.path === '/dashboard' || to.name === 'dashboard') && isAuthenticated) {
-    if (authStore.userRole === 'nep_admin') {
-      return { name: 'admin-users' }
-    }
-  }
+  return true;
+});
 
-  return true
-})
-
-export default router
-
+export default router;

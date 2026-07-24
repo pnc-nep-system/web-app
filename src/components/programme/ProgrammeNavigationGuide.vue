@@ -1,3 +1,9 @@
+<script setup lang="ts">
+import { useProgrammeFormStore } from '@/stores/programmeForm'
+
+const store = useProgrammeFormStore()
+</script>
+
 <template>
   <div class="p-4 border rounded-xl flex gap-3 text-xs shadow-sm bg-blue-50/70 border-blue-200 text-blue-900">
     <span class="shrink-0 mt-0.5">
@@ -8,7 +14,12 @@
     <div>
       <p class="font-semibold mb-0.5 text-blue-950">Guidance</p>
       <p class="leading-relaxed opacity-90">
-        Step 1 complete — you can save drafts. Complete steps 1, 2, 3, and 5 to submit. Step 4 (Agreements) is optional.
+        <span v-if="!store.completedSteps.has(1)">
+          Please complete Step 1 (Programme identity) to unlock and jump to other steps.
+        </span>
+        <span v-else>
+          Step 1 complete — you can save drafts or jump to other steps. Complete steps 1, 2, 3, and 5 to submit. Step 4 (Agreements) is optional.
+        </span>
       </p>
     </div>
   </div>

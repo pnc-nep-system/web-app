@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
 import { memberApi } from '@/api/member.api'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 
 export const useCategoriesStore = defineStore('categories', () => {
-  const categories = ref<any[]>([])
+  const categories = shallowRef<any[]>([])
   const isLoading = ref(false)
   const openCategories = ref<Set<string>>(new Set())
   const openSubcategories = ref<Set<string>>(new Set())
@@ -23,18 +23,22 @@ export const useCategoriesStore = defineStore('categories', () => {
   }
 
   function toggleCategory(code: string) {
+    const activitiesStore = useProgrammeActivitiesStore()
+    activitiesStore.clearError()
     if (openCategories.value.has(code)) {
-      openCategories.value.delete(code)
+      openCategories.value = new Set()
     } else {
-      openCategories.value.add(code)
+      openCategories.value = new Set([code])
     }
   }
 
   function toggleSubcategory(code: string) {
+    const activitiesStore = useProgrammeActivitiesStore()
+    activitiesStore.clearError()
     if (openSubcategories.value.has(code)) {
-      openSubcategories.value.delete(code)
+      openSubcategories.value = new Set()
     } else {
-      openSubcategories.value.add(code)
+      openSubcategories.value = new Set([code])
     }
   }
 
@@ -45,7 +49,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     let count = 0
     cat.subcategories?.forEach((sub: any) => {
       sub.items?.forEach((i: any) => {
-        if (activitiesStore.selected.has(i.code)) {
+        if (activitiesStore.selected.includes(i.code)) {
           count++
         }
       })
@@ -64,12 +68,29 @@ export const useCategoriesStore = defineStore('categories', () => {
       }
     }
     if (!sub) return 0
-    return sub.items?.filter((i: any) => activitiesStore.selected.has(i.code)).length || 0
+    return sub.items?.filter((i: any) => activitiesStore.selected.includes(i.code)).length || 0
   }
 
   function reset() {
     openCategories.value = new Set()
     openSubcategories.value = new Set()
+  }
+
+  function openForCodes(codes: string[]) {
+    const newCats = new Set(openCategories.value)
+    const newSubs = new Set(openSubcategories.value)
+    for (const cat of categories.value) {
+      for (const sub of (cat.subcategories ?? [])) {
+        for (const item of (sub.items ?? [])) {
+          if (codes.includes(item.code)) {
+            newCats.add(cat.code)
+            newSubs.add(sub.code)
+          }
+        }
+      }
+    }
+    openCategories.value = newCats
+    openSubcategories.value = newSubs
   }
 
   return {
@@ -82,6 +103,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     toggleSubcategory,
     categoryCount,
     subcategoryCount,
-    reset
+    reset,
+    openForCodes,
   }
 })

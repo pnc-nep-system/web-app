@@ -30,12 +30,13 @@ const iconClass = computed(() => toneClasses[props.iconTone] ?? toneClasses.teal
       <div class="p-2 rounded-lg flex items-center justify-center" :class="iconClass">
         <BaseIcon :name="icon" :size="17" />
       </div>
-      <span
-        v-if="trend"
-        class="text-xs font-semibold px-2 py-0.5 rounded-full"
-        :class="trendTone === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
-        >{{ trend }}</span
-      >
+      <slot name="badge">
+        <span
+          v-if="trend"
+          class="text-xs font-semibold px-2 py-0.5 rounded-full"
+          :class="trendTone === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
+          >{{ trend }}</span>
+      </slot>
     </div>
     <div class="text-2xl font-bold text-gray-900">{{ value }}</div>
     <div class="text-sm text-gray-500">{{ label }}</div>

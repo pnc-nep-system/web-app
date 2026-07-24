@@ -70,7 +70,6 @@ const errors = computed(() => {
   return errs
 })
 
-// ─── Sync form when modal opens / edit target changes ─────────────────────────
 
 watch(
   () => props.open,
@@ -134,7 +133,7 @@ function handleSubmit() {
       email: email.value.trim(),
       role: role.value,
       status: status.value,
-      organisation_id: role.value === 'member_org' ? organisationId.value : null,
+      organisation_id: role.value === 'member_org' || role.value === 'nep_coordinator' ? organisationId.value : null,
     }
     emit('submit', payload)
   } else {
@@ -143,7 +142,7 @@ function handleSubmit() {
       email: email.value.trim(),
       role: role.value,
       password: password.value,
-      organisation_id: role.value === 'member_org' ? organisationId.value : null,
+      organisation_id: role.value === 'member_org' || role.value === 'nep_coordinator' ? organisationId.value : null,
     }
     emit('submit', payload)
   }
@@ -152,18 +151,21 @@ function handleSubmit() {
 
 <template>
   <BaseModal :open="open" @close="emit('close')">
-    <div class="form-modal">
+    <div class="w-full max-w-[480px]">
       <!-- Header -->
-      <div class="form-header">
-        <div class="header-icon" :class="isEditMode ? 'edit' : 'create'">
+      <div class="flex items-start gap-3 mb-6">
+        <div
+          class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          :class="isEditMode ? 'bg-indigo-100 text-indigo-700' : 'bg-teal-100 text-teal-700'"
+        >
           <BaseIcon :name="isEditMode ? 'edit' : 'plus'" :size="18" />
         </div>
-        <div class="header-text">
-          <h2>{{ title }}</h2>
-          <p>{{ subtitle }}</p>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-base font-bold text-[var(--ink-900)]">{{ title }}</h2>
+          <p class="text-[12.5px] text-[var(--ink-400)] mt-0.5">{{ subtitle }}</p>
         </div>
         <button
-          class="close-btn"
+          class="w-8 h-8 rounded-lg border border-[var(--line)] bg-[var(--bg)] flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-120 shrink-0 hover:border-[var(--ink-400)] hover:text-[var(--ink-700)]"
           type="button"
           aria-label="Close modal"
           @click="emit('close')"
@@ -173,80 +175,109 @@ function handleSubmit() {
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleSubmit" novalidate class="form-body">
+      <form @submit.prevent="handleSubmit" novalidate class="flex flex-col gap-4">
         <!-- Full Name -->
-        <div class="form-field">
-          <label for="um-name">Full Name</label>
+        <div>
+          <label for="um-name" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
+            Full Name
+          </label>
           <input
             id="um-name"
             v-model="name"
             type="text"
             placeholder="e.g. Jane Smith"
-            :class="{ 'has-error': errors.name }"
+            class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
+            :class="{ '!border-red-600': errors.name }"
             autocomplete="name"
           />
-          <p v-if="errors.name" class="field-error">
+          <p v-if="errors.name" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
             <BaseIcon name="alert" :size="11" />{{ errors.name }}
           </p>
         </div>
 
         <!-- Email -->
-        <div class="form-field">
-          <label for="um-email">Email Address</label>
+        <div>
+          <label for="um-email" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
+            Email Address
+          </label>
           <input
             id="um-email"
             v-model="email"
             type="email"
             placeholder="e.g. jane@example.com"
-            :class="{ 'has-error': errors.email }"
+            class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
+            :class="{ '!border-red-600': errors.email }"
             autocomplete="email"
           />
-          <p v-if="errors.email" class="field-error">
+          <p v-if="errors.email" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
             <BaseIcon name="alert" :size="11" />{{ errors.email }}
           </p>
         </div>
 
         <!-- Role -->
-        <div class="form-field">
-          <label for="um-role">Role</label>
-          <select id="um-role" v-model="role" :class="{ 'has-error': errors.role }">
+        <div>
+          <label for="um-role" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
+            Role
+          </label>
+          <select
+            id="um-role"
+            v-model="role"
+            class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)]"
+            :class="{ '!border-red-600': errors.role }"
+          >
             <option v-for="opt in ROLE_OPTIONS" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </option>
           </select>
-          <p v-if="errors.role" class="field-error">
+          <p v-if="errors.role" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
             <BaseIcon name="alert" :size="11" />{{ errors.role }}
           </p>
         </div>
 
         <!-- Status (edit only) -->
-        <Transition v-if="isEditMode" name="slide">
-          <div class="form-field">
-            <label for="um-status">Status</label>
-            <select id="um-status" v-model="status" :class="{ 'has-error': errors.status }">
+        <Transition name="slide">
+          <div v-if="isEditMode">
+            <label for="um-status" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
+              Status
+            </label>
+            <select
+              id="um-status"
+              v-model="status"
+              class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)]"
+              :class="{ '!border-red-600': errors.status }"
+            >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-            <p v-if="errors.status" class="field-error">
+            <p v-if="errors.status" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
               <BaseIcon name="alert" :size="11" />{{ errors.status }}
             </p>
           </div>
         </Transition>
 
-        <!-- Organisation (Only visible/relevant for Coordinator and Member Org, required for Member Org) -->
+        <!-- Organisation (Only visible/relevant for Coordinator and Member Org) -->
         <Transition name="slide">
-          <div v-if="role === 'member_org' || role === 'nep_coordinator'" class="form-field">
-            <label for="um-organisation">
+          <div v-if="role === 'member_org' || role === 'nep_coordinator'">
+            <label for="um-organisation" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
               Organisation
-              <span class="label-tag">{{ role === 'member_org' ? 'Required' : 'Optional' }}</span>
+              <span
+                class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 uppercase tracking-wider"
+              >
+                {{ role === 'member_org' ? 'Required' : 'Optional' }}
+              </span>
             </label>
-            <select id="um-organisation" v-model="organisationId" :class="{ 'has-error': errors.organisation_id }">
+            <select
+              id="um-organisation"
+              v-model="organisationId"
+              class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)]"
+              :class="{ '!border-red-600': errors.organisation_id }"
+            >
               <option :value="null">Select organisation…</option>
               <option v-for="org in organisations" :key="org.id" :value="org.id">
                 {{ org.name }}
               </option>
             </select>
-            <p v-if="errors.organisation_id" class="field-error">
+            <p v-if="errors.organisation_id" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
               <BaseIcon name="alert" :size="11" />{{ errors.organisation_id }}
             </p>
           </div>
@@ -254,35 +285,38 @@ function handleSubmit() {
 
         <!-- Password (create only) -->
         <Transition name="slide">
-          <div v-if="!isEditMode" class="form-field">
-            <label for="um-password">Password</label>
-            <div class="password-wrap">
+          <div v-if="!isEditMode">
+            <label for="um-password" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
+              Password
+            </label>
+            <div class="relative">
               <input
                 id="um-password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="Min. 8 characters"
-                :class="{ 'has-error': errors.password }"
+                class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 pr-10 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
+                :class="{ '!border-red-600': errors.password }"
                 autocomplete="new-password"
               />
               <button
                 type="button"
                 tabindex="-1"
-                class="password-toggle"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-md border-none bg-transparent flex items-center justify-center text-[var(--ink-400)] cursor-pointer transition-colors duration-120 hover:text-[var(--ink-700)]"
                 @click="showPassword = !showPassword"
                 :aria-label="showPassword ? 'Hide password' : 'Show password'"
               >
                 <BaseIcon :name="showPassword ? 'eye' : 'lock'" :size="14" />
               </button>
             </div>
-            <p v-if="errors.password" class="field-error">
+            <p v-if="errors.password" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
               <BaseIcon name="alert" :size="11" />{{ errors.password }}
             </p>
           </div>
         </Transition>
 
         <!-- Divider + Actions -->
-        <div class="form-actions">
+        <div class="flex justify-end gap-2.5 mt-2 pt-4.5 border-t border-[var(--line-soft)]">
           <button
             type="button"
             class="btn btn-secondary"
@@ -294,7 +328,7 @@ function handleSubmit() {
           <button type="submit" class="btn btn-primary" :disabled="isSaving">
             <svg
               v-if="isSaving"
-              class="spin-icon"
+              class="w-3.5 h-3.5 animate-spin shrink-0"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -315,180 +349,6 @@ function handleSubmit() {
 </template>
 
 <style scoped>
-.form-modal {
-  width: 100%;
-  max-width: 480px;
-}
-
-/* ── Header ── */
-.form-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.header-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.header-icon.create {
-  background: var(--teal-100);
-  color: var(--teal-700);
-}
-.header-icon.edit {
-  background: #eef0fb;
-  color: #4338ca;
-}
-.header-text {
-  flex: 1;
-  min-width: 0;
-}
-.header-text h2 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--ink-900);
-}
-.header-text p {
-  font-size: 12.5px;
-  color: var(--ink-400);
-  margin-top: 2px;
-}
-
-.close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-500);
-  cursor: pointer;
-  transition: all 0.12s;
-  flex-shrink: 0;
-}
-.close-btn:hover {
-  border-color: var(--ink-400);
-  color: var(--ink-700);
-}
-
-/* ── Form ── */
-.form-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.form-field label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--ink-700);
-  margin-bottom: 6px;
-}
-.label-tag {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--teal-100);
-  color: var(--teal-700);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.form-field input,
-.form-field select {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 9px;
-  padding: 10px 13px;
-  font-size: 13.5px;
-  font-family: inherit;
-  color: var(--ink-900);
-  background: #fff;
-  transition: all 0.15s ease;
-}
-.form-field input:focus,
-.form-field select:focus {
-  outline: none;
-  border-color: var(--teal-600);
-  box-shadow: 0 0 0 3px var(--teal-100);
-}
-.form-field input.has-error,
-.form-field select.has-error {
-  border-color: var(--red-600);
-}
-.form-field input::placeholder {
-  color: var(--ink-300);
-}
-
-.field-error {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 6px;
-  font-size: 11.5px;
-  color: var(--red-600);
-}
-
-/* ── Password ── */
-.password-wrap {
-  position: relative;
-}
-.password-wrap input {
-  padding-right: 40px;
-}
-.password-toggle {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink-400);
-  cursor: pointer;
-  transition: color 0.12s;
-}
-.password-toggle:hover {
-  color: var(--ink-700);
-}
-
-/* ── Actions ── */
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 8px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line-soft);
-}
-
-.spin-icon {
-  width: 14px;
-  height: 14px;
-  animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-.opacity-25 { opacity: 0.25; }
-.opacity-75 { opacity: 0.75; }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 /* ── Slide Transition ── */
 .slide-enter-active {
   transition: all 0.2s ease;

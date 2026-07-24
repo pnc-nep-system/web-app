@@ -6,8 +6,8 @@ export const memberApi = {
   listProgrammeEntries(organisationId: number | string) {
     return api.get(`/organisations/${organisationId}/programme-entries`);
   },
-  createProgrammeEntry(data: ProgrammeIdentity) {
-    return api.post('/programme-entries', data);
+  createProgrammeEntry(data: ProgrammeIdentity, organisationId?: number | string) {
+    return api.post('/programme-entries', { ...data, ...(organisationId ? { organisation_id: organisationId } : {}) });
   },
   updateProgrammeEntry(id: number | string, data: ProgrammeIdentity) {
     return api.put(`/programme-entries/${id}`, data);
@@ -33,8 +33,14 @@ export const memberApi = {
   saveGovernmentAgreements(id: number | string, agreements: any[]) {
     return api.put(`/programme-entries/${id}/government-agreements`, { agreements });
   },
+  getGovernmentAgreements(id: number | string) {
+    return api.get(`/programme-entries/${id}/government-agreements`);
+  },
   saveActivities(id: number | string, activities: any[]) {
     return api.post(`/programme-entries/${id}/activities`, { activities });
+  },
+  getActivities(id: number | string) {
+    return api.get(`/programme-entries/${id}/activities`);
   },
   saveGeography(id: number | string, data: any) {
     return api.put(`/programme-entries/${id}/geography`, data);
@@ -42,11 +48,24 @@ export const memberApi = {
   getGeography(id: number | string) {
     return api.get(`/programme-entries/${id}/geography`);
   },
+  getAllProgrammeEntries(page = 1) {
+    return api.get(`/programme-entries?page=${page}`);
+  },
+  getAdminAllProgrammeEntries(page = 1, organisationId?: number | null) {
+    const params: Record<string, any> = { page }
+    if (organisationId) params.organisation_id = organisationId
+    return api.get('/programme-entries', { params })
+  },
   getDraftProgrammeEntries(page = 1) {
     return api.get(`/programme-entries/draft?page=${page}`);
   },
-  getSubmittedProgrammeEntries(page = 1) {
-    return api.get(`/programme-entries/submitted?page=${page}`);
+  getSubmittedProgrammeEntries(page = 1, perPage?: number) {
+    const params: Record<string, any> = { page }
+    if (perPage) params.per_page = perPage
+    return api.get('/programme-entries/submitted', { params })
+  },
+  getMyDraftEntries() {
+    return api.get('/programme-entries/my-drafts')
   },
   saveKeywords(id: number | string, keywords: string[]) {
     return api.put(`/programme-entries/${id}/keywords`, { keywords });
@@ -60,6 +79,41 @@ export const memberApi = {
   updateMyOrganisation(payload: { contact_name?: string; email?: string }) {
     return api.patch('/organisations/me', payload);
   },
+  getDraftProgrammeEntry(id: number | string) {
+    return api.get(`/programme-entries/${id}`);
+  },
+  markVerified(id: number | string) {
+    return api.patch(`/programme-entries/${id}/verify`);
+  },
+  suggestActivities(text: string) {
+    return api.post<{ data: string[]; suggestions: Record<string, any> }>('/programme-entries/suggest-activities', { text }, { timeout: 60000 })
+  },
+  suggestActivitiesWithFile(formData: FormData) {
+    return api.post<{ data: string[]; suggestions: Record<string, any> }>('/programme-entries/suggest-activities', formData, {
+      timeout: 60000,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  fetchUrlContent(url: string) {
+    return api.post<{ text: string }>('/programme-entries/fetch-url', { url }, { timeout: 20000 })
+  },
+  aiAutofill(payload: FormData | { text: string }) {
+    const isFormData = payload instanceof FormData
+    return api.post<{
+      activities: { codes: string[]; suggestions: Record<string, any> }
+      geography: { province_ids: number[] }
+      agreements: { counterpart_agency: string; nature: string; status: string; institution_name: string }[]
+      keywords: string[]
+    }>('/programme-entries/ai-autofill', payload, {
+      timeout: 60000,
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
+    })
+  },
+  listOrganisations() {
+    return api.get('/organisations');
+  },
+  listAllOrganisations() {
+    return api.get('/organisations', { params: { per_page: 200 } });
+  },
 };
-
 

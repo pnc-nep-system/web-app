@@ -5,6 +5,8 @@ import { memberApi } from '@/api/member.api'
 import { useToast } from '@/utils/toast'
 import AppShell from '@/components/AppShell.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
+import ChangePasswordForm from '@/components/user/ChangePasswordForm.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -16,23 +18,26 @@ const memberSince = ref('')
 const submittedCount = ref(0)
 const saving = ref(false)
 const loading = ref(true)
-
-const orgId = computed(() => auth.currentUser?.organisation_id as number | null)
+const showChangePassword = ref(false)
 
 async function loadOrg() {
-  if (!orgId.value) { loading.value = false; return }
+  loading.value = true
   try {
+    if (!auth.currentUser) {
+      await auth.fetchCurrentUser().catch(() => {})
+    }
     const [orgRes, entriesRes] = await Promise.all([
       memberApi.getMyOrganisation(),
-      memberApi.getSubmittedProgrammeEntries(1),
+      memberApi.getSubmittedProgrammeEntries(1).catch(() => ({ data: { total: 0 } })),
     ])
     const org = orgRes.data.data || orgRes.data
     orgName.value = org.name || ''
     userEmail.value = org.email || ''
     contactName.value = org.contact_name || ''
     memberSince.value = org.member_since ? String(org.member_since) : 'This year'
-    submittedCount.value = entriesRes.data.total ?? 0
-  } catch {
+    submittedCount.value = entriesRes.data?.total ?? entriesRes.data?.data?.length ?? 0
+  } catch (err) {
+    console.error('[loadOrg] Failed to load organisation profile:', err)
     toast.error('Failed to load organisation details.')
   } finally {
     loading.value = false
@@ -57,9 +62,7 @@ onMounted(loadOrg)
 <template>
   <AppShell>
     <template #header>
-      <span class="text-gray-400">NEP</span>
-      <span class="mx-1.5 text-gray-300">›</span>
-      <span class="text-gray-700 font-medium">Organisation Profile</span>
+      <HeaderBreadcrumb title="Organisation Profile" />
     </template>
 
     <div class="page-head">
@@ -69,7 +72,12 @@ onMounted(loadOrg)
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Loading State -->
+    <div v-if="loading" class="bg-white rounded-xl border border-gray-100 shadow-sm p-16 flex items-center justify-center">
+      <LoadingSpinner message="Loading organisation profile..." />
+    </div>
+
+    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div>
         <div class="card card-pad">
           <div class="section-title"><h3>Account details</h3></div>
@@ -117,6 +125,24 @@ onMounted(loadOrg)
           </div>
           <p style="font-size:11.5px;color:var(--ink-500);margin-top:10px;">Visibility is set centrally by NEP and applies to all members equally — it's not a per-organisation setting.</p>
         </div>
+
+        <div class="card card-pad" style="margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;">
+          <div>
+            <div class="section-title" style="margin-bottom:6px;"><h3>Password</h3></div>
+            <p style="font-size:12.5px;color:var(--ink-500);margin:0;">
+              Keep your account secure by using a strong personal password.
+            </p>
+          </div>
+          <button class="btn btn-primary btn-sm" @click="showChangePassword = true">
+            Set new password
+          </button>
+        </div>
+
+        <ChangePasswordForm
+          v-if="showChangePassword"
+          @close="showChangePassword = false"
+          @success="showChangePassword = false"
+        />
       </div>
     </div>
   </AppShell>

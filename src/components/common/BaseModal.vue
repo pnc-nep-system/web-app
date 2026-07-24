@@ -8,8 +8,8 @@ const emit = defineEmits(['close'])
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="open" class="modal-backdrop" @click.self="emit('close')">
-        <div class="modal-panel">
+      <div v-if="open" class="fixed inset-0 bg-[rgba(10,25,22,0.5)] backdrop-blur-[3px] flex items-center justify-center z-[150] p-5" @click.self="emit('close')">
+        <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(10,45,41,0.18),0_2px_8px_rgba(10,45,41,0.08)] w-full max-w-[460px] max-h-[90vh] overflow-y-auto p-4 sm:p-[26px]">
           <slot />
         </div>
       </div>
@@ -18,28 +18,6 @@ const emit = defineEmits(['close'])
 </template>
 
 <style scoped>
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(10, 25, 22, 0.5);
-  backdrop-filter: blur(3px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 150;
-  padding: 20px;
-}
-.modal-panel {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow:
-    0 20px 60px rgba(10, 45, 41, 0.18),
-    0 2px 8px rgba(10, 45, 41, 0.08);
-  width: 100%;
-  max-width: 460px;
-  padding: 26px;
-}
-
 /* ── Transition ── */
 .modal-enter-active {
   transition: opacity 0.2s ease;
@@ -52,16 +30,16 @@ const emit = defineEmits(['close'])
   opacity: 0;
 }
 
-.modal-enter-active .modal-panel {
+.modal-enter-active > div {
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.modal-leave-active .modal-panel {
+.modal-leave-active > div {
   transition: transform 0.15s ease;
 }
-.modal-enter-from .modal-panel {
+.modal-enter-from > div {
   transform: translateY(12px) scale(0.97);
 }
-.modal-leave-to .modal-panel {
+.modal-leave-to > div {
   transform: translateY(6px) scale(0.99);
 }
 </style>

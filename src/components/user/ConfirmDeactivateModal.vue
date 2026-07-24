@@ -17,22 +17,22 @@ const emit = defineEmits<{
 
 <template>
   <BaseModal :open="open" @close="emit('cancel')">
-    <div class="deactivate-modal">
+    <div class="text-center max-w-[380px] mx-auto">
       <!-- Warning Icon -->
-      <div class="warning-icon-wrap">
+      <div class="w-12 h-12 rounded-xl bg-[var(--red-100)] text-[var(--red-600)] flex items-center justify-center mx-auto mb-4">
         <BaseIcon name="alert" :size="22" />
       </div>
 
       <!-- Content -->
-      <h3>Deactivate Account</h3>
-      <p>
+      <h3 class="text-base font-bold text-[var(--ink-900)] mb-2">Deactivate Account</h3>
+      <p class="text-[13.5px] text-[var(--ink-500)] leading-relaxed">
         Are you sure you want to deactivate
-        <strong>{{ user?.name ?? 'this account' }}</strong>?
+        <strong class="text-[var(--ink-900)] font-semibold">{{ user?.name ?? 'this account' }}</strong>?
         They will no longer be able to log in.
       </p>
 
       <!-- Actions -->
-      <div class="deactivate-actions">
+      <div class="flex justify-center gap-2.5 mt-5.5">
         <button
           class="btn btn-secondary"
           @click="emit('cancel')"
@@ -47,7 +47,7 @@ const emit = defineEmits<{
         >
           <svg
             v-if="isLoading"
-            class="spin-icon"
+            class="w-3.5 h-3.5 animate-spin shrink-0"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -65,59 +65,3 @@ const emit = defineEmits<{
     </div>
   </BaseModal>
 </template>
-
-<style scoped>
-.deactivate-modal {
-  text-align: center;
-  max-width: 380px;
-}
-
-.warning-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: var(--red-100);
-  color: var(--red-600);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 16px;
-}
-
-.deactivate-modal h3 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--ink-900);
-  margin-bottom: 8px;
-}
-
-.deactivate-modal p {
-  font-size: 13.5px;
-  color: var(--ink-500);
-  line-height: 1.6;
-}
-.deactivate-modal p strong {
-  color: var(--ink-900);
-  font-weight: 600;
-}
-
-.deactivate-actions {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 22px;
-}
-
-.spin-icon {
-  width: 14px;
-  height: 14px;
-  animation: spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-.opacity-25 { opacity: 0.25; }
-.opacity-75 { opacity: 0.75; }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-</style>

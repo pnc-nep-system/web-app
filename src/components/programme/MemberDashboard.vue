@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onActivated } from 'vue'
+import { onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import KpiCard from '@/components/KpiCard.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -8,13 +8,18 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import DashboardGuidance from '@/components/programme/DashboardGuidance.vue'
 import { useEntriesStore } from '@/stores/entries.store'
-
 import { useProgrammeFormStore } from '@/stores/programmeForm'
+import { useAuthStore } from '@/stores/auth'
+import NewEntryButton from '@/components/programme/NewEntryButton.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 const router = useRouter()
 const route = useRoute()
 const entries = useEntriesStore()
 const formStore = useProgrammeFormStore()
+const auth = useAuthStore()
+
+const canSeeDraft = computed(() => !['nep_admin', 'nep_coordinator'].includes(auth.userRole))
 
 function clearDraft() {
   sessionStorage.removeItem('new_programme_entry_draft')
@@ -22,13 +27,11 @@ function clearDraft() {
 }
 
 onMounted(() => {
-  const tab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
-  entries.switchTab(tab, true)
-})
-
-onActivated(() => {
-  const tab = route.query.tab === 'submitted' ? 'submitted' : 'draft'
-  entries.switchTab(tab, true)
+  const requestedTab = route.query.tab as 'all' | 'draft' | 'submitted' || 'all'
+  const validTabs = ['all', 'draft', 'submitted']
+  const parsedTab = validTabs.includes(requestedTab) ? requestedTab : 'all'
+  const tab = !canSeeDraft.value && parsedTab !== 'submitted' ? 'submitted' : parsedTab
+  entries.switchTab(tab as 'all' | 'draft' | 'submitted')
 })
 </script>
 
@@ -41,25 +44,29 @@ onActivated(() => {
   </div>
 
   <!-- Tabs -->
-  <div class="flex items-center justify-between mb-3">
-    <div>
-      <h3 class="text-lg font-semibold text-gray-900">Your programme entries</h3>
-      <span class="text-sm text-gray-500 block mt-0.5">Organisational account — visible to your organisation and NEP
-        staff</span>
-    </div>
+  <PageHeader
+    title="Your programme entries"
+    subtitle="Organisational account — visible to your organisation and NEP staff"
+    mb="mb-3"
+  >
     <div class="flex gap-1 bg-gray-100 p-1 rounded-lg">
-      <button
+      <button v-if="canSeeDraft"
+        :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'all' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
+        @click="entries.switchTab('all')">
+        All
+      </button>
+      <button v-if="canSeeDraft"
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'draft' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
-        @click="entries.switchTab('draft', true)">
+        @click="entries.switchTab('draft')">
         Draft
       </button>
       <button
         :class="['px-4 py-2 text-sm font-medium rounded-md transition-colors', entries.activeTab === 'submitted' ? 'bg-white text-teal-800 shadow-sm' : 'text-gray-500 hover:text-gray-700']"
-        @click="entries.switchTab('submitted', true)">
+        @click="entries.switchTab('submitted')">
         Submitted
       </button>
     </div>
-  </div>
+  </PageHeader>
 
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -96,84 +103,135 @@ onActivated(() => {
     <div v-else-if="entries.currentItems.length === 0" class="py-12">
       <EmptyState
         icon="file"
-        :title="entries.activeTab === 'draft' ? 'No draft entries' : 'No submitted entries'"
-        :message="entries.activeTab === 'draft' ? 'You haven\'t created any draft programme entries yet.' : 'No programme entries have been submitted yet.'"
+        :title="entries.activeTab === 'all' ? 'No entries' : (entries.activeTab === 'draft' ? 'No draft entries' : 'No submitted entries')"
+        :message="entries.activeTab === 'all' ? 'You haven\'t created any programme entries yet.' : (entries.activeTab === 'draft' ? 'You haven\'t created any draft programme entries yet.' : 'No programme entries have been submitted yet.')"
       >
         <template #action>
-          <RouterLink to="/entries/new"
-            @click="clearDraft"
-            class="inline-flex items-center gap-1.5 bg-teal-800 hover:bg-teal-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            style="color: white !important;">
-            <span class="text-white" style="color: white !important;">+ New programme entry</span>
-          </RouterLink>
+          <NewEntryButton />
         </template>
       </EmptyState>
     </div>
 
     <!-- Entries list -->
-    <div v-else class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-gray-100 text-xs font-medium text-gray-400 uppercase tracking-wider">
-            <th class="text-left px-5 py-3">Programme</th>
-            <th class="text-left px-5 py-3">Status</th>
-            <th class="text-left px-5 py-3">Coverage</th>
-            <th class="text-left px-5 py-3">Primary activities</th>
-            <th class="text-left px-5 py-3">Last updated</th>
-            <th class="text-left px-5 py-3">Action</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          <tr v-for="(entry, index) in entries.entriesWithStatus" :key="entry.id ?? index"
-            class="hover:bg-gray-50 transition-colors cursor-pointer"
-            @click="router.push(`/entries/new?id=${entry.id}`)">
-            <td class="px-5 py-3.5">
-              <div class="text-sm font-medium text-gray-800">{{ entry.name || 'Untitled' }}</div>
-              <div class="text-xs text-gray-400 mt-0.5">
-                {{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}
-                <span v-if="entry.budgetBand"> · {{ entry.budgetBand }}</span>
-              </div>
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-1.5">
-                <StatusBadge v-if="entry.status === 'Verified'" label="Verified" variant="success" />
-                <StatusBadge v-else :label="entry.unverifiedLabel" variant="warning" />
-              </div>
-            </td>
-            <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell">
-              <template v-if="entry.provinces && entry.provinces.length">
-                {{ entry.provincesDisplay }}
-                <span v-if="entry.hasMoreProvinces" class="text-gray-400"> +{{ entry.moreProvincesCount }}</span>
-              </template>
-              <span v-else class="text-gray-300">—</span>
-            </td>
-            <td class="px-5 py-3.5 hidden md:table-cell">
-              <div class="flex flex-wrap gap-1">
-                <BaseBadge v-for="code in entry.primaryCodes" :key="code" tone="teal">{{ code }}</BaseBadge>
-                <span v-if="!entry.primaryCodes.length" class="text-xs text-gray-300">—</span>
-              </div>
-            </td>
-            <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">
-              {{ entry.relativeLastUpdated }}
-            </td>
-            <td class="px-5 py-3.5">
-              <div class="flex items-center gap-1.5" @click.stop>
-                <button v-if="entry.status === 'Unverified'"
-                  class="px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors whitespace-nowrap">
-                  Still current
-                </button>
-                <button
-                  class="px-2.5 py-1 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 transition-colors whitespace-nowrap"
-                  @click="router.push(`/entries/new?id=${entry.id}`)">
-                  Open →
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <template v-else>
+      <!-- Desktop Table View (visible on sm and up) -->
+      <div class="hidden sm:block overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-100 text-xs font-medium text-gray-400 uppercase tracking-wider">
+              <th class="text-left px-5 py-3">Programme</th>
+              <th class="text-left px-5 py-3">Status</th>
+              <th class="text-left px-5 py-3 hidden sm:table-cell">Coverage</th>
+              <th class="text-left px-5 py-3 hidden md:table-cell">Primary activities</th>
+              <th class="text-left px-5 py-3 hidden sm:table-cell">Last updated</th>
+              <th class="text-left px-5 py-3">Action</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <tr v-for="(entry, index) in entries.entriesWithStatus" :key="entry.id ?? index"
+              class="hover:bg-gray-50 transition-colors cursor-pointer">
+              <td class="px-5 py-3.5">
+                <div class="text-sm font-medium text-gray-800">{{ entry.name || 'Untitled' }}</div>
+                <div class="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-1.5">
+                  <span :class="entry.isDraft ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50'" class="px-1.5 py-0.5 rounded text-[10px] font-medium">
+                    {{ entry.isDraft ? 'Draft' : 'Submitted' }}
+                  </span>
+                  <span>{{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}</span>
+                  <span v-if="entry.budgetBand"> · {{ entry.budgetBand }}</span>
+                </div>
+              </td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-1.5">
+                  <StatusBadge v-if="entry.status === 'Verified'" label="Verified" variant="success" />
+                  <StatusBadge v-else :label="entry.unverifiedLabel" variant="warning" />
+                </div>
+              </td>
+              <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell">
+                <template v-if="entry.provinces && entry.provinces.length">
+                  {{ entry.provincesDisplay }}
+                  <span v-if="entry.hasMoreProvinces" class="text-gray-400"> +{{ entry.moreProvincesCount }}</span>
+                </template>
+                <span v-else class="text-gray-300">—</span>
+              </td>
+              <td class="px-5 py-3.5 hidden md:table-cell">
+                <div class="flex flex-wrap gap-1">
+                  <BaseBadge v-for="code in (entry.primaryCodes || [])" :key="code" tone="teal">{{ code }}</BaseBadge>
+                  <span v-if="!entry.primaryCodes?.length" class="text-xs text-gray-300">—</span>
+                </div>
+              </td>
+              <td class="px-5 py-3.5 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">
+                {{ entry.relativeLastUpdated }}
+              </td>
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-1.5" @click.stop>
+                  <button v-if="entry.status === 'Unverified'"
+                    class="px-2.5 py-1 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors whitespace-nowrap">
+                    Still current
+                  </button>
+                  <button
+                    class="px-2.5 py-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 transition-colors whitespace-nowrap"
+                    @click="router.push(`/entries/new?id=${entry.id}`)">
+                    Edit
+                  </button>
+                  <button
+                    class="px-2.5 py-1 text-xs font-medium rounded-md border transition-colors whitespace-nowrap"
+                    :class="entry.isDraft ? 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed' : 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100'"
+                    :disabled="entry.isDraft"
+                    @click="router.push(`/entries/${entry.id}`)">
+                    Open →
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-      <!-- Pagination -->
+      <!-- Mobile Card View (visible on screens < sm) -->
+      <div class="sm:hidden divide-y divide-gray-100">
+        <div v-for="(entry, index) in entries.entriesWithStatus" :key="entry.id ?? index"
+          class="p-4 hover:bg-gray-50/50 transition-colors cursor-pointer space-y-3"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <h4 class="text-sm font-bold text-gray-800 truncate">{{ entry.name || 'Untitled' }}</h4>
+              <p class="text-xs text-gray-400 mt-1 flex flex-wrap items-center gap-1.5">
+                <span :class="entry.isDraft ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50'" class="px-1.5 py-0.5 rounded text-[10px] font-medium">
+                  {{ entry.isDraft ? 'Draft' : 'Submitted' }}
+                </span>
+                <span>{{ entry.startYear }}–{{ entry.endYear || 'ongoing' }}</span>
+                <span v-if="entry.budgetBand"> · {{ entry.budgetBand }}</span>
+              </p>
+            </div>
+            <StatusBadge v-if="entry.status === 'Verified'" label="Verified" variant="success" />
+            <StatusBadge v-else :label="entry.unverifiedLabel" variant="warning" />
+          </div>
+
+          <div class="flex items-center justify-between gap-4 text-xs text-gray-400">
+            <div>Updated {{ entry.relativeLastUpdated }}</div>
+            <div class="flex items-center gap-1.5" @click.stop>
+              <button v-if="entry.status === 'Unverified'"
+                class="px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors whitespace-nowrap cursor-pointer">
+                Still current
+              </button>
+              <button
+                class="px-2.5 py-1 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 transition-colors whitespace-nowrap cursor-pointer"
+                @click="router.push(`/entries/new?id=${entry.id}`)">
+                Edit
+              </button>
+              <button
+                class="px-2.5 py-1 text-xs font-semibold rounded-md border transition-colors whitespace-nowrap cursor-pointer"
+                :class="entry.isDraft ? 'text-gray-400 bg-gray-50 border-gray-200 cursor-not-allowed' : 'text-gray-600 bg-gray-50 border-gray-200 hover:bg-gray-100'"
+                :disabled="entry.isDraft"
+                @click="router.push(`/entries/${entry.id}`)">
+                Open →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination (visible on both) -->
       <div v-if="entries.currentPagination.lastPage > 1"
         class="flex items-center justify-between px-5 py-3 border-t border-gray-100">
         <span class="text-xs text-gray-500">
@@ -194,7 +252,7 @@ onActivated(() => {
           </button>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 
   <DashboardGuidance />

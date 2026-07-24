@@ -12,7 +12,6 @@ const password = ref('')
 const emailError = ref('')
 const passwordError = ref('')
 const showPassword = ref(false)
-const failedAttempts = ref(0)
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -49,15 +48,14 @@ async function submit() {
   const success = await authStore.login(email.value, password.value)
 
   if (success) {
-    failedAttempts.value = 0
     if (authStore.userRole === 'nep_admin') {
-      router.push('/admin/users')
+      await router.push({ name: 'admin-dashboard' })
+    } else if (authStore.userRole === 'nep_coordinator') {
+      await router.push({ name: 'manager-dashboard' })
     } else {
-      router.push('/dashboard')
+      await router.push({ name: 'dashboard' })
     }
   } else {
-    failedAttempts.value++
-
     // Clear password input immediately for security
     password.value = ''
 
@@ -73,7 +71,16 @@ async function submit() {
 </script>
 
 <template>
-  <div class="w-full lg:w-[650px] bg-white flex flex-col justify-center p-8 lg:p-14 flex-shrink-0">
+  <div class="w-full md:w-[600px] lg:w-[650px] bg-white flex flex-col justify-center p-6 sm:p-10 lg:p-14 flex-shrink-0 min-h-screen md:min-h-fit lg:min-h-screen md:rounded-2xl lg:rounded-none md:shadow-2xl lg:shadow-none mx-auto lg:mx-0 md:my-auto lg:my-0">
+    <!-- Show logo only on small screens since left panel is hidden -->
+    <div class="lg:hidden mb-8 flex flex-col items-start gap-4">
+      <img src="@/assets/images/logoes/NEP-logoo.webp" alt="NEP Logo" class="w-16" />
+      <div>
+        <h1 class="text-xl font-bold text-gray-900 leading-tight">NEP Cambodia</h1>
+        <p class="text-xs text-gray-500 mt-1">Programme Coordination Layer</p>
+      </div>
+    </div>
+
     <h2 class="text-xl font-semibold mb-2">Organisation sign in</h2>
     <p class="text-sm text-gray-500 mb-6.5">
       Accounts are organisational, not individual — staff turnover never costs you access.
@@ -113,7 +120,7 @@ async function submit() {
         </div>
       </BaseFormField>
 
-      <div v-if="failedAttempts >= 3" class="text-sm text-right">
+      <div class="text-sm text-right">
         <router-link to="/forgot-password" class="text-teal-700 font-semibold hover:underline"
           >Forgot your password?</router-link
         >
@@ -131,7 +138,7 @@ async function submit() {
       <!-- Developer Quick Login Panel -->
       <div class="mt-6 border-t border-slate-100 pt-6">
         <p class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Developer Quick Sign In</p>
-        <div class="grid grid-cols-3 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
             type="button"
             @click="quickLogin('admin@example.com', 'password')"
