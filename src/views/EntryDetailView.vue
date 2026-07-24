@@ -59,7 +59,7 @@ const { entry, loading, marking, status, activityRows, relatedEntries, markVerif
         </div>
 
         <div class="lg:col-span-5 space-y-6">
-          <EntryGeographicCoverage :provinces="entry.provinces" :other-countries="entry.otherCountries" />
+          <EntryGeographicCoverage :locations="entry.locations" :other-countries="entry.otherCountries" />
           <EntryKeywords :keywords="entry.keywords" />
           <EntryCoordinationNote
             :has-overlaps="relatedEntries.length > 0"

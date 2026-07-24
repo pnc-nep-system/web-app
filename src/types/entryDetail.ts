@@ -28,7 +28,7 @@ export interface EntryDetail {
   method: string
   verifiedDate: string
   isUnverified: boolean
-  provinces: string[]
+  locations: { label: string; provinceName: string }[]
   activities: DetailActivity[]
   governmentAgreements: DetailGovernmentAgreement[]
   keywords: string[]

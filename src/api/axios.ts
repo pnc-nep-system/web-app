@@ -15,6 +15,17 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
 
+  // Let browser set Content-Type automatically for FormData (includes boundary)
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type']
+    console.log('[axios] FormData detected, Content-Type deleted')
+    console.log('[axios] headers:', JSON.stringify(config.headers))
+    console.log('[axios] FormData entries:')
+    for (const [k, v] of (config.data as FormData).entries()) {
+      console.log(' ', k, v)
+    }
+  }
+
   // Attach XSRF token from cookie if present (Laravel CSRF)
   const xsrf = document.cookie
     .split('; ')
