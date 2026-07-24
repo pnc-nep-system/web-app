@@ -139,7 +139,7 @@ onMounted(async () => {
 function applySubmission(data: Submission) {
   submission.value = data
   currentStatus.value = data.status
-  assigneeId.value = data.assign_to_staff_user_id
+  assigneeId.value = data.assign_to_staff_user_id ?? null
   if (data.section_profile) form.value.sectionA = data.section_profile
   if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
   if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes

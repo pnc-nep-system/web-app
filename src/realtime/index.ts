@@ -45,6 +45,7 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
           title: `New programme: ${payload.programme_name}`,
           message: payload.message,
           programme_entry_id: payload.programme_entry_id,
+          advisory_note_id: null,
           read_at: null,
           created_at: new Date().toISOString(),
         })
