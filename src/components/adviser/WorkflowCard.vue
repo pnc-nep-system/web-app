@@ -8,11 +8,13 @@ const props = defineProps<{
   assigneeId: number | null
   coordinators: Array<{ id: number; name: string; email?: string }>
   deliveredAt?: string | null
+  finalNoteFileUrl?: string | null
 }>()
 
 const emit = defineEmits<{
   'update:assigneeId': [value: number | null]
   upload: []
+  'open-file': []
 }>()
 
 const assigneeName = computed(() => {
@@ -83,6 +85,17 @@ function onSelectChange(e: Event) {
       <p class="text-[13px] text-gray-900 font-semibold mb-1">
         Delivered on <span class="font-normal text-gray-600">{{ formatDate(deliveredAt) }}</span>
       </p>
+      <a
+        v-if="finalNoteFileUrl"
+        href="#"
+        @click.prevent="emit('open-file')"
+        class="inline-flex items-center gap-1.5 mt-2 text-[12px] font-semibold text-[#0F5A4D] hover:underline underline-offset-2"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+        Final note: {{ finalNoteFileUrl.split('/').pop() }}
+      </a>
     </div>
 
     <!-- Pre-delivery Editing State -->

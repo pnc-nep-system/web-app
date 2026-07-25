@@ -88,6 +88,13 @@ const router = createRouter({
       meta: { requiresAuth: true, roles: ["nep_coordinator", "nep_admin"] },
     },
     {
+      path: "/adviser/entry/:entryId",
+      name: "adviser-entry-detail",
+      component: () => import("@/views/adviser/AdvisoryNoteView.vue"),
+      meta: { requiresAuth: true },
+      props: true,
+    },
+    {
       path: "/adviser/:id",
       name: "adviser-detail",
       component: () => import("@/views/adviser/AdviserDetailView.vue"),

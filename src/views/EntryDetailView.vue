@@ -20,7 +20,7 @@ const router = useRouter()
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
-const { entry, loading, marking, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth }
+const { entry, loading, marking, analysing, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth }
   = useEntryDetail(toRef(props, 'id'))
 function handleBack() {
   if (auth.isAdmin || (auth as any).userRole === 'nep_coordinator') {
@@ -68,8 +68,11 @@ function handleBack() {
           <EntryGeographicCoverage :locations="entry.locations" :other-countries="entry.otherCountries" />
           <EntryKeywords :keywords="entry.keywords" />
           <EntryCoordinationNote
+            v-if="auth.isCoordinatorOrAdmin || auth.userRole === 'member_org'"
             :has-overlaps="relatedEntries.length > 0"
             :overlap-count="relatedEntries.length"
+            :analysing="analysing"
+            :is-member="auth.userRole === 'member_org'"
             @analyse="analyseInAdviser"
           />
         </div>

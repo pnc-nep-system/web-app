@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import { BUDGET_BANDS } from '@/constants/programme'
 import { useProgrammeIdentityStore } from '@/stores/programmeIdentity'
+import { useAiAutofillStore } from '@/stores/aiAutofill'
+import { useAuthStore } from '@/stores/auth'
 import type { ProgrammeIdentity } from '@/types/programme'
 
 const props = defineProps<{
@@ -17,6 +19,33 @@ const emit = defineEmits<{
 }>()
 
 const store = useProgrammeIdentityStore()
+const autofill = useAiAutofillStore()
+const authStore = useAuthStore()
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+async function onFileUpload(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+
+  if (file.name.endsWith('.doc')) {
+    autofill.error = 'Old .doc format is not supported. Please save the file as .docx and try again.'
+    return
+  }
+
+  autofill.uploadedFileName = file.name
+
+  if (file.name.endsWith('.txt')) {
+    autofill.text = (autofill.text ? autofill.text + '\n\n' : '') + (await file.text())
+    autofill.pendingFile = null
+  } else if (file.name.endsWith('.docx')) {
+    const mammoth = await import('mammoth')
+    const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })
+    autofill.text = (autofill.text ? autofill.text + '\n\n' : '') + result.value
+    autofill.pendingFile = null
+  } else if (file.name.endsWith('.pdf')) {
+    autofill.pendingFile = file
+  }
+}
 
 // Watch props.modelValue to sync changes down to store (e.g. when loading from API)
 watch(
@@ -116,6 +145,95 @@ function preventNegativeKey(e: KeyboardEvent) {
 
 <template>
   <div class="space-y-4">
+
+    <!-- AI-assisted completion panel (admin & coordinator only) -->
+    <div v-if="authStore.isCoordinatorOrAdmin" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div class="flex items-center gap-2 mb-1">
+        <svg class="w-5 h-5 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <span class="text-sm font-bold text-gray-800">AI-assisted completion</span>
+      </div>
+      <p class="text-xs text-gray-500 mb-4 leading-relaxed">
+        Provide one or more inputs — the AI will pre-fill activities, geography, agreements and keywords across all sections. You can review and adjust each section afterwards.
+      </p>
+
+      <div class="space-y-3">
+        <!-- Text input -->
+        <div>
+          <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Programme description</label>
+          <textarea
+            v-model="autofill.text"
+            rows="3"
+            placeholder="e.g. We provide scholarships and mentoring to help girls stay enrolled through lower secondary school in rural Kampong Cham..."
+            class="w-full px-3.5 py-2.5 text-xs border border-gray-200 rounded-lg resize-y focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 text-gray-700 placeholder-gray-400"
+          />
+        </div>
+
+        <!-- URL input -->
+        <div>
+          <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Website URL</label>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="autofill.url"
+              type="url"
+              placeholder="https://example-ngo.org/programmes/girls-education"
+              class="flex-1 px-3.5 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-600 text-gray-700"
+            />
+            <button
+              type="button"
+              @click="autofill.fetchUrl"
+              :disabled="autofill.isFetchingUrl || !autofill.url.trim()"
+              class="px-3.5 py-2 text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-200 transition disabled:opacity-50 cursor-pointer shrink-0"
+            >
+              {{ autofill.isFetchingUrl ? 'Fetching...' : 'Fetch' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- File upload -->
+        <div>
+          <label class="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Upload document</label>
+          <input ref="fileInputRef" type="file" accept=".pdf,.docx,.txt" class="hidden" @change="onFileUpload" />
+          <div
+            @click="fileInputRef?.click()"
+            class="flex items-center gap-3 px-3.5 py-2.5 border border-dashed border-slate-200 hover:border-teal-400 bg-slate-50/50 hover:bg-teal-50/20 rounded-lg cursor-pointer transition-all"
+          >
+            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <span class="text-xs text-slate-500">
+              <span v-if="autofill.uploadedFileName" class="font-bold text-teal-800">📄 {{ autofill.uploadedFileName }}</span>
+              <span v-else>Click to upload (.pdf, .docx, .txt)</span>
+            </span>
+            <span v-if="autofill.uploadedFileName" class="ml-auto text-[10px] text-slate-400 hover:text-red-500 cursor-pointer" @click.stop="autofill.uploadedFileName = ''; autofill.pendingFile = null">✕ Remove</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div v-if="autofill.error" class="mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+        {{ autofill.error }}
+      </div>
+
+      <!-- Success -->
+      <div v-if="autofill.success" class="mt-3 px-3 py-2 bg-teal-50 border border-teal-200 rounded-lg text-xs text-teal-800 font-semibold">
+        ✓ AI autofill applied — activities, geography, agreements and keywords have been pre-filled. Continue through each section to review.
+      </div>
+
+      <button
+        type="button"
+        @click="autofill.run"
+        :disabled="autofill.isRunning || autofill.isFetchingUrl"
+        class="mt-4 px-4 py-2 text-xs font-bold text-white bg-teal-800 rounded-lg hover:bg-teal-900 transition-colors cursor-pointer shadow-xs disabled:opacity-60 flex items-center gap-2"
+      >
+        <svg v-if="autofill.isRunning" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        {{ autofill.isRunning ? 'Running AI autofill…' : 'Run AI autofill for all sections' }}
+      </button>
+    </div>
 
     <!-- Identity fields card -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

@@ -68,6 +68,18 @@ export const adviserApi = {
     },
 
     /**
+     * Save advisory note sections A, B, C, D.
+     */
+    updateSections(id: number, payload: {
+        section_profile?: string
+        section_gaps?: string
+        section_coordinators_notes?: string
+        recommendations?: { organisation_name: string | null; type: string; relational: string; programme_entry_id: number | null }[]
+    }) {
+        return api.patch<{ data: Submission }>(`/adviser/submissions/${id}`, payload)
+    },
+
+    /**
      * Mark a submission's status as advice_delivered.
      */
     markDelivered(id: number) {
@@ -110,5 +122,24 @@ export const adviserApi = {
             analysis_scope: analysisScope,
             programme_profile: programmeProfile,
         })
+    },
+
+    /**
+     * Get the advisory note linked to a programme entry.
+     * Returns 404 if no advisory note exists for the entry.
+     */
+    getByProgrammeEntry(programmeEntryId: number) {
+        return api.get<{ data: Submission }>(`/adviser/programme-entries/${programmeEntryId}/advisory-note`)
+    },
+
+    /**
+     * Request a short-lived download token for the uploaded final note file.
+     * Then open: /api/adviser/submissions/{id}/file?token=xxx
+     */
+    async openFinalNoteFile(id: number) {
+        const res = await api.post<{ token: string }>(`/adviser/submissions/${id}/file-token`)
+        const token = res.data.token
+        const baseUrl = api.defaults.baseURL?.replace(/\/$/, '') ?? ''
+        window.open(`${baseUrl}/adviser/submissions/${id}/file?token=${token}`, '_blank')
     },
 }

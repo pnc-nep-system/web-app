@@ -59,13 +59,13 @@ const emit = defineEmits<{
           <BaseIcon name="search" size="22" />
         </div>
         <h3 class="text-sm font-bold text-slate-800">No Overlap Recommendations Found Yet</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-4">
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-2 mb-4">
           Click below to compare this programme against the map database by location & activity taxonomy to find similar registered programmes.
         </p>
         <button
           @click="emit('findOverlaps')"
           :disabled="fetching"
-          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#0F5A4D] hover:bg-[#0c483d] rounded-lg transition shadow-sm cursor-pointer disabled:opacity-50"
+          class="inline-flex items-center mt-2 gap-2 px-4 py-2 text-xs font-bold text-white bg-[#0F5A4D] hover:bg-[#0c483d] rounded-lg transition shadow-sm cursor-pointer disabled:opacity-50"
         >
           <BaseIcon v-if="fetching" name="refresh" size="14" class="animate-spin" />
           <BaseIcon v-else name="search" size="14" />

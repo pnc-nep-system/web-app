@@ -5,6 +5,8 @@ import BaseCard from '@/components/common/BaseCard.vue'
 defineProps<{
   hasOverlaps: boolean
   overlapCount: number
+  analysing?: boolean
+  isMember?: boolean
 }>()
 
 defineEmits<{
@@ -25,7 +27,10 @@ defineEmits<{
     
     <div class="relative z-10">
       <p class="text-[13px] text-slate-600 leading-relaxed font-medium">
-        <template v-if="hasOverlaps">
+        <template v-if="isMember">
+          View the coordination advice and recommendations issued by the NEP coordinator for this programme.
+        </template>
+        <template v-else-if="hasOverlaps">
           <span class="text-indigo-700 font-bold">{{ overlapCount }} other {{ overlapCount === 1 ? 'entry shares' : 'entries share' }}</span>
           both province and activity category. Run this entry through the Adviser to generate a full coordination analysis.
         </template>
@@ -34,8 +39,21 @@ defineEmits<{
       </p>
       
       <div class="mt-4 flex">
-        <BaseButton variant="primary" size="sm" class="shadow-sm hover:shadow-md transition-shadow" @click="$emit('analyse')">
-          Analyse in the Adviser
+        <BaseButton
+          variant="primary"
+          size="sm"
+          class="shadow-sm hover:shadow-md transition-shadow"
+          :disabled="analysing"
+          @click="$emit('analyse')"
+        >
+          <span v-if="analysing" class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            Loading…
+          </span>
+          <span v-else>{{ isMember ? 'View coordination advice' : 'Analyse in the Adviser' }}</span>
         </BaseButton>
       </div>
     </div>

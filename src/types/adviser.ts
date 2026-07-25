@@ -17,10 +17,21 @@ export interface Submission {
     section_gaps: string | null
     section_coordinators_notes: string | null
     final_note_file: string | null
+    final_note_file_url: string | null
     submitted_at: string
     delivered_at: string | null
     created_at: string
     updated_at: string
+    recommendations?: AdvisoryRecommendation[]
+}
+
+export interface AdvisoryRecommendation {
+    id: number
+    advisory_note_id: number
+    programme_entry_id: number | null
+    organisation_name: string | null
+    type: string
+    relational: string
 }
 
 export interface PaginationLink {

@@ -17,8 +17,8 @@ const router = useRouter()
 const route = useRoute()
 const adviserStore = useAdviserStore()
 
-// ── Mode: 'adviser' = text input, 'entity' = select from programme entries ───
-const mode = computed(() => (route.query.mode === 'entity' ? 'entity' : 'adviser'))
+// ── Mode: 'entity' = select from programme entries (default), 'adviser' = external file upload ───
+const mode = computed(() => (route.query.mode === 'adviser' ? 'adviser' : 'entity'))
 
 // ── Form state ────────────────────────────────────────────────────────────────
 const submittingParty = ref('')
@@ -222,7 +222,7 @@ function cancel() {
 }
 
 function switchMode(newMode: 'adviser' | 'entity') {
-  router.push({ query: { mode: newMode } })
+  router.push({ query: newMode === 'entity' ? {} : { mode: 'adviser' } })
 }
 </script>
 
@@ -244,6 +244,19 @@ function switchMode(newMode: 'adviser' | 'entity') {
       <div class="bg-slate-100/90 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/70 shadow-2xs">
         <button
           type="button"
+          @click="switchMode('entity')"
+          class="flex-1 py-2.5 px-4 rounded-lg text-xs font-bold transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+          :class="mode === 'entity'
+            ? 'bg-white text-[#0F5A4D] shadow-xs border border-slate-200/60 scale-[1.01]'
+            : 'text-slate-600 hover:text-slate-900'"
+        >
+          <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0" :class="mode === 'entity' ? 'bg-[#0F5A4D]/10 text-[#0F5A4D]' : 'text-slate-400'">
+            <BaseIcon name="check" size="13" />
+          </div>
+          <span>Member in the System</span>
+        </button>
+        <button
+          type="button"
           @click="switchMode('adviser')"
           class="flex-1 py-2.5 px-4 rounded-lg text-xs font-bold transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
           :class="mode === 'adviser'
@@ -253,27 +266,14 @@ function switchMode(newMode: 'adviser' | 'entity') {
           <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0" :class="mode === 'adviser' ? 'bg-[#0F5A4D]/10 text-[#0F5A4D]' : 'text-slate-400'">
             <BaseIcon name="bolt" size="13" />
           </div>
-          <span>Advice on Not-Existing Programmes</span>
-        </button>
-        <button
-          type="button"
-          @click="switchMode('entity')"
-          class="flex-1 py-2.5 px-4 rounded-lg text-xs font-bold transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
-          :class="mode === 'entity'
-            ? 'bg-white text-[#0F5A4D] shadow-xs border border-slate-200/60 scale-[1.01]'
-            : 'text-slate-600 hover:text-slate-900'"
-        >
-          <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0" :class="mode === 'entity' ? 'bg-[#0F5A4D]/10 text-[#0F5A4D]' : 'text-slate-400'">
-            <BaseIcon name="plus" size="13" />
-          </div>
-          <span>Advice on Existing Programmes</span>
+          <span>Not in the System</span>
         </button>
       </div>
 
       <!-- Submitting party (text input for Adviser mode) -->
       <div v-if="mode === 'adviser'">
         <label class="block text-[15px] font-bold text-gray-900 mb-2">Submitting Party</label>
-        <p class="text-xs text-gray-500 mb-2">Name of the organisation or individual submitting the document.</p>
+        <p class="text-xs text-gray-500 mb-2">Name of the organisation or individual. They are not registered in the system — a document upload is required.</p>
         <input
           v-model="submittingParty"
           type="text"
@@ -291,10 +291,10 @@ function switchMode(newMode: 'adviser' | 'entity') {
       <!-- Select Existing Programme Entry (Inline Combobox & Selected Entry Card) -->
       <div v-else class="space-y-2">
         <label class="block text-[15px] font-bold text-gray-900">
-          Select Existing Programme Entry
+          Select Programme Entry
         </label>
         <p class="text-xs text-gray-500 mb-2">
-          Search and choose a programme entry that is already registered in the system map.
+          This member has already submitted their programme in the system. Select it below — no file upload needed.
         </p>
 
         <!-- If ALREADY Selected: Show Selected Entry Card -->
@@ -380,7 +380,8 @@ function switchMode(newMode: 'adviser' | 'entity') {
       <div>
         <div class="flex items-center justify-between mb-1.5">
           <label class="block text-[15px] font-bold text-gray-900">Document</label>
-          <span v-if="mode === 'entity'" class="text-xs text-gray-400 font-medium">(Optional for existing programmes)</span>
+          <span v-if="mode === 'entity'" class="text-xs text-emerald-600 font-medium">Optional — programme data already in system</span>
+          <span v-else class="text-xs text-red-500 font-medium">Required — party not in system</span>
         </div>
         <FormFileUpload
           :model-value="selectedFile"

@@ -6,6 +6,7 @@ defineProps<{
   submittingParty?: string
   analysisScope?: string
   analysisScopeDetail?: string
+  exportingPdf?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -67,10 +68,11 @@ const emit = defineEmits<{
       <div class="pt-2 border-t border-slate-100 space-y-2">
         <button
           @click="emit('exportPdf')"
-          class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0F5A4D] hover:bg-[#0c483d] text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+          :disabled="exportingPdf"
+          class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0F5A4D] hover:bg-[#0c483d] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
         >
           <BaseIcon name="download" size="14" />
-          Export Report (PDF)
+          {{ exportingPdf ? 'Generating…' : 'Export Report (PDF)' }}
         </button>
       </div>
     </div>
