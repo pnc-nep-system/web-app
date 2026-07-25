@@ -95,27 +95,28 @@ async function handleSavePolicy(payload: { title: string; authority: string; ver
 <template>
   <AppShell>
     <template #header>
-      <HeaderBreadcrumb title="Policy Library">
-        <button v-if="isAdmin" @click="openAddModal" class="btn btn-secondary shadow-sm shrink-0">
-          <Icon name="plus" :size="15" /> Add document
-        </button>
-      </HeaderBreadcrumb>
+      <HeaderBreadcrumb title="Policy Library" />
     </template>
 
-    <!-- Page heading -->
-    <div class="mb-6">
-      <h1 class="text-[22px] font-bold text-[var(--ink-900)] tracking-[-0.02em] m-0">Policy document library <Badge tone="indigo" class="align-middle">Phase 7 — future</Badge></h1>
-      <p class="text-[13px] text-[var(--ink-400)] mt-1">Curated MoEYS and government policy documents that will power the Policy Alignment Module (C3), built after C1 and C2 are stable.</p>
-    </div>
-
-    <!-- Info Banner -->
-    <div class="border rounded-xl shadow-sm p-5 mb-6 bg-[var(--teal-50)] border-[var(--teal-100)]">
-      <h2 class="text-[13px] font-bold text-[var(--ink-900)] mb-1.5">Why this screen exists now</h2>
-      <p class="text-[13px] text-[var(--ink-600)] leading-relaxed">
-        The system architecture is designed to accommodate C3 from the start. This library is populated and manageable
-        today so the data model — title, issuing authority, date, version, active status — is validated early, even though
-        alignment analysis itself ships later.
-      </p>
+    <!-- Page heading + CTA -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 mt-2">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+          Policy document library
+          <Badge tone="indigo" class="align-middle">Phase 7 — future</Badge>
+        </h1>
+        <p class="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
+          Curated MoEYS and government policy documents that will power the Policy Alignment Module (C3), built after C1 and C2 are stable.
+        </p>
+      </div>
+      <button
+        v-if="isAdmin"
+        @click="openAddModal"
+        class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] !text-white text-xs font-bold rounded-xl hover:bg-[#0c483d] transition-all shadow-2xs cursor-pointer self-start sm:self-auto"
+      >
+        <Icon name="plus" :size="15" />
+        Add document
+      </button>
     </div>
 
     <!-- Data Table / Loader / Empty States -->

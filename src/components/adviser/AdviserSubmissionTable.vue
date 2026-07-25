@@ -17,8 +17,8 @@ function statusLabel(status: SubmissionStatus): string {
 }
 
 function statusClass(status: SubmissionStatus): string {
-  if (status === 'advice_delivered') return 'bg-[#DCFCE7] text-[#15803D]'
-  return 'bg-[#FFEDD5] text-[#C2410C]'
+  if (status === 'advice_delivered') return 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+  return 'bg-amber-50 text-amber-700 border border-amber-200'
 }
 
 function coordinatorLabel(sub: Submission): string {
@@ -44,7 +44,7 @@ function timeAgo(dateStr: string): string {
 </script>
 
 <template>
-  <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+  <div class="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full table-fixed text-left border-collapse min-w-[860px]">
         <colgroup>
@@ -58,18 +58,18 @@ function timeAgo(dateStr: string): string {
         </colgroup>
 
         <thead>
-          <tr class="bg-gray-50 border-b border-gray-200">
-            <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Submitting party</th>
-            <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Document</th>
-            <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Analysis scope</th>
-            <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Status</th>
-            <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Assigned to</th>
-            <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-gray-400 text-left whitespace-nowrap">Submitted</th>
-            <th class="px-4 py-3"></th>
+          <tr class="bg-slate-50/80 border-b border-slate-200">
+            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Submitting party</th>
+            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Document</th>
+            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Analysis scope</th>
+            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Status</th>
+            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Assigned to</th>
+            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Submitted</th>
+            <th class="px-4 py-3.5"></th>
           </tr>
         </thead>
 
-        <tbody class="divide-y divide-gray-100">
+        <tbody class="divide-y divide-slate-100">
           <tr
             v-for="sub in submissions"
             :key="sub.id"
@@ -78,7 +78,7 @@ function timeAgo(dateStr: string): string {
           >
             <!-- Submitting party -->
             <td class="px-4 h-12 align-middle">
-              <span class="text-[13px] font-semibold text-gray-900 truncate block leading-none" :title="sub.submitting_party">
+              <span class="text-sm font-bold text-slate-900 truncate block leading-none" :title="sub.submitting_party">
                 {{ sub.submitting_party }}
               </span>
             </td>
@@ -86,27 +86,27 @@ function timeAgo(dateStr: string): string {
             <!-- Document -->
             <td class="px-4 h-12 align-middle">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="w-6 h-6 rounded bg-gray-100 flex items-center justify-center shrink-0 border border-gray-200">
-                  <BaseIcon name="file" size="12" class="text-gray-400" />
+                <span class="w-6 h-6 rounded bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                  <BaseIcon name="file" size="12" class="text-slate-500" />
                 </span>
-                <span class="text-[13px] text-gray-600 truncate leading-none" :title="sub.document_name">{{ sub.document_name }}</span>
+                <span class="text-xs font-medium text-slate-700 truncate leading-none" :title="sub.document_name">{{ sub.document_name }}</span>
               </div>
             </td>
 
             <!-- Analysis scope -->
             <td class="px-4 h-12 align-middle">
-              <span class="text-[13px] text-gray-700 truncate block leading-none" :title="formatScope(sub)">{{ formatScope(sub) }}</span>
+              <span class="text-xs font-medium text-slate-700 truncate block leading-none" :title="formatScope(sub)">{{ formatScope(sub) }}</span>
             </td>
 
             <!-- Status badge -->
             <td class="px-4 h-12 align-middle">
               <span
-                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap"
+                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap shadow-2xs"
                 :class="statusClass(sub.status)"
               >
                 <span
                   class="w-1.5 h-1.5 rounded-full shrink-0"
-                  :class="sub.status === 'advice_delivered' ? 'bg-[#15803D]' : 'bg-[#C2410C]'"
+                  :class="sub.status === 'advice_delivered' ? 'bg-emerald-500' : 'bg-amber-500'"
                 ></span>
                 {{ statusLabel(sub.status) }}
               </span>
@@ -115,8 +115,8 @@ function timeAgo(dateStr: string): string {
             <!-- Assigned to -->
             <td class="px-4 h-12 align-middle">
               <span
-                class="text-[13px] truncate block leading-none"
-                :class="coordinatorLabel(sub) === 'Unassigned' ? 'text-gray-400 italic' : 'text-gray-700'"
+                class="text-xs font-medium truncate block leading-none"
+                :class="coordinatorLabel(sub) === 'Unassigned' ? 'text-slate-400 italic' : 'text-slate-700'"
                 :title="coordinatorLabel(sub)"
               >
                 {{ coordinatorLabel(sub) }}
@@ -124,18 +124,18 @@ function timeAgo(dateStr: string): string {
             </td>
 
             <!-- Submitted time -->
-            <td class="px-4 h-12 align-middle text-[13px] text-gray-400 whitespace-nowrap leading-none">
+            <td class="px-4 h-12 align-middle text-xs font-medium text-slate-400 whitespace-nowrap leading-none">
               {{ timeAgo(sub.submitted_at) }}
             </td>
 
             <!-- Action -->
             <td class="px-4 pr-5 h-12 align-middle text-right">
               <span
-                class="inline-flex items-center gap-1 text-[13px] font-semibold transition-colors whitespace-nowrap"
-                :class="sub.status === 'advice_delivered' ? 'text-[#15803D] group-hover:text-[#0f5a4d]' : 'text-gray-400 group-hover:text-[#0F5A4D]'"
+                class="inline-flex items-center gap-1 text-xs font-bold transition-colors whitespace-nowrap"
+                :class="sub.status === 'advice_delivered' ? 'text-emerald-700 group-hover:text-[#0F5A4D]' : 'text-slate-400 group-hover:text-[#0F5A4D]'"
               >
                 {{ sub.status === 'advice_delivered' ? 'View' : 'Open' }}
-                <BaseIcon name="arrowLeft" size="14" class="rotate-180 transition-transform group-hover:translate-x-0.5 shrink-0" />
+                <BaseIcon name="arrowLeft" size="13" class="rotate-180 transition-transform group-hover:translate-x-0.5 shrink-0" />
               </span>
             </td>
           </tr>

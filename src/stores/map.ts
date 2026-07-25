@@ -50,34 +50,115 @@ export const useMapStore = defineStore('map', () => {
 
   /**
    * Converts the UI-facing MapViewFilters into API-facing MapFilters.
-   * Most numeric-ID fields are left null because the UI filters use
-   * display strings; only the keyword and education-level fields are
-   * mapped.
+   * Resolves numeric IDs for province, district, commune, and category
+   * using geography/taxonomy stores and fallback inspection of loaded map entries.
+   * Only active non-empty filters are included.
    *
-   * @returns Filter object suitable for the CSV / PDF export endpoints.
+   * @returns Clean filter object suitable for the CSV / PDF export endpoints.
    */
   function toApiFilters(): MapFilters {
     const f = filters.value
+
+    let provId: number | null = null
+    if (f.province) {
+      provId = provinceIdByName.value[f.province] || null
+      if (!provId) {
+        const found = geographyStore.value.provinces.find(
+          (p: any) => p.province_name === f.province || p.name === f.province || p.label === f.province
+        )
+        if (found) provId = found.id
+      }
+      if (!provId) {
+        for (const e of mapEntries.value) {
+          for (const l of e.locations || []) {
+            if (l.province?.province_name === f.province || l.province_name === f.province) {
+              provId = l.province?.id || l.province_id
+              if (provId) break
+            }
+          }
+          if (provId) break
+        }
+      }
+    }
+
+    let distId: number | null = null
+    if (f.district) {
+      for (const list of Object.values(geographyStore.value.districtsCache)) {
+        const match = list.find((d: any) => d.name === f.district)
+        if (match) { distId = match.id; break }
+      }
+      if (!distId) {
+        for (const e of mapEntries.value) {
+          for (const l of e.locations || []) {
+            if (l.district?.name === f.district || l.district_name === f.district) {
+              distId = l.district?.id || l.district_id
+              if (distId) break
+            }
+          }
+          if (distId) break
+        }
+      }
+    }
+
     let communeId: number | null = null
     if (f.commune) {
       for (const list of Object.values(geographyStore.value.communesCache)) {
-        const match = list.find(c => c.name === f.commune)
+        const match = list.find((c: any) => c.name === f.commune)
         if (match) { communeId = match.id; break }
       }
+      if (!communeId) {
+        for (const e of mapEntries.value) {
+          for (const l of e.locations || []) {
+            if (l.commune?.name === f.commune || l.commune_name === f.commune) {
+              communeId = l.commune?.id || l.commune_id
+              if (communeId) break
+            }
+          }
+          if (communeId) break
+        }
+      }
     }
-    return {
-      category_id: null,
-      subcategory_id: null,
-      item_id: null,
-      education_level_id: f.level ? Number(f.level) : null,
-      inclusion_group: f.inclusion || null,
-      inclusion_type: null,
-      province_id: null,
-      district_id: null,
-      commune_id: communeId,
-      keyword: f.keyword || null,
-      organisation_name: null,
+
+    let catId: number | null = null
+    if (f.category) {
+      const catMatch = taxonomyStore.value.categories.find(
+        (c: any) => c.code === f.category || String(c.id) === f.category || c.category_name === f.category || c.name === f.category
+      )
+      if (catMatch) catId = catMatch.id
+      if (!catId) {
+        for (const e of mapEntries.value) {
+          for (const a of e.activities || []) {
+            const code = a.activity_item?.code || a.code || ''
+            if (code.startsWith(f.category)) {
+              catId = a.activity_item?.subcategory?.category_id || a.category_id
+              if (catId) break
+            }
+          }
+          if (catId) break
+        }
+      }
     }
+
+    const params: MapFilters = {}
+
+    // When filters are active, pass exact filtered IDs to guarantee 100% export precision
+    if (hasActiveFilters.value) {
+      const activeIds = filtered.value.map((e: any) => e.id).filter(Boolean)
+      if (activeIds.length > 0) {
+        params.entry_ids = activeIds.join(',')
+      }
+    }
+
+    if (catId) params.category_id = catId
+    if (f.level) params.education_level_id = Number(f.level)
+    if (f.inclusion) params.inclusion_group = f.inclusion
+    if (provId) params.province_id = provId
+    if (distId) params.district_id = distId
+    if (communeId) params.commune_id = communeId
+    if (f.keyword) params.keyword = f.keyword
+    if (f.counterpart) params.agreement_counterpart_type = f.counterpart
+
+    return params
   }
 
   /**

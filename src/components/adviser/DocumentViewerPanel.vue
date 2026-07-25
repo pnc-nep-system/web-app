@@ -13,50 +13,18 @@ defineProps<{
 
 <template>
   <div class="space-y-6">
-    <!-- Document Preview Card -->
-    <div v-if="false" class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-        <h2 class="text-[14px] font-bold text-gray-900">Uploaded document</h2>
-      </div>
-      <div class="p-5">
-        <!-- Document info -->
-        <div class="flex items-start gap-4 mb-5">
-          <div class="w-12 h-14 bg-gray-100 rounded-lg flex items-center justify-center shrink-0 border border-gray-200">
-            <BaseIcon name="file" size="24" class="text-gray-500" />
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="text-[14px] font-semibold text-gray-900 truncate">{{ documentName }}</p>
-            <p class="text-[12px] text-gray-500 mt-0.5">PDF • {{ documentSize }}</p>
-          </div>
+    <!-- Reasoning Card -->
+    <div class="bg-gradient-to-br from-slate-50 to-white border border-slate-200/90 rounded-xl shadow-2xs p-5 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-24 h-24 bg-[#0F5A4D]/5 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
+      <div class="flex items-center gap-2 mb-2.5">
+        <div class="w-6 h-6 rounded-md bg-[#0F5A4D]/10 text-[#0F5A4D] flex items-center justify-center shrink-0">
+          <BaseIcon name="sparkles" size="14" />
         </div>
-
-        <!-- Download link -->
-        <a 
-          href="#" 
-          class="flex items-center gap-2.5 px-4 py-2.5 bg-[#0F5A4D] text-white rounded-lg text-[13px] font-semibold hover:bg-[#0c4a3f] transition shadow-sm w-full justify-center mb-3"
-        >
-          <BaseIcon name="download" size="16" />
-          Download document
-        </a>
-
-        <!-- In-browser viewer link -->
-        <a 
-          href="#" 
-          class="flex items-center gap-2.5 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-[13px] font-semibold hover:bg-gray-50 transition shadow-sm w-full justify-center"
-        >
-          <BaseIcon name="eye" size="16" />
-          View in browser
-        </a>
+        <h2 class="text-[13.5px] font-bold text-slate-900">Reasoning for AI recommendations</h2>
       </div>
-    </div>
-
-
-<!-- Reasoning Card -->
-    <div class="bg-gray-50/80 border border-gray-200 rounded-xl shadow-sm p-5">
-      <h2 class="text-[13px] font-bold text-gray-900 mb-2">Reasoning for AI recommendations</h2>
-      <p class="text-[12px] text-gray-600 leading-relaxed">
-        Recommendations are grounded only in structured map data — activity tags, 
-        geographies and funding models. The exact phrasing has been formulated based on 
+      <p class="text-[12.5px] text-slate-600 leading-relaxed font-normal">
+        Recommendations are grounded strictly in structured system map data — activity taxonomy tags, 
+        geographic locations, and targeted inclusion groups. The exact phrasing has been formulated based on 
         NEP coordination historical notes.
       </p>
     </div>

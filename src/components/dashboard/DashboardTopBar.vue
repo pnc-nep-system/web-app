@@ -13,9 +13,7 @@
         />
       </div>
       <!-- Bell icon -->
-      <button class="icon-btn">
-        <BaseIcon name="bell" :size="16" />
-      </button>
+    
     </div>
   </HeaderBreadcrumb>
 </template>

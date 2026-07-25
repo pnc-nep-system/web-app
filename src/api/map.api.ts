@@ -16,6 +16,7 @@ export async function getMapEntries() {
  * uses numeric IDs matching the backend's expected query parameters.
  */
 export interface MapFilters {
+  entry_ids?: string | null
   category_id?: number | null
   subcategory_id?: number | null
   item_id?: number | null
@@ -27,6 +28,7 @@ export interface MapFilters {
   commune_id?: number | null
   keyword?: string | null
   organisation_name?: string | null
+  agreement_counterpart_type?: string | null
 }
 
 /**

@@ -101,4 +101,14 @@ export const adviserApi = {
             payload
         )
     },
+
+    /**
+     * Query map entries for overlaps based on programme profile & analysis scope.
+     */
+    queryOverlap(programmeProfile: object, analysisScope: string = 'full map') {
+        return api.post<{ data: any[] }>('/adviser/map/overlap-query', {
+            analysis_scope: analysisScope,
+            programme_profile: programmeProfile,
+        })
+    },
 }

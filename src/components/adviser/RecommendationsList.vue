@@ -10,11 +10,13 @@ interface Recommendation {
 
 defineProps<{
   items: Recommendation[]
+  fetching?: boolean
 }>()
 
 const emit = defineEmits<{
   add: []
   remove: [index: number]
+  findOverlaps: []
   'update:org': [index: number, value: string]
   'update:type': [index: number, value: string]
   'update:text': [index: number, value: string]
@@ -23,41 +25,113 @@ const emit = defineEmits<{
 
 <template>
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-      <h2 class="text-[14px] font-bold text-gray-900">B · Coordination recommendations</h2>
-      <button @click="$emit('add')" class="text-[13px] text-gray-500 hover:text-gray-900 font-semibold">+ Add</button>
+    <!-- Header -->
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+      <div class="flex items-center gap-2.5">
+        <h2 class="text-[14.5px] font-bold text-slate-900 tracking-tight">B · Coordination recommendations</h2>
+        <span v-if="items.length > 0" class="px-2 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-800 rounded-full">
+          {{ items.length }} {{ items.length === 1 ? 'match' : 'matches' }}
+        </span>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <button
+          @click="emit('findOverlaps')"
+          :disabled="fetching"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0F5A4D] bg-[#0F5A4D]/10 hover:bg-[#0F5A4D]/20 rounded-lg transition disabled:opacity-50 cursor-pointer shadow-2xs"
+        >
+          <BaseIcon v-if="fetching" name="refresh" size="13" class="animate-spin" />
+          <BaseIcon v-else name="search" size="13" />
+          {{ fetching ? 'Matching map entries…' : 'Query Overlaps on Map' }}
+        </button>
+        <button
+          @click="$emit('add')"
+          class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition cursor-pointer shadow-2xs"
+        >
+          + Add Manual
+        </button>
+      </div>
     </div>
     
     <div class="p-6 space-y-4">
-      <p v-if="items.length === 0" class="text-[13.5px] text-gray-600">No recommendations recorded.</p>
+      <!-- Empty State -->
+      <div v-if="items.length === 0" class="py-8 px-6 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/40">
+        <div class="w-12 h-12 rounded-full bg-[#0F5A4D]/10 text-[#0F5A4D] mx-auto flex items-center justify-center mb-3">
+          <BaseIcon name="search" size="22" />
+        </div>
+        <h3 class="text-sm font-bold text-slate-800">No Overlap Recommendations Found Yet</h3>
+        <p class="text-xs text-slate-500 max-w-md mx-auto mt-1 mb-4">
+          Click below to compare this programme against the map database by location & activity taxonomy to find similar registered programmes.
+        </p>
+        <button
+          @click="emit('findOverlaps')"
+          :disabled="fetching"
+          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#0F5A4D] hover:bg-[#0c483d] rounded-lg transition shadow-sm cursor-pointer disabled:opacity-50"
+        >
+          <BaseIcon v-if="fetching" name="refresh" size="14" class="animate-spin" />
+          <BaseIcon v-else name="search" size="14" />
+          {{ fetching ? 'Searching System Map…' : 'Run Overlap Search Query' }}
+        </button>
+      </div>
       
-      <div v-for="(rec, idx) in items" :key="idx" class="border border-gray-200 rounded-lg p-5 bg-white relative group">
-        <button @click="$emit('remove', idx)" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition">✕</button>
+      <!-- Recommendation Cards -->
+      <div
+        v-for="(rec, idx) in items"
+        :key="idx"
+        class="border border-slate-200 hover:border-emerald-300 rounded-xl p-5 bg-white transition-all shadow-2xs relative group"
+      >
+        <button
+          @click="$emit('remove', idx)"
+          class="absolute top-4 right-4 text-slate-400 hover:text-red-600 p-1 rounded hover:bg-slate-100 transition cursor-pointer"
+          title="Remove recommendation"
+        >
+          ✕
+        </button>
         
-        <div class="flex items-center gap-3 mb-3 pr-8">
+        <!-- Header row -->
+        <div class="flex flex-wrap items-center gap-3 mb-3 pr-8">
           <input 
             type="text" 
             :value="rec.org"
             @input="$emit('update:org', idx, ($event.target as HTMLInputElement).value)"
-            placeholder="Organisation name" 
-            class="font-bold text-[14px] text-gray-900 border border-gray-200 rounded-md px-3 py-1.5 w-[220px] focus:outline-none focus:border-[#0F5A4D]" 
+            placeholder="Partner Organisation name" 
+            class="font-bold text-[14px] text-slate-900 border border-slate-200 rounded-lg px-3 py-1.5 min-w-[220px] focus:outline-none focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D]" 
           />
           <select 
             :value="rec.type"
             @change="$emit('update:type', idx, ($event.target as HTMLSelectElement).value)"
-            class="text-[13px] text-gray-700 border border-gray-200 rounded-md px-3 py-1.5 bg-gray-50 focus:outline-none focus:border-[#0F5A4D]"
+            class="text-xs font-semibold text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:border-[#0F5A4D]"
           >
+            <option>Geographic & Activity overlap</option>
             <option>Geographic overlap</option>
+            <option>Thematic overlap</option>
             <option>Thematic adjacency</option>
           </select>
+
+          <!-- Type Badge -->
+          <span
+            class="px-2.5 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider"
+            :class="{
+              'bg-emerald-100 text-emerald-800': rec.type.includes('Geographic') && rec.type.includes('Activity'),
+              'bg-teal-100 text-teal-800': rec.type.includes('Geographic') && !rec.type.includes('Activity'),
+              'bg-indigo-100 text-indigo-800': rec.type.includes('Thematic'),
+            }"
+          >
+            {{ rec.type }}
+          </span>
         </div>
         
-        <p class="text-[12px] text-gray-500 mb-2 font-medium">Linked entry: {{ rec.linked }}</p>
+        <!-- Linked entry & Description -->
+        <div class="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium">
+          <span class="text-slate-400">Linked Map Entry:</span>
+          <span class="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+            {{ rec.linked }}
+          </span>
+        </div>
         <textarea 
           :value="rec.text"
           @input="$emit('update:text', idx, ($event.target as HTMLTextAreaElement).value)"
-          class="w-full text-[13.5px] text-gray-600 border border-transparent hover:border-gray-200 focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D] rounded-md p-2 -ml-2 transition-all min-h-[60px] resize-y outline-none" 
-          placeholder="Describe the recommendation..."
+          class="w-full text-[13.5px] text-slate-700 border border-slate-200 hover:border-slate-300 focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D] rounded-lg p-3 transition-all min-h-[70px] resize-y outline-none bg-slate-50/50" 
+          placeholder="Describe the coordination recommendation..."
         ></textarea>
       </div>
     </div>

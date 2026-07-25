@@ -37,9 +37,9 @@ function onSelectChange(e: Event) {
 <template>
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
     <h2 class="text-[14px] font-bold text-gray-900 mb-6">Workflow</h2>
-    
+
     <div class="relative pl-8 space-y-7 mt-4 border-l-2 border-gray-100 ml-3">
-      
+
       <div class="relative">
         <div class="absolute -left-[41px] top-0 w-6 h-6 rounded-full bg-[#DCFCE7] border-2 border-white flex items-center justify-center text-[#15803D]">
           <BaseIcon name="check" size="14" />
@@ -61,7 +61,7 @@ function onSelectChange(e: Event) {
         <div v-else class="absolute -left-[39px] top-1 w-5 h-5 rounded-full bg-[#FFF4ED] border-4 border-white flex items-center justify-center">
           <div class="w-2.5 h-2.5 bg-[#C2410C] rounded-full"></div>
         </div>
-        
+
         <template v-if="currentStatus === 'advice_delivered'">
           <h3 class="text-[13px] font-bold text-gray-900 leading-none">Advice delivered</h3>
           <p class="text-[12px] text-gray-500 mt-1">{{ formatDate(deliveredAt) }}</p>
@@ -76,7 +76,7 @@ function onSelectChange(e: Event) {
     </div>
 
     <!-- Divider -->
-    <!-- <hr class="border-gray-100 my-6" /> -->
+    <hr class="border-gray-100 my-6" />
 
     <!-- Post-delivery State -->
     <div v-if="currentStatus === 'advice_delivered'">
@@ -87,7 +87,7 @@ function onSelectChange(e: Event) {
 
     <!-- Pre-delivery Editing State -->
     <div v-else class="space-y-4">
-      <div v-if="false">
+      <div >
         <label class="block text-[12px] font-bold text-gray-700 mb-2">Assign to coordinator</label>
         <div class="relative">
           <select
@@ -110,7 +110,7 @@ function onSelectChange(e: Event) {
         </div>
       </div>
 
-      <div v-if="false">
+      <div>
         <label class="block text-[12px] font-bold text-gray-700 mb-2">Upload final note (Word/PDF)</label>
         <div class="border-2 border-dashed border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-[#0F5A4D]/50 transition cursor-pointer group">
           <BaseIcon name="upload" size="24" class="text-gray-400 group-hover:text-[#0F5A4D] transition mb-2" />

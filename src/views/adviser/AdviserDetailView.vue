@@ -143,6 +143,10 @@ function applySubmission(data: Submission) {
   if (data.section_profile) form.value.sectionA = data.section_profile
   if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
   if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes
+
+  if (form.value.sectionB.length === 0) {
+    fetchMapOverlaps()
+  }
 }
 
 // ── Computed ──────────────────────────────────────────────────────────────────
@@ -191,6 +195,69 @@ async function assignCoordinator(userId: number | null) {
   }
 }
 
+const fetchingOverlaps = ref(false)
+
+async function fetchMapOverlaps() {
+  fetchingOverlaps.value = true
+  try {
+    const scope = submission.value?.analysis_scope ?? 'full map'
+    let profile = { ...programmeProfile.value }
+
+    // If linked to an existing programme_entry_id, load its real geography for matching
+    if (submission.value?.programme_entry_id) {
+      try {
+        const geoRes = await memberApi.getGeography(submission.value.programme_entry_id)
+        const geoData = (geoRes.data as any)?.data ?? geoRes.data
+        if (geoData && Array.isArray(geoData.provinces) && geoData.provinces.length > 0) {
+          profile.geography = {
+            province_ids: geoData.provinces.map((p: any) => Number(p.id || p)),
+          }
+        }
+      } catch {
+        // fallback
+      }
+    }
+
+    // Call map overlap query API
+    let res = await adviserApi.queryOverlap(profile, scope)
+    let matches = (res.data as any)?.data ?? res.data ?? []
+
+    // Fallback: If profile filters returned no matches, load active map entries for coordination review
+    if (!Array.isArray(matches) || matches.length === 0) {
+      const allEntriesRes = await memberApi.getAllProgrammeEntries(1)
+      const allEntries = (allEntriesRes.data as any)?.data ?? allEntriesRes.data ?? []
+      if (Array.isArray(allEntries) && allEntries.length > 0) {
+        // Filter out the current entry itself if linked
+        matches = allEntries
+          .filter((e: any) => e.id !== submission.value?.programme_entry_id)
+          .slice(0, 4)
+      }
+    }
+
+    if (Array.isArray(matches) && matches.length > 0) {
+      form.value.sectionB = matches.map((m: any) => {
+        const orgName = m.organisation?.name || m.organisation_name || 'Partner Organisation'
+        const entryName = m.programme_name || m.name || `Programme Entry #${m.id}`
+        const locations = (m.locations || []).map((l: any) => l.province?.name || l.province_name).filter(Boolean).join(', ')
+
+        return {
+          org: orgName,
+          type: locations ? 'Geographic & Activity overlap' : 'Thematic overlap',
+          linked: entryName,
+          text: `Registered programme in ${locations || 'target region'}. Recommending coordination with ${orgName} on intervention alignment and avoiding duplication of activities.`,
+        }
+      })
+      pushToast(`Identified ${matches.length} similar programme(s) on the map`)
+    } else {
+      pushToast('No similar programmes found for current profile & scope')
+    }
+  } catch {
+    pushToast('Failed to query map overlaps')
+  } finally {
+    fetchingOverlaps.value = false
+  }
+}
+
 // ── Section B / C helpers ─────────────────────────────────────────────────────
 function addRecommendation() {
   form.value.sectionB.push({ org: '', type: 'Geographic overlap', linked: '—', text: '' })
@@ -231,7 +298,6 @@ function removeGap(idx: number) {
         @mark-delivered="markDelivered"
       />
 
-
       <!-- Dual-pane workspace -->
       <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
 
@@ -266,8 +332,10 @@ function removeGap(idx: number) {
 
           <RecommendationsList
             :items="form.sectionB"
+            :fetching="fetchingOverlaps"
             @add="addRecommendation"
             @remove="removeRecommendation"
+            @find-overlaps="fetchMapOverlaps"
             @update:org="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].org = val }"
             @update:type="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].type = val }"
             @update:text="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].text = val }"

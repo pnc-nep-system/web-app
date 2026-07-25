@@ -7,6 +7,7 @@ const props = defineProps<{
   modelValue: File | null
   error?: string
   compact?: boolean
+  hideLabel?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -56,18 +57,20 @@ function triggerFileInput() {
 
 <template>
   <div>
-    <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Document</label>
+    <label v-if="!hideLabel" class="block text-[14.5px] font-bold text-slate-900 mb-2">Document</label>
 
     <!-- Drop zone -->
     <div
-      class="border rounded-lg flex flex-col items-center justify-center cursor-pointer transition relative"
+      class="border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-200 relative group overflow-hidden"
       :class="[
-        compact ? 'py-5 px-6 gap-1' : 'py-12 px-8 gap-2',
+        compact ? 'py-5 px-6 gap-1' : 'py-10 px-8 gap-2',
         isDragging
-          ? 'border-teal-500 bg-teal-50/50'
+          ? 'border-[#0F5A4D] bg-[#0F5A4D]/10 scale-[1.005]'
           : error
-            ? 'border-red-400 bg-red-50/50'
-            : 'border-[var(--line)] bg-white hover:border-[#125B4D] hover:bg-gray-50/30',
+            ? 'border-red-400 bg-red-50/40'
+            : modelValue
+              ? 'border-[#0F5A4D]/40 bg-[#F4FBFA]'
+              : 'border-slate-200 bg-slate-50/40 hover:border-[#0F5A4D] hover:bg-[#F4FBFA]/60',
       ]"
       @click="triggerFileInput"
       @dragover.prevent="isDragging = true"
@@ -76,18 +79,25 @@ function triggerFileInput() {
     >
       <!-- No file selected -->
       <template v-if="!modelValue">
-        <BaseIcon name="upload" size="26" class="text-gray-400 mb-2" />
-        <p class="text-[15px] text-gray-500 text-center">
-          Drop a PDF or Word document, or
-          <span class="text-[#0E5B4D] font-medium underline underline-offset-[3px] hover:text-[#0C4A3F]">browse files</span>
+        <div class="w-12 h-12 rounded-xl bg-[#0F5A4D]/10 text-[#0F5A4D] flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
+          <BaseIcon name="upload" size="22" />
+        </div>
+        <p class="text-sm font-semibold text-slate-700 text-center">
+          Drop your document here, or
+          <span class="text-[#0F5A4D] font-bold underline underline-offset-4 hover:text-[#0c483d]">browse files</span>
         </p>
-        <p class="text-[14px] text-gray-400 mt-1">Accepts .pdf, .doc, .docx</p>
+        <p class="text-xs text-slate-400 font-medium mt-0.5">Supports PDF, DOC, DOCX</p>
       </template>
 
       <!-- File selected -->
       <template v-else>
-        <BaseIcon name="check" size="28" class="text-[#125B4D] mb-1" />
-        <p class="text-[15px] text-gray-900 font-medium truncate max-w-xs">{{ modelValue.name }}</p>
+        <div class="w-12 h-12 rounded-xl bg-[#0F5A4D] text-white flex items-center justify-center mb-1 shadow-sm">
+          <BaseIcon name="check" size="24" />
+        </div>
+        <div class="text-center min-w-0 max-w-sm">
+          <p class="text-sm text-slate-900 font-bold truncate">{{ modelValue.name }}</p>
+          <p class="text-xs text-[#0F5A4D] font-semibold mt-0.5">Click to replace file</p>
+        </div>
       </template>
     </div>
 
@@ -99,9 +109,6 @@ function triggerFileInput() {
       @change="onFileInputChange"
     />
 
-    <p v-if="error" class="mt-2 text-[13px] text-red-500">{{ error }}</p>
-    <p class="mt-2.5 text-[13px] text-gray-400 tracking-wide">
-      Files are read for their name only in this prototype — content is not actually parsed or uploaded anywhere.
-    </p>
+    <p v-if="error" class="mt-2 text-xs text-red-500 font-medium">{{ error }}</p>
   </div>
 </template>

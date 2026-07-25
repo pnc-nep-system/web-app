@@ -19,45 +19,51 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 py-6 border-b border-gray-100 mb-6">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 py-5 border-b border-slate-200/80 mb-6 bg-white/50 backdrop-blur-xs">
 
     <!-- Left: title + metadata -->
     <div>
       <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Draft advisory note</h1>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Draft advisory note</h1>
         <span
           v-if="status === 'advice_delivered'"
-          class="bg-[#DCFCE7] text-[#15803D] px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide"
-        >Advice delivered</span>
+          class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-2xs"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Advice delivered
+        </span>
         <span
           v-else
-          class="bg-[#FFF4ED] text-[#C2410C] px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wide"
-        >Submitted for review</span>
+          class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-xs font-bold tracking-wide shadow-2xs"
+        >
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          Submitted for review
+        </span>
       </div>
 
-      <p class="mt-2 text-[13px] text-gray-500 flex items-center gap-2">
-        <span>Source: <a href="#" class="text-[#0F5A4D] hover:underline underline-offset-2">{{ documentName }}</a></span>
-        <span class="text-gray-300">•</span>
-        <span>Submitted by <span class="font-medium text-gray-700">{{ submittingParty }}</span></span>
-        <span class="text-gray-300">•</span>
-        <span>Analysed against {{ scopeDisplay }}</span>
-      </p>
+      <div class="mt-2.5 text-xs text-slate-500 flex flex-wrap items-center gap-2 font-medium">
+        <span>Source: <a href="#" class="text-[#0F5A4D] font-semibold hover:underline underline-offset-2">{{ documentName }}</a></span>
+        <span class="text-slate-300">•</span>
+        <span>Submitted by <span class="font-bold text-slate-700">{{ submittingParty }}</span></span>
+        <span class="text-slate-300">•</span>
+        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[11px] font-semibold">Scope: {{ scopeDisplay }}</span>
+      </div>
     </div>
 
     <!-- Right: action buttons -->
-    <div class="flex items-center gap-3 shrink-0 mt-4 md:mt-0">
+    <div class="flex items-center gap-2.5 shrink-0 mt-3 md:mt-0">
       <button
         @click="emit('back')"
-        class="inline-flex items-center gap-1.5 px-4 py-2 border border-gray-200 rounded-lg text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm"
+        class="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-[#0F5A4D] transition shadow-2xs cursor-pointer"
       >
         <BaseIcon name="arrowLeft" size="14" />
-        Back
+        Back to The Adviser
       </button>
 
       <template v-if="status !== 'advice_delivered'">
         <button
           @click="emit('saveDraft')"
-          class="px-4 py-2 border border-gray-200 rounded-lg text-[13px] font-semibold text-gray-700 hover:bg-gray-50 transition shadow-sm"
+          class="px-4 py-2 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50 transition shadow-2xs cursor-pointer"
         >
           Save draft
         </button>
@@ -65,7 +71,7 @@ const emit = defineEmits<{
         <button
           @click="emit('markDelivered')"
           :disabled="delivering"
-          class="px-4 py-2 bg-[#0F5A4D] text-white rounded-lg text-[13px] font-semibold hover:bg-[#0c4a3f] transition shadow-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          class="px-4 py-2 bg-[#0F5A4D] text-white rounded-lg text-xs font-bold hover:bg-[#0c483d] transition shadow-xs flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
         >
           <BaseIcon v-if="delivering" name="refresh" size="14" class="animate-spin" />
           {{ delivering ? 'Saving…' : 'Mark advice delivered →' }}

@@ -29,9 +29,9 @@ const selectedProvince = ref('')
 const selectedCategory = ref('')
 const assignedTo = ref('unassigned')
 
-// ── Modal state ───────────────────────────────────────────────────────────────
-const showEntryModal = ref(false)
-const entrySearch = ref('')
+// ── Modal & Combobox state ───────────────────────────────────────────────────
+const isDropdownOpen = ref(false)
+const entrySearchInput = ref('')
 
 // ── Validation ────────────────────────────────────────────────────────────────
 const errors = ref<Record<string, string>>({})
@@ -47,7 +47,7 @@ const programmeEntries = ref<ProgrammeEntryOption[]>([])
 const loadingEntries = ref(false)
 
 const filteredEntries = computed(() => {
-  const q = entrySearch.value.toLowerCase().trim()
+  const q = entrySearchInput.value.toLowerCase().trim()
   if (!q) return programmeEntries.value
   return programmeEntries.value.filter(
     (e) =>
@@ -56,12 +56,30 @@ const filteredEntries = computed(() => {
   )
 })
 
+const selectedEntryObj = computed(() => {
+  if (!selectedEntryId.value) return null
+  return programmeEntries.value.find(e => e.id === Number(selectedEntryId.value)) || null
+})
+
 const selectedEntryName = computed(() => {
-  if (!selectedEntryId.value) return ''
-  const entry = programmeEntries.value.find(e => e.id === Number(selectedEntryId.value))
-  if (!entry) return ''
+  if (!selectedEntryObj.value) return ''
+  const entry = selectedEntryObj.value
   return entry.organisation_name ? `${entry.name} (${entry.organisation_name})` : entry.name
 })
+
+function selectEntry(entry: ProgrammeEntryOption) {
+  selectedEntryId.value = String(entry.id)
+  submittingParty.value = entry.organisation_name || entry.name
+  isDropdownOpen.value = false
+  entrySearchInput.value = ''
+  errors.value.selectedEntry = ''
+}
+
+function clearSelectedEntry() {
+  selectedEntryId.value = ''
+  entrySearchInput.value = ''
+  isDropdownOpen.value = true
+}
 
 async function loadProgrammeEntries() {
   loadingEntries.value = true
@@ -121,7 +139,11 @@ onMounted(() => {
 // ── File handling ─────────────────────────────────────────────────────────────
 function onFileUpdate(f: File | null) {
   selectedFile.value = f
-  errors.value.document = f ? '' : 'Only PDF or Word documents are accepted.'
+  if (mode.value === 'adviser') {
+    errors.value.document = f ? '' : 'Only PDF or Word documents are accepted.'
+  } else {
+    errors.value.document = ''
+  }
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -129,10 +151,10 @@ function validate(): boolean {
   const e: Record<string, string> = {}
   if (mode.value === 'adviser') {
     if (!submittingParty.value.trim()) e.submittingParty = 'Submitting party is required.'
+    if (!selectedFile.value) e.document = 'A PDF or Word document is required.'
   } else {
-    if (!selectedEntryId.value) e.selectedEntry = 'Please select an entry.'
+    if (!selectedEntryId.value) e.selectedEntry = 'Please select a programme entry.'
   }
-  if (!selectedFile.value) e.document = 'A PDF or Word document is required.'
   if (analysisScope.value === 'geographic' && !selectedProvince.value) e.province = 'Please select a province.'
   if (analysisScope.value === 'thematic' && !selectedCategory.value) e.category = 'Please select a category.'
   errors.value = e
@@ -157,19 +179,23 @@ async function handleSubmit() {
     scopeDetail = (cat as any)?.label ?? cat?.name ?? selectedCategory.value
   }
 
-  // Determine submitting_party based on mode
+  // Determine submitting_party and document_name based on mode
   let partyName: string
+  let docName: string
+
   if (mode.value === 'entity' && selectedEntryId.value) {
     const selectedEntry = programmeEntries.value.find(e => e.id === Number(selectedEntryId.value))
-    partyName = selectedEntry?.name ?? selectedEntryId.value
+    partyName = selectedEntry?.organisation_name || selectedEntry?.name || selectedEntryId.value
+    docName = selectedFile.value ? selectedFile.value.name : (selectedEntry?.name ? `${selectedEntry.name} Record` : 'Existing Programme Record')
   } else {
     partyName = submittingParty.value.trim()
+    docName = selectedFile.value ? selectedFile.value.name : 'Document'
   }
 
   try {
     const payload: any = {
       submitting_party: partyName,
-      document_name: selectedFile.value!.name,
+      document_name: docName,
       analysis_scope: scopeValue,
       analysis_scope_detail: scopeDetail ?? null,
     }
@@ -184,7 +210,7 @@ async function handleSubmit() {
       payload.coordinator_id = Number(assignedTo.value)
     }
 
-    await adviserStore.submitDocument(payload, selectedFile.value!)
+    await adviserStore.submitDocument(payload, selectedFile.value || undefined)
     router.push('/adviser')
   } catch (err: any) {
     submitError.value = err?.response?.data?.message ?? 'Submission failed. Please try again.'
@@ -201,206 +227,205 @@ function switchMode(newMode: 'adviser' | 'entity') {
 </script>
 
 <template>
-  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-    <div class="flex flex-col lg:flex-row gap-6">
-      <!-- Form - left side -->
-      <div class="flex-1 min-w-0 space-y-6">
-        <!-- Submitting party (text input for Adviser mode) -->
-        <div v-if="mode === 'adviser'">
-          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Submitting Party</label>
-          <input
-            v-model="submittingParty"
-            type="text"
-            placeholder="Organisation or individual name"
-            class="w-full border rounded-[8px] px-4 py-3 text-[15px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 transition"
-            :class="errors.submittingParty
-              ? 'border-red-400 focus:ring-red-300'
-              : 'border-gray-200 focus:border-[#125B4D] focus:ring-[#125B4D]'"
-          />
-          <p v-if="errors.submittingParty" class="mt-2 text-[13px] text-red-500">
-            {{ errors.submittingParty }}
-          </p>
+  <div class="bg-white rounded-2xl border border-slate-200/90 shadow-md shadow-slate-200/40 p-8 sm:p-10 relative overflow-hidden">
+    <!-- Top Gradient Accent Line -->
+    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-600 via-[#0F5A4D] to-teal-500"></div>
+
+    <!-- Title & Subtitle inside Card Container -->
+    <div class="mb-7 pb-6 border-b border-slate-100">
+      <h1 class="text-2xl sm:text-[26px] font-bold text-slate-900 tracking-tight">Submit a document for analysis</h1>
+      <p class="mt-1.5 text-xs sm:text-sm text-slate-500 font-medium">
+        The document does not need to be from a member. Submission is recorded for audit purposes only.
+      </p>
+    </div>
+
+    <div class="space-y-7">
+      <!-- Segmented Mode Tabs -->
+      <div class="bg-slate-100/90 p-1.5 rounded-xl flex items-center gap-1.5 border border-slate-200/70 shadow-2xs">
+        <button
+          type="button"
+          @click="switchMode('adviser')"
+          class="flex-1 py-2.5 px-4 rounded-lg text-xs font-bold transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+          :class="mode === 'adviser'
+            ? 'bg-white text-[#0F5A4D] shadow-xs border border-slate-200/60 scale-[1.01]'
+            : 'text-slate-600 hover:text-slate-900'"
+        >
+          <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0" :class="mode === 'adviser' ? 'bg-[#0F5A4D]/10 text-[#0F5A4D]' : 'text-slate-400'">
+            <BaseIcon name="bolt" size="13" />
+          </div>
+          <span>Advice on Not-Existing Programmes</span>
+        </button>
+        <button
+          type="button"
+          @click="switchMode('entity')"
+          class="flex-1 py-2.5 px-4 rounded-lg text-xs font-bold transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer"
+          :class="mode === 'entity'
+            ? 'bg-white text-[#0F5A4D] shadow-xs border border-slate-200/60 scale-[1.01]'
+            : 'text-slate-600 hover:text-slate-900'"
+        >
+          <div class="w-5 h-5 rounded-md flex items-center justify-center shrink-0" :class="mode === 'entity' ? 'bg-[#0F5A4D]/10 text-[#0F5A4D]' : 'text-slate-400'">
+            <BaseIcon name="plus" size="13" />
+          </div>
+          <span>Advice on Existing Programmes</span>
+        </button>
+      </div>
+
+      <!-- Submitting party (text input for Adviser mode) -->
+      <div v-if="mode === 'adviser'">
+        <label class="block text-[15px] font-bold text-gray-900 mb-2">Submitting Party</label>
+        <p class="text-xs text-gray-500 mb-2">Name of the organisation or individual submitting the document.</p>
+        <input
+          v-model="submittingParty"
+          type="text"
+          placeholder="Organisation or individual name"
+          class="w-full border rounded-lg px-4 py-3 text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F5A4D]/20 focus:border-[#0F5A4D] transition"
+          :class="errors.submittingParty
+            ? 'border-red-400 focus:ring-red-300'
+            : 'border-gray-200'"
+        />
+        <p v-if="errors.submittingParty" class="mt-2 text-[13px] text-red-500">
+          {{ errors.submittingParty }}
+        </p>
+      </div>
+
+      <!-- Select Existing Programme Entry (Inline Combobox & Selected Entry Card) -->
+      <div v-else class="space-y-2">
+        <label class="block text-[15px] font-bold text-gray-900">
+          Select Existing Programme Entry
+        </label>
+        <p class="text-xs text-gray-500 mb-2">
+          Search and choose a programme entry that is already registered in the system map.
+        </p>
+
+        <!-- If ALREADY Selected: Show Selected Entry Card -->
+        <div v-if="selectedEntryObj" class="p-4 rounded-xl border border-[#0F5A4D]/30 bg-[#F4FBFA] flex items-center justify-between gap-4 shadow-2xs">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-lg bg-[#0F5A4D] text-white flex items-center justify-center shrink-0">
+              <BaseIcon name="check" size="18" />
+            </div>
+            <div class="min-w-0">
+              <div class="text-[14px] font-bold text-gray-900 truncate">
+                {{ selectedEntryObj.name }}
+              </div>
+              <div class="text-xs text-gray-600 truncate mt-0.5">
+                {{ selectedEntryObj.organisation_name || 'Registered Organisation' }} · Entry #{{ selectedEntryObj.id }}
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            @click="clearSelectedEntry"
+            class="px-3.5 py-1.5 text-xs font-semibold text-[#0F5A4D] bg-white border border-[#0F5A4D]/30 rounded-lg hover:bg-[#0F5A4D]/10 transition cursor-pointer shrink-0"
+          >
+            Change selection
+          </button>
         </div>
 
-        <!-- Select Entry (modal for Adviser Entity mode) -->
-        <div v-else>
-          <label class="block text-[15px] font-bold text-gray-900 mb-2.5">Selecting Entry</label>
-          <div
-            class="w-full border rounded-[8px] px-4 py-3 text-[15px] cursor-pointer flex items-center justify-between transition bg-white"
-            :class="errors.selectedEntry
-              ? 'border-red-400'
-              : 'border-gray-200 hover:border-[#125B4D]'"
-            @click="showEntryModal = true"
-          >
-            <span :class="selectedEntryName ? 'text-gray-900' : 'text-gray-400'">
-              {{ selectedEntryName || '-- Choose a programme entry --' }}
-            </span>
-            <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        <!-- If NOT Selected: Search Input & Inline Dropdown -->
+        <div v-else class="relative">
+          <!-- Click outside overlay -->
+          <div v-if="isDropdownOpen" class="fixed inset-0 z-30" @click="isDropdownOpen = false"></div>
+
+          <div class="relative z-40">
+            <input
+              v-model="entrySearchInput"
+              type="text"
+              placeholder="Type programme name or organisation to search..."
+              @focus="isDropdownOpen = true"
+              class="w-full border rounded-lg px-4 py-3 pl-10 text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0F5A4D]/20 focus:border-[#0F5A4D] transition"
+              :class="errors.selectedEntry ? 'border-red-400' : 'border-gray-200'"
+            />
+            <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
             </svg>
           </div>
-          <p v-if="errors.selectedEntry" class="mt-2 text-[13px] text-red-500">
-            {{ errors.selectedEntry }}
-          </p>
-        </div>
 
-        <!-- Document upload -->
+          <!-- Dropdown list -->
+          <div
+            v-if="isDropdownOpen"
+            class="absolute left-0 right-0 top-full mt-1.5 z-40 bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto divide-y divide-gray-100"
+          >
+            <div v-if="loadingEntries" class="p-4 text-center text-xs text-gray-400">
+              Loading programme entries...
+            </div>
+            <div v-else-if="filteredEntries.length === 0" class="p-4 text-center text-xs text-gray-400">
+              No matching programme entries found.
+            </div>
+            <button
+              v-else
+              v-for="entry in filteredEntries"
+              :key="entry.id"
+              type="button"
+              @click="selectEntry(entry)"
+              class="w-full text-left px-4 py-3 hover:bg-[#F4FBFA] transition flex items-center justify-between gap-3 cursor-pointer group"
+            >
+              <div>
+                <div class="text-[13.5px] font-bold text-gray-800 group-hover:text-[#0F5A4D]">
+                  {{ entry.name }}
+                </div>
+                <div v-if="entry.organisation_name" class="text-xs text-gray-500 mt-0.5">
+                  {{ entry.organisation_name }}
+                </div>
+              </div>
+              <span class="text-[11px] text-gray-400 font-mono">#{{ entry.id }}</span>
+            </button>
+          </div>
+        </div>
+        <p v-if="errors.selectedEntry" class="mt-1 text-[13px] text-red-500">
+          {{ errors.selectedEntry }}
+        </p>
+      </div>
+
+      <!-- Document upload -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="block text-[15px] font-bold text-gray-900">Document</label>
+          <span v-if="mode === 'entity'" class="text-xs text-gray-400 font-medium">(Optional for existing programmes)</span>
+        </div>
         <FormFileUpload
           :model-value="selectedFile"
           :error="errors.document"
+          :hide-label="true"
           @update:model-value="onFileUpdate"
         />
-
-        <!-- Analysis scope + conditional province / category sub-selects -->
-        <FormScopeSelect
-          v-model="analysisScope"
-          v-model:province="selectedProvince"
-          v-model:category="selectedCategory"
-          :provinces="provinces"
-          :categories="categories"
-          :loading-provinces="loadingProvinces"
-          :loading-categories="loadingCategories"
-          :error-province="errors.province"
-          :error-category="errors.category"
-        />
-
-        <!-- Assign to coordinator -->
-        <FormCoordinatorSelect
-          v-model="assignedTo"
-        />
-
-        <!-- Server error -->
-        <p v-if="submitError" class="text-[14px] text-red-600 bg-red-50 border border-red-200 rounded-[8px] px-5 py-4">
-          {{ submitError }}
-        </p>
-
-        <!-- Actions -->
-        <div class="flex items-center justify-end gap-3 pt-6">
-          <BaseButton variant="secondary" @click="cancel">
-            Cancel
-          </BaseButton>
-          <BaseButton variant="primary" @click="handleSubmit" :disabled="adviserStore.submitting">
-            <svg v-if="adviserStore.submitting" class="animate-spin h-4 w-4 shrink-0 mr-1" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-            {{ adviserStore.submitting ? 'Submitting…' : 'Continue →' }}
-          </BaseButton>
-        </div>
       </div>
 
-      <!-- Adviser Tools - right side -->
-      <div class="lg:w-80 shrink-0">
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          <h2 class="text-base font-semibold text-gray-900 mb-1">Adviser Tools</h2>
-          <p class="text-[13px] text-gray-500 mb-5">
-            Access adviser submissions and create new adviser entity records.
-          </p>
-          <div class="flex flex-col mt-4 gap-3 ">
-            <router-link
-              :to="{ query: { mode: 'adviser' } }"
-              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[11px] font-semibold transition-colors shadow-sm"
-              :class="mode === 'adviser'
-                ? 'bg-[#0F5A4D] !text-white hover:bg-[#0C4A3F]'
-                : 'border-2 border-[#0F5A4D] text-[#0F5A4D] hover:bg-[#0F5A4D]/5'"
-            >
-              <BaseIcon name="bolt" size="8" />
-              <span>Advice on not existing programmes</span>
-            </router-link>
-            <router-link
-              :to="{ query: { mode: 'entity' } }"
-              class="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-lg text-[11px] font-semibold transition-colors"
-              :class="mode === 'entity'
-                ? 'bg-[#0F5A4D] !text-white hover:bg-[#0C4A3F]'
-                : 'border-2 border-[#0F5A4D] text-[#0F5A4D] hover:bg-[#0F5A4D]/5'"
-            >
-              <BaseIcon name="plus" size="8" />
-              <span>Advice on existing programmes</span>
-            </router-link>
-          </div>
-        </div>
+      <!-- Analysis scope + conditional province / category sub-selects -->
+      <FormScopeSelect
+        v-model="analysisScope"
+        v-model:province="selectedProvince"
+        v-model:category="selectedCategory"
+        :provinces="provinces"
+        :categories="categories"
+        :loading-provinces="loadingProvinces"
+        :loading-categories="loadingCategories"
+        :error-province="errors.province"
+        :error-category="errors.category"
+      />
+
+      <!-- Assign to coordinator -->
+      <FormCoordinatorSelect
+        v-model="assignedTo"
+      />
+
+      <!-- Server error -->
+      <p v-if="submitError" class="text-[14px] text-red-600 bg-red-50 border border-red-200 rounded-[8px] px-5 py-4">
+        {{ submitError }}
+      </p>
+
+      <!-- Actions -->
+      <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
+        <BaseButton variant="secondary" @click="cancel">
+          Cancel
+        </BaseButton>
+        <BaseButton variant="primary" @click="handleSubmit" :disabled="adviserStore.submitting">
+          <svg v-if="adviserStore.submitting" class="animate-spin h-4 w-4 shrink-0 mr-1" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+          </svg>
+          {{ adviserStore.submitting ? 'Submitting…' : 'Continue →' }}
+        </BaseButton>
       </div>
     </div>
-
-    <!-- ── Modal: Select Programme Entry ────────────────────────────────── -->
-    <Teleport to="body">
-      <div
-        v-if="showEntryModal"
-        class="fixed inset-0 z-50 flex items-center justify-center"
-      >
-        <!-- Backdrop -->
-        <div
-          class="absolute inset-0 bg-black/40 backdrop-blur-sm"
-          @click="showEntryModal = false"
-        ></div>
-
-        <!-- Modal panel -->
-        <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
-          <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-bold text-gray-900">Select Programme Entry</h3>
-            <button
-              type="button"
-              @click="showEntryModal = false"
-              class="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>
-            </button>
-          </div>
-
-          <!-- Search -->
-          <div class="px-6 py-3 border-b border-gray-100">
-            <div class="relative">
-              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="8" stroke-width="2"/>
-                <line x1="21" y1="21" x2="16.65" y2="16.65" stroke-width="2"/>
-              </svg>
-              <input
-                v-model="entrySearch"
-                type="text"
-                placeholder="Search by name or organisation..."
-                class="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-[14px] text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#125B4D] focus:ring-1 focus:ring-[#125B4D] transition"
-              />
-            </div>
-          </div>
-
-          <!-- List -->
-          <div class="flex-1 overflow-y-auto px-6 py-2">
-            <div v-if="loadingEntries" class="py-8 text-center text-gray-400 text-sm">
-              Loading entries...
-            </div>
-            <div v-else-if="filteredEntries.length === 0" class="py-8 text-center text-gray-400 text-sm">
-              No entries found.
-            </div>
-            <div v-else class="divide-y divide-gray-100">
-              <button
-                v-for="entry in filteredEntries"
-                :key="entry.id"
-                type="button"
-                class="w-full text-left px-3 py-3 rounded-lg transition-colors hover:bg-[#F4FBFA]"
-                :class="{ 'bg-[#0F5A4D]/10': String(entry.id) === selectedEntryId }"
-                @click="
-                  selectedEntryId = String(entry.id);
-                  showEntryModal = false;
-                  entrySearch = '';
-                "
-              >
-                <div class="text-[14px] font-semibold text-gray-900">{{ entry.name }}</div>
-                <div v-if="entry.organisation_name" class="text-[12px] text-gray-500 mt-0.5">{{ entry.organisation_name }}</div>
-              </button>
-            </div>
-          </div>
-
-          <!-- Footer -->
-          <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
-            <BaseButton variant="secondary" @click="showEntryModal = false">
-              Cancel
-            </BaseButton>
-          </div>
-        </div>
-      </div>
-    </Teleport>
   </div>
 </template>

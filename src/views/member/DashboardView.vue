@@ -8,9 +8,7 @@ import NewEntryButton from '@/components/programme/NewEntryButton.vue'
 <template>
   <AppShell>
     <template #header>
-      <HeaderBreadcrumb title="Dashboard">
-        <NewEntryButton />
-      </HeaderBreadcrumb>
+      <HeaderBreadcrumb title="Dashboard" />
     </template>
 
     <MemberDashboard />
