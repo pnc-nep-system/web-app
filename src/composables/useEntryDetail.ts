@@ -41,7 +41,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
 
   const relatedEntries = computed(() => {
     if (!entry.value) return []
-    const myProvinces = new Set(entry.value.provinces)
+    const myProvinces = new Set((entry.value as any)?.provinces || [])
     const myCategories = new Set(entry.value.activities.map((a) => a.code.split('.')[0]))
     return entries.items
       .filter((e: any) => e.id !== entry.value!.id)
