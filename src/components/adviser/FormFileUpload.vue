@@ -14,12 +14,16 @@ const emit = defineEmits<{
 }>()
 
 const isDragging = ref(false)
+const sizeError = ref('')
 
 const ALLOWED_TYPES = [
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]
+
+const MAX_SIZE_MB = 50
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024
 
 function isValidFile(f: File) {
   return (
@@ -35,6 +39,12 @@ function setFile(f: File) {
     emit('update:modelValue', null)
     return
   }
+  if (f.size > MAX_SIZE_BYTES) {
+    emit('update:modelValue', null)
+    sizeError.value = `File is too large. Maximum size is ${MAX_SIZE_MB} MB.`
+    return
+  }
+  sizeError.value = ''
   emit('update:modelValue', f)
 }
 
@@ -81,7 +91,7 @@ function triggerFileInput() {
           Drop a PDF or Word document, or
           <span class="text-[#0E5B4D] font-medium underline underline-offset-[3px] hover:text-[#0C4A3F]">browse files</span>
         </p>
-        <p class="text-[14px] text-gray-400 mt-1">Accepts .pdf, .doc, .docx</p>
+        <p class="text-[14px] text-gray-400 mt-1">Accepts .pdf, .doc, .docx — max 50 MB</p>
       </template>
 
       <!-- File selected -->
@@ -99,7 +109,8 @@ function triggerFileInput() {
       @change="onFileInputChange"
     />
 
-    <p v-if="error" class="mt-2 text-[13px] text-red-500">{{ error }}</p>
+    <p v-if="sizeError" class="mt-2 text-[13px] text-red-500">{{ sizeError }}</p>
+    <p v-else-if="error" class="mt-2 text-[13px] text-red-500">{{ error }}</p>
     <p class="mt-2.5 text-[13px] text-gray-400 tracking-wide">
       Files are read for their name only in this prototype — content is not actually parsed or uploaded anywhere.
     </p>

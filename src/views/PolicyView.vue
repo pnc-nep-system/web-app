@@ -96,7 +96,7 @@ async function handleSavePolicy(payload: { title: string; authority: string; ver
   <AppShell>
     <template #header>
       <HeaderBreadcrumb title="Policy Library">
-        <button v-if="isAdmin" @click="openAddModal" class="btn btn-secondary shadow-sm shrink-0">
+        <button v-if="isAdmin" @click="openAddModal" class="btn btn-primary shrink-0">
           <Icon name="plus" :size="15" /> Add document
         </button>
       </HeaderBreadcrumb>
