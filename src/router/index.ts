@@ -30,7 +30,6 @@ const router = createRouter({
       component: () => import("@/views/MapView.vue"),
       meta: {
         requiresAuth: true,
-        roles: ["nep_admin", "nep_coordinator"],
       },
     },
     {

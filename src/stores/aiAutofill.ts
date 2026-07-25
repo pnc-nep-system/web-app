@@ -19,6 +19,7 @@ export const useAiAutofillStore = defineStore('aiAutofill', () => {
   const pendingFile = ref<File | null>(null)
   const uploadedFileName = ref('')
   const isFetchingUrl = ref(false)
+  const inputMode = ref<'text' | 'url' | 'file'>('text')
 
   async function fetchUrl() {
     if (!url.value.trim()) return
@@ -70,7 +71,7 @@ export const useAiAutofillStore = defineStore('aiAutofill', () => {
       }
 
       const res = await memberApi.aiAutofill(payload)
-      const data = res.data
+      const data = res.data as any
 
       // Apply identity — only fill fields that are currently empty
       const identityStore = useProgrammeIdentityStore()
@@ -169,7 +170,7 @@ export const useAiAutofillStore = defineStore('aiAutofill', () => {
 
   return {
     isRunning, error, success,
-    text, url, pendingFile, uploadedFileName, isFetchingUrl,
+    text, url, pendingFile, uploadedFileName, isFetchingUrl, inputMode,
     fetchUrl, run, reset,
   }
 })

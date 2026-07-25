@@ -62,7 +62,7 @@ function handleEdit(doc: PolicyDocument) {
 
 async function handleDelete(id: number) {
   if (!confirm('Are you sure you want to delete this policy document?')) return
-  
+
   try {
     await policyApi.deletePolicy(id)
     toast.success('Policy document deleted')
@@ -98,7 +98,7 @@ async function handleSavePolicy(payload: { title: string; authority: string; ver
       <HeaderBreadcrumb title="Policy Library" />
     </template>
 
-    <!-- Page heading + CTA -->
+    <!-- Page heading + CTA under header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 mt-2">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
@@ -135,9 +135,9 @@ async function handleSavePolicy(payload: { title: string; authority: string; ver
       <EmptyState v-else-if="items.length === 0" title="No matching entries found" description="Try adjusting or clearing your filters." />
 
       <!-- Data Table -->
-      <PolicyTable 
-        v-else 
-        :items="items" 
+      <PolicyTable
+        v-else
+        :items="items"
         :is-admin="isAdmin"
         @view="handleView"
         @edit="handleEdit"

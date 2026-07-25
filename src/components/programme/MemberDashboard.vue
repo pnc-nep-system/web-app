@@ -36,7 +36,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- Page Heading + CTA -->
+  <!-- Page Heading + CTA under header -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 mt-2">
     <div>
       <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>

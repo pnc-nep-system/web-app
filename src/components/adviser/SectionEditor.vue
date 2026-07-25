@@ -59,8 +59,8 @@ const emit = defineEmits<{
         :value="modelValue"
         @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
         :placeholder="placeholder"
-        class="w-full text-[14px] leading-relaxed resize-y min-h-[100px] border-none focus:ring-0 p-0 outline-none"
-        :class="isInternal ? 'text-rose-900 bg-transparent placeholder-rose-300' : 'text-gray-700'"
+        class="w-full text-sm leading-relaxed resize-y min-h-[220px] border-none focus:ring-0 p-0 outline-none font-medium"
+        :class="isInternal ? 'text-rose-900 bg-transparent placeholder-rose-300' : 'text-slate-800'"
       ></textarea>
     </div>
   </div>

@@ -22,6 +22,13 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
 const { entry, loading, marking, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth }
   = useEntryDetail(toRef(props, 'id'))
+function handleBack() {
+  if (auth.isAdmin || (auth as any).userRole === 'nep_coordinator') {
+    router.push({ name: 'map' })
+  } else {
+    router.push({ name: 'dashboard' })
+  }
+}
 </script>
 
 <template>
@@ -36,8 +43,7 @@ const { entry, loading, marking, status, activityRows, relatedEntries, markVerif
 
     <div v-else-if="!entry">
       <EmptyState icon="search" title="Entry not found" message="It may have been removed, or the link is out of date.">
-        <template #action><BaseButton variant="secondary" size="sm" @click="router.push({ name: 'map' })">← Back to
-            map</BaseButton></template>
+        <template #action><BaseButton variant="secondary" size="sm" @click="handleBack">← Back</BaseButton></template>
       </EmptyState>
     </div>
 
@@ -48,7 +54,7 @@ const { entry, loading, marking, status, activityRows, relatedEntries, markVerif
         :marking
         :is-admin="auth.isAdmin"
         @mark-verified="markVerified"
-        @back="router.push({ name: 'map' })"
+        @back="handleBack"
       />
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">

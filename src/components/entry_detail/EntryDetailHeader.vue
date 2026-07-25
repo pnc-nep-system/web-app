@@ -4,6 +4,7 @@ import { formatRelativeTime } from '@/utils/format'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import BaseButton from '@/components/common/BaseButton.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
+import { useAuthStore } from '@/stores/auth'
 
 defineProps<{
   entry: EntryDetail
@@ -16,6 +17,8 @@ defineEmits<{
   'mark-verified': []
   back: []
 }>()
+
+const authStore = useAuthStore()
 </script>
 
 <template>
@@ -35,7 +38,7 @@ defineEmits<{
         <BaseIcon name="check" :size="15" /> {{ marking ? 'Marking…' : 'Mark as verified' }}
       </BaseButton>
       <BaseButton variant="secondary" class="inline-flex items-center gap-1.5" @click="$emit('back')">
-        <BaseIcon name="arrowLeft" :size="15" /> Back to map
+        <BaseIcon name="arrowLeft" :size="15" /> {{ (authStore.isAdmin || authStore.userRole === 'nep_coordinator') ? 'Back to map' : 'Back to Dashboard' }}
       </BaseButton>
     </div>
   </div>

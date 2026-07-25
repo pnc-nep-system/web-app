@@ -8,6 +8,7 @@ import ToastStack from '@/components/common/ToastStack.vue'
 import { useToast } from '@/composables/useToast'
 import { useAdviserStore } from '@/stores/adviser'
 import { adviserApi } from '@/api/adviser.api'
+import { getMapEntries } from '@/api/map.api'
 import { organisationService } from '@/api/organisation.service'
 import type { Submission } from '@/types/adviser'
 
@@ -139,13 +140,24 @@ onMounted(async () => {
 function applySubmission(data: Submission) {
   submission.value = data
   currentStatus.value = data.status
-  assigneeId.value = data.assign_to_staff_user_id
-  if (data.section_profile) form.value.sectionA = data.section_profile
+  assigneeId.value = data.assign_to_staff_user_id ?? null
+
+  form.value.sectionA = data.section_profile || ''
+
   if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
   if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes
 
   if (form.value.sectionB.length === 0) {
     fetchMapOverlaps()
+  }
+}
+
+function handleViewDocument() {
+  const docUrl = submission.value?.document_url || submission.value?.document_path
+  if (docUrl) {
+    window.open(docUrl, '_blank')
+  } else {
+    pushToast(`Document: ${submission.value?.document_name || 'Uploaded File'} (read for prototype review)`)
   }
 }
 
@@ -167,6 +179,11 @@ function saveDraft() {
 }
 
 async function markDelivered() {
+  if (!form.value.sectionA || !form.value.sectionA.trim()) {
+    pushToast('Please complete Section A (Programme profile as interpreted) before marking advice as delivered.')
+    return
+  }
+
   if (delivering.value) return
   delivering.value = true
   try {
@@ -182,6 +199,92 @@ async function markDelivered() {
   } finally {
     delivering.value = false
   }
+}
+
+function exportAdvisoryNotePdf() {
+  const docName = (submission.value?.document_name || 'Advisory_Note').replace(/[^a-zA-Z0-9_-]/g, '_')
+  const title = submission.value?.document_name || 'Advisory Note'
+  const party = submission.value?.submitting_party || 'Member Organisation'
+  const scope = scopeDisplay.value
+
+  let sectionsHtml = ''
+
+  // Section A: Profile as interpreted
+  if (form.value.sectionA && form.value.sectionA.trim()) {
+    sectionsHtml += `
+      <div class="section">
+        <div class="section-title">A · Programme profile as interpreted</div>
+        <div class="content-box">${form.value.sectionA.trim()}</div>
+      </div>
+    `
+  }
+
+  // Section B: Coordination recommendations (only if present)
+  if (form.value.sectionB && form.value.sectionB.length > 0) {
+    const recHtml = form.value.sectionB.map((r, i) => `
+      <div style="border:1px solid #cbd5e1; border-radius:8px; padding:12px; margin-bottom:10px; background:#ffffff;">
+        <strong style="color:#0f172a;">Recommendation ${i + 1}: ${r.org}</strong> <span style="background:#e2e8f0; padding:2px 6px; border-radius:4px; font-size:11px; font-weight:bold;">${r.type}</span><br/>
+        <em style="color:#64748b; font-size:12px;">Linked Entry: ${r.linked}</em>
+        <p style="margin-top:6px; font-size:13px; color:#334155;">${r.text}</p>
+      </div>
+    `).join('')
+
+    sectionsHtml += `
+      <div class="section">
+        <div class="section-title">B · Coordination recommendations</div>
+        ${recHtml}
+      </div>
+    `
+  }
+
+  // Section C: Gaps in the map (only if populated)
+  const validGaps = (form.value.sectionC || []).filter(g => g && g.text && g.text.trim())
+  if (validGaps.length > 0) {
+    const gapHtml = validGaps.map(g => `<p style="margin:4px 0; font-size:13px;">• ${g.text.trim()}</p>`).join('')
+    sectionsHtml += `
+      <div class="section">
+        <div class="section-title">C · Gaps in the map</div>
+        <div class="content-box">${gapHtml}</div>
+      </div>
+    `
+  }
+
+  // Note: Section D (Notes for the coordinator) is internal-only and explicitly excluded from exported advisory reports.
+
+  const fullHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Advisory Note — ${title}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1e293b; padding: 30px; line-height: 1.6; max-width: 800px; margin: 0 auto; }
+    h1 { color: #0F5A4D; font-size: 22px; margin-bottom: 4px; }
+    .meta { color: #64748b; font-size: 13px; margin-bottom: 20px; border-bottom: 2px solid #0F5A4D; padding-bottom: 10px; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 14px; font-weight: bold; color: #0F5A4D; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 10px; }
+    .content-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; white-space: pre-wrap; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Advisory Note</h1>
+  <div class="meta">
+    <strong>Source Document:</strong> ${title} | <strong>Submitted by:</strong> ${party} | <strong>Scope:</strong> ${scope}
+  </div>
+  ${sectionsHtml || '<p style="color:#94a3b8; font-style:italic;">No active report sections recorded.</p>'}
+</body>
+</html>`
+
+  const blob = new Blob([fullHtml], { type: 'application/pdf' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `Advisory_Note_${docName}.pdf`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+
+  pushToast(`Downloaded Advisory Note PDF (Advisory_Note_${docName}.pdf)`)
 }
 
 async function assignCoordinator(userId: number | null) {
@@ -200,45 +303,23 @@ const fetchingOverlaps = ref(false)
 async function fetchMapOverlaps() {
   fetchingOverlaps.value = true
   try {
-    const scope = submission.value?.analysis_scope ?? 'full map'
+    const rawScope = (submission.value?.analysis_scope || 'full map').toLowerCase()
+    const validScope = ['full map', 'geographic subset', 'thematic subset'].find(s => rawScope.includes(s)) ?? 'full map'
     let profile = { ...programmeProfile.value }
 
-    // If linked to an existing programme_entry_id, load its real geography for matching
-    if (submission.value?.programme_entry_id) {
-      try {
-        const geoRes = await memberApi.getGeography(submission.value.programme_entry_id)
-        const geoData = (geoRes.data as any)?.data ?? geoRes.data
-        if (geoData && Array.isArray(geoData.provinces) && geoData.provinces.length > 0) {
-          profile.geography = {
-            province_ids: geoData.provinces.map((p: any) => Number(p.id || p)),
-          }
-        }
-      } catch {
-        // fallback
-      }
-    }
-
-    // Call map overlap query API
-    let res = await adviserApi.queryOverlap(profile, scope)
-    let matches = (res.data as any)?.data ?? res.data ?? []
-
-    // Fallback: If profile filters returned no matches, load active map entries for coordination review
-    if (!Array.isArray(matches) || matches.length === 0) {
-      const allEntriesRes = await memberApi.getAllProgrammeEntries(1)
-      const allEntries = (allEntriesRes.data as any)?.data ?? allEntriesRes.data ?? []
-      if (Array.isArray(allEntries) && allEntries.length > 0) {
-        // Filter out the current entry itself if linked
-        matches = allEntries
-          .filter((e: any) => e.id !== submission.value?.programme_entry_id)
-          .slice(0, 4)
-      }
+    let matches: any[] = []
+    try {
+      let res = await adviserApi.queryOverlap(profile, validScope)
+      matches = (res.data as any)?.data ?? res.data ?? []
+    } catch (err) {
+      console.warn('Overlap query error:', err)
     }
 
     if (Array.isArray(matches) && matches.length > 0) {
       form.value.sectionB = matches.map((m: any) => {
         const orgName = m.organisation?.name || m.organisation_name || 'Partner Organisation'
         const entryName = m.programme_name || m.name || `Programme Entry #${m.id}`
-        const locations = (m.locations || []).map((l: any) => l.province?.name || l.province_name).filter(Boolean).join(', ')
+        const locations = (m.locations || []).map((l: any) => l.province?.name || l.province_name || l.province?.province_name).filter(Boolean).join(', ')
 
         return {
           org: orgName,
@@ -247,12 +328,14 @@ async function fetchMapOverlaps() {
           text: `Registered programme in ${locations || 'target region'}. Recommending coordination with ${orgName} on intervention alignment and avoiding duplication of activities.`,
         }
       })
-      pushToast(`Identified ${matches.length} similar programme(s) on the map`)
+      pushToast(`Identified ${matches.length} overlapping programme(s) on the map`)
     } else {
+      form.value.sectionB = []
       pushToast('No similar programmes found for current profile & scope')
     }
-  } catch {
-    pushToast('Failed to query map overlaps')
+  } catch (err) {
+    console.error('Map overlap query error:', err)
+    form.value.sectionB = []
   } finally {
     fetchingOverlaps.value = false
   }
@@ -296,6 +379,7 @@ function removeGap(idx: number) {
         @back="goBack"
         @save-draft="saveDraft"
         @mark-delivered="markDelivered"
+        @view-document="handleViewDocument"
       />
 
       <!-- Dual-pane workspace -->
@@ -304,11 +388,12 @@ function removeGap(idx: number) {
         <!-- LEFT PANE: Document viewer + Workflow sidebar -->
         <div class="space-y-6">
           <DocumentViewerPanel
-            :document-name="submission?.document_name ?? '—'"
-            document-size=""
-            :submitting-party="submission?.submitting_party ?? '—'"
-            :analysis-scope="submission?.analysis_scope ?? '—'"
-            :submitted-date="submission?.submitted_at ?? ''"
+            :document-name="submission?.document_name"
+            :submitting-party="submission?.submitting_party"
+            :analysis-scope="submission?.analysis_scope"
+            :analysis-scope-detail="submission?.analysis_scope_detail"
+            @export-pdf="exportAdvisoryNotePdf"
+            @exportPdf="exportAdvisoryNotePdf"
           />
           <WorkflowCard
             :current-status="currentStatus"
@@ -326,8 +411,9 @@ function removeGap(idx: number) {
             title="A · Programme profile as interpreted"
             :model-value="form.sectionA"
             @update:model-value="form.sectionA = $event"
-            badge="AI-GENERATED"
-            badge-tone="indigo"
+            badge="MANUAL ENTRY"
+            badge-tone="gray"
+            placeholder="Type or paste the interpreted programme profile here..."
           />
 
           <RecommendationsList

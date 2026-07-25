@@ -15,6 +15,7 @@ const emit = defineEmits<{
   back: []
   saveDraft: []
   markDelivered: []
+  viewDocument: []
 }>()
 </script>
 
@@ -42,7 +43,17 @@ const emit = defineEmits<{
       </div>
 
       <div class="mt-2.5 text-xs text-slate-500 flex flex-wrap items-center gap-2 font-medium">
-        <span>Source: <a href="#" class="text-[#0F5A4D] font-semibold hover:underline underline-offset-2">{{ documentName }}</a></span>
+        <span>Source: 
+          <a
+            href="#"
+            @click.prevent="emit('viewDocument')"
+            class="text-[#0F5A4D] font-bold hover:underline underline-offset-2 inline-flex items-center gap-1 bg-[#0F5A4D]/10 px-2 py-0.5 rounded-md"
+            title="Click to view or download submitted document"
+          >
+            <BaseIcon name="file" size="13" />
+            {{ documentName }}
+          </a>
+        </span>
         <span class="text-slate-300">•</span>
         <span>Submitted by <span class="font-bold text-slate-700">{{ submittingParty }}</span></span>
         <span class="text-slate-300">•</span>
