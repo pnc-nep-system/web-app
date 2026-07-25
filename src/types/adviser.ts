@@ -1,9 +1,16 @@
 export type AnalysisScope = 'full map' | 'geographic subset' | 'thematic subset'
 export type SubmissionStatus = 'pending' | 'submitted_for_review' | 'advice_delivered'
 
+export interface SubmissionProgrammeEntry {
+    id: number
+    activities?: { activity_item_id: number; activityItem?: { id: number; subcategory?: { id: number; category_id: number } } }[]
+    locations?: { province_id: number | null; district_id: number | null; commune_id: number | null }[]
+}
+
 export interface Submission {
     id: number
     programme_entry_id?: number | null
+    programme_entry?: SubmissionProgrammeEntry | null
     coordinator_id: number | null
     coordinator?: { id: number; name: string } | null
     assign_to_staff_user_id?: number | null

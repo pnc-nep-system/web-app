@@ -352,12 +352,35 @@ async function fetchMapOverlaps() {
   try {
     const rawScope = (submission.value?.analysis_scope || 'full map').toLowerCase()
     const validScope = ['full map', 'geographic subset', 'thematic subset'].find(s => rawScope.includes(s)) ?? 'full map'
-    let profile = { ...programmeProfile.value }
+
+    const entry = submission.value?.programme_entry
+    const categoryIds = [...new Set(
+      (entry?.activities ?? []).map((a: any) => a.activityItem?.subcategory?.category_id).filter(Boolean)
+    )]
+    const itemIds = [...new Set(
+      (entry?.activities ?? []).map((a: any) => a.activity_item_id).filter(Boolean)
+    )]
+    const provinceIds = [...new Set(
+      (entry?.locations ?? []).map((l: any) => l.province_id).filter(Boolean)
+    )]
+    const districtIds = [...new Set(
+      (entry?.locations ?? []).map((l: any) => l.district_id).filter(Boolean)
+    )]
+
+    const profile = {
+      activities: { category_ids: categoryIds, item_ids: itemIds, education_level_ids: [] as number[], inclusion_groups: [] as string[] },
+      geography: { province_ids: provinceIds, district_ids: districtIds },
+      audiences: { inclusion_types: [] as string[] },
+    }
 
     let matches: any[] = []
     try {
       let res = await adviserApi.queryOverlap(profile, validScope)
       matches = (res.data as any)?.data ?? res.data ?? []
+      // Exclude the submission's own programme entry from results
+      if (submission.value?.programme_entry_id) {
+        matches = matches.filter((m: any) => m.id !== submission.value!.programme_entry_id)
+      }
     } catch (err) {
       console.warn('Overlap query error:', err)
     }
@@ -370,7 +393,7 @@ async function fetchMapOverlaps() {
 
         return {
           org: orgName,
-          type: locations ? 'Geographic & Activity overlap' : 'Thematic overlap',
+          type: 'Geographic & Activity overlap',
           linked: entryName,
           text: `Registered programme in ${locations || 'target region'}. Recommending coordination with ${orgName} on intervention alignment and avoiding duplication of activities.`,
         }
