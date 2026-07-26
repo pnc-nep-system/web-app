@@ -1,14 +1,20 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useProgrammeFormStore } from '@/stores/programmeForm'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const store = useProgrammeFormStore()
+const authStore = useAuthStore()
 
 function handleClick() {
   sessionStorage.removeItem('new_programme_entry_draft')
   store.resetAll()
-  router.push('/entries/new')
+  if (['nep_admin', 'nep_coordinator'].includes(authStore.userRole || '')) {
+    router.push('/admin/programmes')
+  } else {
+    router.push('/entries/new')
+  }
 }
 </script>
 

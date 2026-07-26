@@ -103,7 +103,7 @@ async function generateAndDraft() {
 
     showDraftModal.value = false
     pushToast('AI programme draft created — redirecting to form')
-    router.push(`/entries/new?id=${newId}`)
+    router.push(`/entries/new?id=${newId}&org_id=${selectedOrgId.value}`)
   } catch (err: any) {
     const msg = err?.response?.data?.message ?? 'Failed to generate programme draft'
     pushToast(msg)

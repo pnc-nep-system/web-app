@@ -471,7 +471,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
 
     try {
       await ensureTaxonomyMaps()
-      const isEditMode = !!section1Data.value.id
+      const isEditMode = !!section1Data.value.id || !!router.currentRoute.value.query.id
       let orgId = getCreateOrgId()
 
       if (!isEditMode && !orgId && isStaff) {
