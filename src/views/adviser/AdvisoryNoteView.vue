@@ -120,7 +120,7 @@ function formatTime(dt: string | null | undefined) {
           <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
               <h2 class="text-[14px] font-bold text-gray-900">A · Programme profile as interpreted</h2>
-              <span class="px-2.5 py-1 text-[11px] font-bold bg-indigo-100 text-indigo-700 rounded-full">AI-generated</span>
+              <span class="px-2.5 py-1 text-[11px] font-bold bg-indigo-100 text-indigo-700 rounded-full">Manual Entry</span>
             </div>
             <div class="px-6 py-5">
               <p v-if="note.section_profile" class="text-[13.5px] text-slate-700 leading-relaxed whitespace-pre-wrap">{{ note.section_profile }}</p>
