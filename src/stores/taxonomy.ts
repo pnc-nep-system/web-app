@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { taxonomyApi, type TaxonomyItemStatus, type TaxonomyNodeType } from '@/api/taxonomy.api'
+import { taxonomyApi } from '@/api/taxonomy.api'
+import type { TaxonomyItemStatus, TaxonomyNodeType } from '@/types/taxonomy'
 import { mockTaxonomies } from '@/constants/taxonomy'
 import type { Category, SubCategory, TaxonomyItem } from '@/types/taxonomy'
 

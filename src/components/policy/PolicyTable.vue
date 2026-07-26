@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import BaseIcon from '@/components/common/BaseIcon.vue'
-import type { PolicyDocument } from '@/api/policy.api'
+import type { PolicyDocument } from '@/types/policy'
 
 defineProps<{
   items: PolicyDocument[]

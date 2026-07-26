@@ -1,9 +1,6 @@
-import api from './axios'
+import api from '../api/axios'
 import type { User, UserListResponse, CreateUserPayload, UpdateUserPayload, AdminUserActionResponse } from '@/types/user'
 import { organisationService } from './organisation.service'
-import type { Organisation } from './organisation.service'
-
-export type OrganisationOption = Pick<Organisation, 'id' | 'name'>
 
 const BASE = '/admin/users'
 

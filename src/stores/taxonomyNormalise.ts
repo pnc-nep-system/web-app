@@ -1,4 +1,4 @@
-import type { TaxonomyItemStatus } from '@/api/taxonomy.api'
+import type { TaxonomyItemStatus } from '@/types/taxonomy'
 import type { TaxonomyAdminCategory, TaxonomyAdminSubcategory, TaxonomyAdminItem, OtherQueueEntry } from './taxonomy'
 
 type RawNode = {

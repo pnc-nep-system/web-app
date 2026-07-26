@@ -1,3 +1,7 @@
+import type { Organisation } from './organisations'
+
+export type OrganisationOption = Pick<Organisation, 'id' | 'name'>
+
 export type UserRole = 'nep_admin' | 'nep_coordinator' | 'member_org'
 
 export type UserStatus = 'active' | 'inactive'

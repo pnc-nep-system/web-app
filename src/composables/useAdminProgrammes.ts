@@ -1,10 +1,10 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { memberApi } from '@/api/member.api'
-import { organisationService } from '@/api/organisation.service'
+import { organisationService } from '@/services/organisation.service'
 import { formatRelativeTime } from '@/utils/date'
 import { extractPrimaryActivityCodes } from '@/utils/activityHelpers'
-import type { Organisation } from '@/api/organisation.service'
+import type { Organisation } from '@/types/organisations'
 import type { EntryRow } from '@/types/adminProgrammes'
 
 export function useAdminProgrammes() {

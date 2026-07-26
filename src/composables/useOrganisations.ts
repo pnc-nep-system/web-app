@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { organisationService } from '@/api/organisation.service'
+import { organisationService } from '@/services/organisation.service'
 import type { Organisation, OrganisationForm } from '@/types/organisations'
 
 export function useOrganisations() {

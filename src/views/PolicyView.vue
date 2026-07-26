@@ -11,7 +11,8 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import PolicyFormModal from '@/components/policy/PolicyFormModal.vue'
 import PolicyDocumentPreviewModal from '@/components/policy/PolicyDocumentPreviewModal.vue'
 import PolicyTable from '@/components/policy/PolicyTable.vue'
-import { policyApi, type PolicyDocument } from '@/api/policy.api'
+import { policyApi } from '@/api/policy.api'
+import type { PolicyDocument } from '@/types/policy'
 
 const auth = useAuthStore()
 const toast = useToast()

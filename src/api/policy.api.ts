@@ -1,26 +1,5 @@
 import api from './axios'
-
-export interface PolicyDocument {
-  id: number
-  title: string
-  authority: string
-  version: string
-  date: string
-  status: 'active' | 'superseded' | 'inactive'
-  file_url?: string | null
-  created_by?: number
-  created_at?: string
-  updated_at?: string
-}
-
-export interface PolicyDocumentPayload {
-  title: string
-  authority: string
-  version: string
-  date: string
-  status?: 'active' | 'superseded' | 'inactive'
-  file?: File | null
-}
+import type { PolicyDocument, PolicyDocumentPayload } from '@/types/policy'
 
 /** Build a FormData object from a payload, including an optional File. */
 function buildFormData(payload: Omit<PolicyDocumentPayload, 'file'>, file?: File | null): FormData {

@@ -1,3 +1,5 @@
+import type { User } from './user'
+
 export type AnalysisScope = 'full map' | 'geographic subset' | 'thematic subset'
 export type SubmissionStatus = 'pending' | 'submitted_for_review' | 'advice_delivered'
 
@@ -46,6 +48,31 @@ export interface PaginationLink {
     label: string
     page: number | null
     active: boolean
+}
+
+export interface SubmissionCreateResponse {
+    message: string
+    data: Submission
+}
+
+export interface SubmissionListParams {
+    analysis_scope?: string
+    status?: string
+    per_page?: number
+    page?: number
+}
+
+export interface SubmissionPayload {
+    submitting_party: string
+    document_name: string
+    analysis_scope: string
+    analysis_scope_detail?: string | null
+    coordinator_id?: number | null
+    programme_entry_id?: number | null
+}
+
+export interface CoordinatorListResponse {
+    data: User[]
 }
 
 export interface PaginatedSubmissions {

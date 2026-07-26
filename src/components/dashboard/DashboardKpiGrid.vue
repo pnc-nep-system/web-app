@@ -39,7 +39,8 @@
 import { ref, onMounted } from 'vue'
 import KpiCard from '@/components/KpiCard.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
-import { dashboardApi, type DashboardStats } from '@/api/dashboard.api'
+import { dashboardApi } from '@/api/dashboard.api'
+import type { DashboardStats } from '@/types/dashboard'
 
 const stats = ref<DashboardStats | null>(null)
 const loading = ref(true)

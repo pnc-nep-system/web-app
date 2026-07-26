@@ -2,7 +2,7 @@
 import { reactive, watch } from 'vue'
 import Icon from '@/components/common/BaseIcon.vue'
 import FormFileUpload from '@/components/adviser/FormFileUpload.vue'
-import type { PolicyDocument } from '@/api/policy.api'
+import type { PolicyDocument } from '@/types/policy'
 
 const props = defineProps<{
   show: boolean

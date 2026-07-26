@@ -2,7 +2,7 @@ import { computed, watch, type Ref } from 'vue'
 import { useProgrammeGeographyStore } from './programmeGeography'
 import { useTaxonomyStore } from './taxonomy'
 import type { MapViewFilters } from '@/types/map'
-import type { MapFilters } from '@/api/map.api'
+import type { MapFilters } from '@/types/map'
 
 export function useMapFilterOptions(mapEntries: Ref<any[]>, filters: Ref<MapViewFilters>, hasActiveFilters: Ref<boolean>, filtered: Ref<any[]>) {
   const geographyStore = computed(() => useProgrammeGeographyStore())

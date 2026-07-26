@@ -1,31 +1,5 @@
 import api from './axios'
-import type { PaginatedSubmissions, Submission } from '@/types/adviser'
-import type { User } from '@/types/user'
-
-export interface SubmissionCreateResponse {
-    message: string
-    data: Submission
-}
-
-export interface SubmissionListParams {
-    analysis_scope?: string
-    status?: string
-    per_page?: number
-    page?: number
-}
-
-export interface SubmissionPayload {
-    submitting_party: string
-    document_name: string
-    analysis_scope: string
-    analysis_scope_detail?: string | null
-    coordinator_id?: number | null
-    programme_entry_id?: number | null
-}
-
-export interface CoordinatorListResponse {
-    data: User[]
-}
+import type { SubmissionListParams, SubmissionPayload, Submission, SubmissionCreateResponse, CoordinatorListResponse, PaginatedSubmissions } from '@/types/adviser'
 
 export const adviserApi = {
     /**

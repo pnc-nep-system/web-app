@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { adviserApi } from '@/api/adviser.api'
-import { userService } from '@/api/user.service'
-import type { SubmissionPayload, SubmissionListParams } from '@/api/adviser.api'
+import { userService } from '@/services/user.service'
+import type { SubmissionPayload, SubmissionListParams } from '@/types/adviser'
 import type { Submission } from '@/types/adviser'
 
 export const useAdviserStore = defineStore('adviser', () => {

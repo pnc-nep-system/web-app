@@ -42,7 +42,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { dashboardApi, type RecentActivityItem } from '@/api/dashboard.api'
+import { dashboardApi } from '@/api/dashboard.api'
+import type { RecentActivityItem } from '@/types/dashboard'
 
 const router = useRouter()
 const items = ref<RecentActivityItem[]>([])

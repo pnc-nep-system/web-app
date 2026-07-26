@@ -12,7 +12,7 @@ import { useToast } from '@/composables/useToast'
 import { useAdviserStore } from '@/stores/adviser'
 import { adviserApi } from '@/api/adviser.api'
 import { getMapEntries } from '@/api/map.api'
-import { organisationService } from '@/api/organisation.service'
+import { organisationService } from '@/services/organisation.service'
 import type { Submission } from '@/types/adviser'
 
 // Adviser-specific sub-components
