@@ -9,6 +9,7 @@ defineProps<{
   submittingParty: string
   scopeDisplay: string
   delivering: boolean
+  isComplete?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -81,8 +82,9 @@ const emit = defineEmits<{
 
         <button
           @click="emit('markDelivered')"
-          :disabled="delivering"
-          class="px-4 py-2 bg-[#0F5A4D] text-white rounded-lg text-xs font-bold hover:bg-[#0c483d] transition shadow-xs flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+          :disabled="delivering || !isComplete"
+          :title="!isComplete ? 'Please complete Sections A, B, and C to enable delivery' : ''"
+          class="px-4 py-2 bg-[#0F5A4D] text-white rounded-lg text-xs font-bold hover:bg-[#0c483d] transition shadow-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <BaseIcon v-if="delivering" name="refresh" size="14" class="animate-spin" />
           {{ delivering ? 'Saving…' : 'Mark advice delivered →' }}

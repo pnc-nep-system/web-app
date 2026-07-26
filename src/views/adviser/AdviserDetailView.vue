@@ -7,6 +7,7 @@ import AppShell from '@/components/AppShell.vue'
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import ToastStack from '@/components/common/ToastStack.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { useToast } from '@/composables/useToast'
 import { useAdviserStore } from '@/stores/adviser'
 import { adviserApi } from '@/api/adviser.api'
@@ -194,6 +195,13 @@ const scopeDisplay = computed(() => {
   const s = submission.value
   if (!s.analysis_scope_detail) return s.analysis_scope ?? 'full map'
   return `${s.analysis_scope}: ${s.analysis_scope_detail}`
+})
+
+const isSectionsComplete = computed(() => {
+  const hasA = Boolean(form.value.sectionA && form.value.sectionA.trim().length > 0)
+  const hasB = Boolean(form.value.sectionB && form.value.sectionB.length > 0)
+  const hasC = Boolean(form.value.sectionC && form.value.sectionC.some(g => g && g.text && g.text.trim().length > 0))
+  return hasA && hasB && hasC
 })
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -429,8 +437,8 @@ function removeGap(idx: number) {
     </template>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-20 flex justify-center text-gray-400">
-      <BaseIcon name="refresh" size="24" class="animate-spin" />
+    <div v-if="loading" class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-16 flex items-center justify-center max-w-[1400px] mx-auto my-6">
+      <LoadingSpinner message="Loading draft advisory note..." />
     </div>
 
     <div v-else class="max-w-[1400px] mx-auto pb-12">
@@ -442,6 +450,7 @@ function removeGap(idx: number) {
         :submitting-party="submission?.submitting_party ?? '—'"
         :scope-display="scopeDisplay"
         :delivering="delivering"
+        :is-complete="isSectionsComplete"
         @back="goBack"
         @save-draft="saveDraft"
         @mark-delivered="markDelivered"
