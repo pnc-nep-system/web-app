@@ -52,4 +52,26 @@ export const policyApi = {
   deletePolicy(id: number) {
     return api.delete<{ message: string }>(`/policy-documents/${id}`)
   },
+
+  /**
+   * Fetch a policy document's file as a blob.
+   */
+  fetchFile(id: number) {
+    return api.get<Blob>(`/policy-documents/${id}/file`, { responseType: 'blob' })
+  },
+
+  /**
+   * Download a policy document's file.
+   */
+  async downloadFile(id: number, filename: string) {
+    const response = await api.get<Blob>(`/policy-documents/${id}/file`, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  },
 }

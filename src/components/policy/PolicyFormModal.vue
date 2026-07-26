@@ -2,7 +2,7 @@
 import { reactive, watch } from 'vue'
 import Icon from '@/components/common/BaseIcon.vue'
 import FormFileUpload from '@/components/adviser/FormFileUpload.vue'
-import type { PolicyDocument } from '@/types/policy'
+import type { PolicyDocument, PolicyFormPayload } from '@/types/policy'
 
 const props = defineProps<{
   show: boolean
@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'submit', payload: { title: string; authority: string; version: string; date: string; status: 'active' | 'superseded' | 'inactive'; file?: File | null }): void
+  (e: 'submit', payload: PolicyFormPayload): void
 }>()
 
 const form = reactive({ title: '', authority: '', version: '', date: '', status: 'active' as 'active' | 'superseded' | 'inactive', file: null as File | null })
@@ -66,54 +66,62 @@ function submit() {
 
 <template>
   <Teleport to="body">
-    <div v-if="show" class="modal-backdrop" @click.self="emit('close')">
-      <div class="modal-panel" style="max-width: 640px;">
+    <div v-if="show" class="fixed inset-0 bg-black/45 flex items-center justify-center z-150 p-5 backdrop-blur-[2px]" @click.self="emit('close')">
+      <div class="bg-white rounded-[14px] shadow-lg w-full max-w-[640px] p-6 max-h-[90vh] overflow-y-auto">
         <h3 class="text-[16px] font-semibold mb-[14px]">
           {{ initialData ? 'Edit policy document' : 'Add policy document' }}
         </h3>
 
-        <div class="field">
-          <label>Title</label>
-          <input type="text" v-model="form.title" :class="{ 'has-error': errors.title }" />
-          <div v-if="errors.title" class="error">
+        <div class="mb-4">
+          <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">Title</label>
+          <input type="text" v-model="form.title"
+            class="w-full border border-[var(--line)] rounded-[8px] px-3 py-2.5 text-[13.3px] text-[var(--ink-900)] bg-white focus:outline-none focus:border-[var(--teal-600)] focus:ring-3 focus:ring-[var(--teal-100)]"
+            :class="{ '!border-[var(--red-600)]': errors.title }" />
+          <div v-if="errors.title" class="text-[11.5px] text-[var(--red-600)] mt-1 flex items-center gap-1">
             <Icon name="alert" size="14" /> {{ errors.title }}
           </div>
         </div>
 
-        <div class="field">
-          <label>Issuing authority</label>
-          <input type="text" v-model="form.authority" :class="{ 'has-error': errors.authority }" />
-          <div v-if="errors.authority" class="error">
+        <div class="mb-4">
+          <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">Issuing authority</label>
+          <input type="text" v-model="form.authority"
+            class="w-full border border-[var(--line)] rounded-[8px] px-3 py-2.5 text-[13.3px] text-[var(--ink-900)] bg-white focus:outline-none focus:border-[var(--teal-600)] focus:ring-3 focus:ring-[var(--teal-100)]"
+            :class="{ '!border-[var(--red-600)]': errors.authority }" />
+          <div v-if="errors.authority" class="text-[11.5px] text-[var(--red-600)] mt-1 flex items-center gap-1">
             <Icon name="alert" size="14" /> {{ errors.authority }}
           </div>
         </div>
 
-        <div class="field-row">
-          <div class="field">
-            <label>Version</label>
-            <input type="text" v-model="form.version" placeholder="e.g. 1.0" :class="{ 'has-error': errors.version }" />
-            <div v-if="errors.version" class="error">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="mb-4">
+            <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">Version</label>
+            <input type="text" v-model="form.version" placeholder="e.g. 1.0"
+              class="w-full border border-[var(--line)] rounded-[8px] px-3 py-2.5 text-[13.3px] text-[var(--ink-900)] bg-white focus:outline-none focus:border-[var(--teal-600)] focus:ring-3 focus:ring-[var(--teal-100)]"
+              :class="{ '!border-[var(--red-600)]': errors.version }" />
+            <div v-if="errors.version" class="text-[11.5px] text-[var(--red-600)] mt-1 flex items-center gap-1">
               <Icon name="alert" size="14" /> {{ errors.version }}
             </div>
           </div>
-          <div class="field">
-            <label>Date</label>
-            <input type="date" v-model="form.date" :class="{ 'has-error': errors.date }" />
-            <div v-if="errors.date" class="error">
+          <div class="mb-4">
+            <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">Date</label>
+            <input type="date" v-model="form.date"
+              class="w-full border border-[var(--line)] rounded-[8px] px-3 py-2.5 text-[13.3px] text-[var(--ink-900)] bg-white focus:outline-none focus:border-[var(--teal-600)] focus:ring-3 focus:ring-[var(--teal-100)]"
+              :class="{ '!border-[var(--red-600)]': errors.date }" />
+            <div v-if="errors.date" class="text-[11.5px] text-[var(--red-600)] mt-1 flex items-center gap-1">
               <Icon name="alert" size="14" /> {{ errors.date }}
             </div>
           </div>
         </div>
 
-        <div class="field" v-if="initialData">
-          <label>Status</label>
+        <div class="mb-4" v-if="initialData">
+          <label class="block text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">Status</label>
           <select v-model="form.status" class="w-full border border-[var(--line)] rounded-lg px-3 py-2 text-[13px] bg-white outline-none focus:border-[var(--teal-500)] focus:ring-1 focus:ring-[var(--teal-500)]">
             <option value="active">Active</option>
             <option value="superseded">Superseded</option>
           </select>
         </div>
 
-        <div class="field mt-4">
+        <div class="mb-4 mt-4">
           <FormFileUpload v-model="form.file" :error="errors.file" :compact="true" />
         </div>
 

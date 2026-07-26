@@ -19,3 +19,12 @@ export interface PolicyDocumentPayload {
   status?: 'active' | 'superseded' | 'inactive'
   file?: File | null
 }
+
+export interface PolicyFormPayload {
+  title: string
+  authority: string
+  version: string
+  date: string
+  status: 'active' | 'superseded' | 'inactive'
+  file?: File | null
+}

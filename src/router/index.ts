@@ -27,7 +27,7 @@ const router = createRouter({
     {
       path: "/map",
       name: "map",
-      component: () => import("@/views/MapView.vue"),
+      component: () => import("@/views/staff/MapView.vue"),
       meta: {
         requiresAuth: true,
       },
@@ -41,7 +41,7 @@ const router = createRouter({
     {
       path: "/policy",
       name: "policy",
-      component: () => import("@/views/PolicyView.vue"),
+      component: () => import("@/views/staff/PolicyView.vue"),
       meta: { requiresAuth: true, roles: ["nep_admin", "nep_coordinator"] },
     },
     {
