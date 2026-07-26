@@ -130,20 +130,16 @@ onMounted(async () => {
       const note = (res.data as any)?.data ?? res.data
       if (note?.id) {
         submissionId.value = note.id
-        applySubmission(note)
+        // Fetch full detail so programme_entry.activities/locations are included
+        const full = await adviserApi.getById(note.id)
+        const fullData = (full.data as any)?.data ?? full.data
+        applySubmission(fullData ?? note)
         loading.value = false
         return
       }
     } catch {
       // fall through to default empty state
     }
-    loading.value = false
-    return
-  }
-
-  const cached = adviserStore.submissions.find(s => s.id === submissionId.value)
-  if (cached) {
-    applySubmission(cached)
     loading.value = false
     return
   }
