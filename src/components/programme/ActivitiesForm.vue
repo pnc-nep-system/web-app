@@ -56,6 +56,9 @@ defineExpose({ validate, getData })
       Select every activity item this programme delivers.
       Mark your most important activities as <strong class="text-gray-700">primary</strong> — NEP's coordination matching prioritises these.
     </p>
+    <p class="text-xs text-gray-400 px-1 sm:hidden">
+      Select activities. Mark key ones as <strong class="text-gray-600">primary</strong> for coordination matching.
+    </p>
 
     <!-- Loading Spinner -->
     <div v-if="accordion.isLoading" class="flex flex-col items-center justify-center py-12 bg-white rounded-xl border border-gray-100 shadow-sm">

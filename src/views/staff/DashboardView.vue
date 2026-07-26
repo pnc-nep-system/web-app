@@ -49,7 +49,7 @@ onMounted(() => {
     <DashboardKpiGrid />
 
     <!-- Coverage cards side by side -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
       <CoverageListCard
         title="Activity coverage by category"
         :items="activityCoverage"

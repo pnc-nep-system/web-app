@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import BaseBadge from '@/components/common/BaseBadge.vue'
+
 import { useMapStore } from '@/stores/map'
 import { useEntriesStore } from '@/stores/entries.store'
 
@@ -98,12 +99,11 @@ function formatBudgetBand(b: any): string {
             {{ formatBudgetBand(e.budget_band ?? e.budgetBand) }}
           </td>
           <td class="px-4 py-3 text-right whitespace-nowrap">
-            <button 
-              class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 rounded-lg transition-all border border-teal-200/60 shadow-xs whitespace-nowrap cursor-pointer group-hover:bg-teal-100/80"
+            <button
+              class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--ink-600)] bg-[var(--bg)] border border-[var(--line)] rounded-md hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] transition-colors whitespace-nowrap"
               @click.stop="router.push({ name: 'entry-detail', params: { id: String(e.id) } })"
             >
-              <span>View</span>
-              <span class="transition-transform group-hover:translate-x-0.5">→</span>
+              View →
             </button>
           </td>
         </tr>

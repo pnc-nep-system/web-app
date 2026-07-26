@@ -65,27 +65,29 @@ function openSubmission(id: number) {
     </div>
 
     <!-- Tabs -->
-    <div class="flex gap-1 mb-6 border-b border-slate-200">
-      <button
-        v-for="tab in [
-          { key: 'all', label: 'All Submitted', count: countAll },
-          { key: 'submitted_for_review', label: 'Submitted for Review', count: countReview },
-          { key: 'advice_delivered', label: 'Advice Delivered', count: countDelivered },
-        ]"
-        :key="tab.key"
-        type="button"
-        @click="_activeTab = tab.key as any"
-        class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2 cursor-pointer"
-        :class="_activeTab === tab.key
-          ? 'border-[#0F5A4D] text-[#0F5A4D]'
-          : 'border-transparent text-slate-500 hover:text-slate-900'"
-      >
-        {{ tab.label }}
-        <span
-          class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-medium"
-          :class="_activeTab === tab.key ? 'bg-teal-100 text-[#0F5A4D]' : 'bg-slate-100 text-slate-500'"
-        >{{ tab.count }}</span>
-      </button>
+    <div class="overflow-x-auto -mx-1 px-1 mb-6 border-b border-slate-200">
+      <div class="flex gap-1 min-w-0 w-max">
+        <button
+          v-for="tab in [
+            { key: 'all', label: 'All Submitted', count: countAll },
+            { key: 'submitted_for_review', label: 'Submitted for Review', count: countReview },
+            { key: 'advice_delivered', label: 'Advice Delivered', count: countDelivered },
+          ]"
+          :key="tab.key"
+          type="button"
+          @click="_activeTab = tab.key as any"
+          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-2 cursor-pointer whitespace-nowrap"
+          :class="_activeTab === tab.key
+            ? 'border-[#0F5A4D] text-[#0F5A4D]'
+            : 'border-transparent text-slate-500 hover:text-slate-900'"
+        >
+          {{ tab.label }}
+          <span
+            class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-medium"
+            :class="_activeTab === tab.key ? 'bg-teal-100 text-[#0F5A4D]' : 'bg-slate-100 text-slate-500'"
+          >{{ tab.count }}</span>
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->

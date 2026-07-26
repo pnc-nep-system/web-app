@@ -44,64 +44,48 @@ function timeAgo(dateStr: string): string {
 </script>
 
 <template>
-  <div class="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
+  <div class="bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius)] shadow-sm overflow-hidden">
+    <!-- Desktop Table -->
     <div class="overflow-x-auto">
-      <table class="w-full table-fixed text-left border-collapse min-w-[860px]">
-        <colgroup>
-          <col style="width: 17%" />
-          <col style="width: 20%" />
-          <col style="width: 17%" />
-          <col style="width: 16%" />
-          <col style="width: 13%" />
-          <col style="width: 9%" />
-          <col style="width: 8%" />
-        </colgroup>
-
+      <table class="w-full border-collapse table-fixed hidden md:table">
         <thead>
-          <tr class="bg-slate-50/80 border-b border-slate-200">
-            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Submitting party</th>
-            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Document</th>
-            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Analysis scope</th>
-            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Status</th>
-            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Assigned to</th>
-            <th class="px-4 py-3.5 text-xs font-bold uppercase tracking-wider text-slate-500 text-left whitespace-nowrap">Submitted</th>
-            <th class="px-4 py-3.5"></th>
+          <tr class="border-b border-[var(--line)]">
+            <th class="w-[24%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Submitting party</th>
+            <th class="w-[24%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Document</th>
+            <th class="w-[12%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Analysis scope</th>
+            <th class="w-[16%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Status</th>
+            <th class="w-[12%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Assigned to</th>
+            <th class="w-[12%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] whitespace-nowrap bg-[var(--bg)] text-right">Action</th>
           </tr>
         </thead>
-
-        <tbody class="divide-y divide-slate-100">
+        <tbody>
           <tr
             v-for="sub in submissions"
             :key="sub.id"
             @click="emit('open', sub.id)"
-            class="group hover:bg-[#F4FBFA] transition-colors cursor-pointer"
+            class="border-b border-[var(--line-soft)] last:border-b-0 transition-colors duration-150 hover:bg-[var(--teal-50)] cursor-pointer"
           >
-            <!-- Submitting party -->
-            <td class="px-4 h-12 align-middle">
-              <span class="text-sm font-bold text-slate-900 truncate block leading-none" :title="sub.submitting_party">
-                {{ sub.submitting_party }}
-              </span>
+            <td class="px-4 py-3.5 text-[13px] text-[var(--ink-700)] align-middle">
+              <span class="text-[13.5px] font-semibold text-[var(--ink-900)] truncate block leading-tight" :title="sub.submitting_party">{{ sub.submitting_party }}</span>
+              <span class="text-xs text-[var(--ink-400)]">{{ timeAgo(sub.submitted_at) }}</span>
             </td>
 
-            <!-- Document -->
-            <td class="px-4 h-12 align-middle">
+            <td class="px-4 py-3.5 text-[13px] text-[var(--ink-700)] align-middle">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="w-6 h-6 rounded bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
-                  <BaseIcon name="file" size="12" class="text-slate-500" />
+                <span class="w-6 h-6 rounded bg-[var(--line-soft)] flex items-center justify-center shrink-0 border border-[var(--line)]">
+                  <BaseIcon name="file" size="12" class="text-[var(--ink-400)]" />
                 </span>
-                <span class="text-xs font-medium text-slate-700 truncate leading-none" :title="sub.document_name">{{ sub.document_name }}</span>
+                <span class="text-xs text-[var(--ink-600)] truncate leading-none" :title="sub.document_name">{{ sub.document_name }}</span>
               </div>
             </td>
 
-            <!-- Analysis scope -->
-            <td class="px-4 h-12 align-middle">
-              <span class="text-xs font-medium text-slate-700 truncate block leading-none" :title="formatScope(sub)">{{ formatScope(sub) }}</span>
+            <td class="px-4 py-3.5 text-[13px] text-[var(--ink-700)] align-middle">
+              <span class="text-xs text-[var(--ink-600)] truncate block leading-tight" :title="formatScope(sub)">{{ formatScope(sub) }}</span>
             </td>
 
-            <!-- Status badge -->
-            <td class="px-4 h-12 align-middle">
+            <td class="px-4 py-3.5 text-[13px] text-[var(--ink-700)] align-middle">
               <span
-                class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold whitespace-nowrap shadow-2xs"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11.5px] font-semibold tracking-normal whitespace-nowrap"
                 :class="statusClass(sub.status)"
               >
                 <span
@@ -112,35 +96,68 @@ function timeAgo(dateStr: string): string {
               </span>
             </td>
 
-            <!-- Assigned to -->
-            <td class="px-4 h-12 align-middle">
+            <td class="px-4 py-3.5 text-[13px] text-[var(--ink-700)] align-middle">
               <span
-                class="text-xs font-medium truncate block leading-none"
-                :class="coordinatorLabel(sub) === 'Unassigned' ? 'text-slate-400 italic' : 'text-slate-700'"
+                class="text-xs truncate block leading-tight"
+                :class="coordinatorLabel(sub) === 'Unassigned' ? 'text-[var(--ink-400)] italic' : 'text-[var(--ink-600)]'"
                 :title="coordinatorLabel(sub)"
               >
                 {{ coordinatorLabel(sub) }}
               </span>
             </td>
 
-            <!-- Submitted time -->
-            <td class="px-4 h-12 align-middle text-xs font-medium text-slate-400 whitespace-nowrap leading-none">
-              {{ timeAgo(sub.submitted_at) }}
-            </td>
-
-            <!-- Action -->
-            <td class="px-4 pr-5 h-12 align-middle text-right">
-              <span
-                class="inline-flex items-center gap-1 text-xs font-bold transition-colors whitespace-nowrap"
-                :class="sub.status === 'advice_delivered' ? 'text-emerald-700 group-hover:text-[#0F5A4D]' : 'text-slate-400 group-hover:text-[#0F5A4D]'"
+            <td class="px-4 py-3.5 text-[13px] text-[var(--ink-700)] align-middle text-right">
+              <button
+                class="px-2.5 py-1 text-xs font-medium text-[var(--ink-600)] bg-[var(--bg)] border border-[var(--line)] rounded-md hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] transition-colors whitespace-nowrap"
+                @click.stop="emit('open', sub.id)"
               >
-                {{ sub.status === 'advice_delivered' ? 'View' : 'Open' }}
-                <BaseIcon name="arrowLeft" size="13" class="rotate-180 transition-transform group-hover:translate-x-0.5 shrink-0" />
-              </span>
+                {{ sub.status === 'advice_delivered' ? 'View' : 'Open' }} →
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Mobile Cards -->
+    <div class="flex flex-col md:hidden">
+      <div
+        v-for="sub in submissions"
+        :key="sub.id"
+        @click="emit('open', sub.id)"
+        class="py-4 px-[18px] border-b border-[var(--line-soft)] last:border-b-0 cursor-pointer active:bg-[var(--teal-50)] transition-colors"
+      >
+        <div class="flex items-center gap-2.5">
+          <span class="w-[34px] h-[34px] rounded-[9px] bg-[var(--teal-100)] flex items-center justify-center text-[var(--teal-800)] text-[11px] font-bold tracking-wide shrink-0">
+            <BaseIcon name="file" size="14" />
+          </span>
+          <div class="flex flex-col gap-0.5 min-w-0 flex-1">
+            <span class="text-[13.5px] font-semibold text-[var(--ink-900)] truncate" :title="sub.submitting_party">{{ sub.submitting_party }}</span>
+            <span class="text-xs text-[var(--ink-400)] truncate" :title="sub.document_name">{{ sub.document_name }}</span>
+          </div>
+          <span
+            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap shrink-0"
+            :class="statusClass(sub.status)"
+          >
+            <span
+              class="w-1.5 h-1.5 rounded-full shrink-0"
+              :class="sub.status === 'advice_delivered' ? 'bg-emerald-500' : 'bg-amber-500'"
+            ></span>
+            {{ statusLabel(sub.status) }}
+          </span>
+        </div>
+        <div class="flex items-center flex-wrap gap-2 mt-2.5 pl-11">
+          <span class="text-xs text-[var(--ink-600)] min-w-0 max-w-[180px] truncate" :title="formatScope(sub)">{{ formatScope(sub) }}</span>
+          <span class="text-xs text-[var(--ink-400)]" :class="coordinatorLabel(sub) === 'Unassigned' ? 'italic' : ''">{{ coordinatorLabel(sub) }}</span>
+          <span class="text-xs text-[var(--ink-400)] whitespace-nowrap">{{ timeAgo(sub.submitted_at) }}</span>
+        </div>
+        <div class="flex gap-1.5 mt-3 pl-11">
+          <button class="btn btn-secondary btn-sm" @click.stop="emit('open', sub.id)">
+            <BaseIcon name="arrowLeft" :size="13" class="rotate-180" />
+            {{ sub.status === 'advice_delivered' ? 'View' : 'Open' }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
