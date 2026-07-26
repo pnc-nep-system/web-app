@@ -11,6 +11,7 @@ interface Recommendation {
 defineProps<{
   items: Recommendation[]
   fetching?: boolean
+  readonly?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -33,7 +34,7 @@ const emit = defineEmits<{
           {{ items.length }} {{ items.length === 1 ? 'match' : 'matches' }}
         </span>
       </div>
-      <div class="flex items-center gap-2.5">
+      <div v-if="!readonly" class="flex items-center gap-2.5">
         <button
           @click="emit('findOverlaps')"
           :disabled="fetching"
@@ -80,6 +81,7 @@ const emit = defineEmits<{
         class="border border-slate-200 hover:border-emerald-300 rounded-xl p-5 bg-white transition-all shadow-2xs relative group"
       >
         <button
+          v-if="!readonly"
           @click="$emit('remove', idx)"
           class="absolute top-4 right-4 text-slate-400 hover:text-red-600 p-1 rounded hover:bg-slate-100 transition cursor-pointer"
           title="Remove recommendation"
@@ -92,14 +94,18 @@ const emit = defineEmits<{
           <input 
             type="text" 
             :value="rec.org"
-            @input="$emit('update:org', idx, ($event.target as HTMLInputElement).value)"
+            @input="!readonly && $emit('update:org', idx, ($event.target as HTMLInputElement).value)"
+            :readonly="readonly"
             placeholder="Partner Organisation name" 
-            class="font-bold text-[14px] text-slate-900 border border-slate-200 rounded-lg px-3 py-1.5 min-w-[220px] focus:outline-none focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D]" 
+            class="font-bold text-[14px] text-slate-900 border border-slate-200 rounded-lg px-3 py-1.5 min-w-[220px] focus:outline-none focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D]"
+            :class="readonly ? 'bg-slate-50 cursor-default' : ''"
           />
           <select 
             :value="rec.type"
-            @change="$emit('update:type', idx, ($event.target as HTMLSelectElement).value)"
+            @change="!readonly && $emit('update:type', idx, ($event.target as HTMLSelectElement).value)"
+            :disabled="readonly"
             class="text-xs font-semibold text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:border-[#0F5A4D]"
+            :class="readonly ? 'cursor-default opacity-100' : ''"
           >
             <option>Geographic & Activity overlap</option>
             <option>Geographic overlap</option>
@@ -129,8 +135,10 @@ const emit = defineEmits<{
         </div>
         <textarea 
           :value="rec.text"
-          @input="$emit('update:text', idx, ($event.target as HTMLTextAreaElement).value)"
+          @input="!readonly && $emit('update:text', idx, ($event.target as HTMLTextAreaElement).value)"
+          :readonly="readonly"
           class="w-full text-[13.5px] text-slate-700 border border-slate-200 hover:border-slate-300 focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D] rounded-lg p-3 transition-all min-h-[70px] resize-y outline-none bg-slate-50/50" 
+          :class="readonly ? 'cursor-default' : ''"
           placeholder="Describe the coordination recommendation..."
         ></textarea>
       </div>

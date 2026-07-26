@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
@@ -10,15 +10,19 @@ import AdviserSubmissionTable from '@/components/adviser/AdviserSubmissionTable.
 import { useAdviserStore } from '@/stores/adviser'
 
 const router = useRouter()
+const route = useRoute()
 const adviserStore = useAdviserStore()
 
 onMounted(() => {
   adviserStore.fetchSubmissions()
-  adviserStore.loadCoordinators() // ← Load coordinator names for display
+  adviserStore.loadCoordinators()
 })
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-const _activeTab = ref<'all' | 'submitted_for_review' | 'advice_delivered'>('submitted_for_review')
+const validTabs = ['all', 'submitted_for_review', 'advice_delivered'] as const
+const _activeTab = ref<'all' | 'submitted_for_review' | 'advice_delivered'>(
+  validTabs.includes(route.query.tab as any) ? (route.query.tab as any) : 'submitted_for_review'
+)
 
 const filteredSubmissions = computed(() => {
   const list = adviserStore.submissions

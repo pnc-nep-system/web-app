@@ -19,12 +19,23 @@ export function useEntryDetail(id: Ref<string | undefined>) {
   const entry = ref<EntryDetail | null>(null)
   const loading = ref(true)
   const marking = ref(false)
+  const advisoryNoteStatus = ref<string | null>(null)
 
   watch(id, async (newId) => {
     loading.value = true
     if (!newId) { entry.value = null; loading.value = false; return }
     try {
       entry.value = await entries.fetchById(newId)
+      // Check if advice has been delivered for this entry (member_org needs to know)
+      if (auth.userRole === 'member_org') {
+        try {
+          const res = await adviserApi.getByProgrammeEntry(Number(newId))
+          const note = (res.data as any)?.data ?? res.data
+          advisoryNoteStatus.value = note?.status ?? null
+        } catch {
+          advisoryNoteStatus.value = null
+        }
+      }
     } finally {
       loading.value = false
     }
@@ -120,5 +131,6 @@ export function useEntryDetail(id: Ref<string | undefined>) {
     analyseInAdviser,
     organisations,
     auth,
+    advisoryNoteStatus,
   }
 }

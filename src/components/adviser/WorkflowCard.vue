@@ -78,11 +78,10 @@ function onSelectChange(e: Event) {
     </div>
 
     <!-- Divider -->
-    <hr class="border-gray-100 my-6" />
 
     <!-- Post-delivery State -->
-    <div v-if="currentStatus === 'advice_delivered'">
-      <p class="text-[13px] text-gray-900 font-semibold mb-1">
+    <div v-if="currentStatus === 'advice_delivered'" class="mt-5 pt-4 border-t border-gray-100">
+      <p class="text-[13px] text-gray-900 font-semibold">
         Delivered on <span class="font-normal text-gray-600">{{ formatDate(deliveredAt) }}</span>
       </p>
       <a
@@ -98,30 +97,5 @@ function onSelectChange(e: Event) {
       </a>
     </div>
 
-    <!-- Pre-delivery Editing State -->
-    <div v-else>
-      <div>
-        <label class="block text-[12px] font-bold text-gray-700 mb-2">Assign to coordinator</label>
-        <div class="relative">
-          <select
-            :value="assigneeId ?? ''"
-            @change="onSelectChange"
-            class="w-full text-[13px] text-gray-900 border border-gray-200 rounded-lg px-4 py-2.5 appearance-none bg-white hover:border-gray-300 focus:outline-none focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D] transition shadow-sm"
-          >
-            <option value="">Unassigned — leave in shared queue</option>
-            <option
-              v-for="c in coordinators"
-              :key="c.id"
-              :value="c.id"
-            >
-              {{ c.name ?? c.email ?? `User #${c.id}` }}
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-            <BaseIcon name="chevronDown" size="16" />
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>

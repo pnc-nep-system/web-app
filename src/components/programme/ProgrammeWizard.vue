@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import ProgrammeIdentityForm from './ProgrammeIdentityForm.vue'
 import ActivitiesForm from './ActivitiesForm.vue'
 import AgreementsForm from './AgreementsForm.vue'
@@ -12,14 +12,26 @@ import ProgrammeStepperDesktop from './ProgrammeStepperDesktop.vue'
 import ProgrammeNavigationGuide from './ProgrammeNavigationGuide.vue'
 import ProgrammeFormFooter from './ProgrammeFormFooter.vue'
 import { useProgrammeFormStore } from '@/stores/programmeForm'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
 const store = useProgrammeFormStore()
+const auth = useAuthStore()
 
 let mountedId: string | null = null
 let _skipNextIdWatch = false
 
 onMounted(async () => {
+  const isStaff = ['nep_admin', 'nep_coordinator'].includes(auth.userRole || '')
+  const hasOrgId = !!route.query.org_id
+  const hasEntryId = !!route.query.id
+
+  if (isStaff && !hasOrgId && !hasEntryId) {
+    router.replace('/admin/programmes')
+    return
+  }
+
   mountedId = route.query.id ? String(route.query.id) : null
   await store.initializeForm(mountedId)
 })
@@ -34,6 +46,12 @@ watch(
     }
     const entryId = newId ? String(newId) : null
     if (entryId === mountedId) return
+    // If we had no id before (new entry) and now have one (just saved),
+    // don't re-init — the store already has the data and org_id cached.
+    if (!mountedId && entryId) {
+      mountedId = entryId
+      return
+    }
     mountedId = entryId
     await store.initializeForm(entryId)
   }

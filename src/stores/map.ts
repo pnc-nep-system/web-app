@@ -1,319 +1,28 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useProgrammeGeographyStore } from './programmeGeography'
 import { useTaxonomyStore } from './taxonomy'
-import { getMapEntries, type MapFilters } from '@/api/map.api'
+import { getMapEntries } from '@/api/map.api'
 import { extractPrimaryActivityCodes } from '@/utils/activityHelpers'
+import { useMapFilterOptions } from './mapFilters'
 import type { MapViewFilters } from '@/types/map'
 
-/** Baseline empty filter state used by the store and by clearFilters(). */
 const DEFAULT_FILTERS: MapViewFilters = {
-  category: '',
-  level: '',
-  inclusion: '',
-  province: '',
-  district: '',
-  commune: '',
-  village: '',
-  counterpart: '',
-  keyword: '',
+  category: '', level: '', inclusion: '', province: '', district: '',
+  commune: '', village: '', counterpart: '', keyword: '',
 }
 
-/**
- * Pinia store powering the Programme Map page.
- *
- * Manages the map entry list, UI filter state, client-side sorting /
- * filtering / pagination, and data fetching. Sub-stores (geography,
- * taxonomy) are resolved lazily via computeds to avoid circular deps.
- */
 export const useMapStore = defineStore('map', () => {
-  /** Raw entry list fetched from the API. */
   const mapEntries = ref<any[]>([])
-  /** Whether map entries are currently being fetched. */
   const loading = ref(false)
-
-  /** Current UI filter values bound to MapFilterBar controls. */
   const filters = ref<MapViewFilters>({ ...DEFAULT_FILTERS })
-  /** Whether any filter has a non-empty value. */
-  const hasActiveFilters = computed(() =>
-    Object.values(filters.value).some(v => v !== '')
-  )
-
-  /** Current pagination page (1-indexed). */
   const page = ref(1)
-  /** Number of entries shown per page. */
   const pageSize = 20
-  /** Column being sorted by. */
   const sortKey = ref('name')
-  /** Sort direction. */
   const sortDir = ref<'asc' | 'desc'>('asc')
 
-  /**
-   * Converts the UI-facing MapViewFilters into API-facing MapFilters.
-   * Resolves numeric IDs for province, district, commune, and category
-   * using geography/taxonomy stores and fallback inspection of loaded map entries.
-   * Only active non-empty filters are included.
-   *
-   * @returns Clean filter object suitable for the CSV / PDF export endpoints.
-   */
-  function toApiFilters(): MapFilters {
-    const f = filters.value
+  const hasActiveFilters = computed(() => Object.values(filters.value).some(v => v !== ''))
 
-    let provId: number | null = null
-    if (f.province) {
-      provId = provinceIdByName.value[f.province] || null
-      if (!provId) {
-        const found = geographyStore.value.provinces.find(
-          (p: any) => p.province_name === f.province || p.name === f.province || p.label === f.province
-        )
-        if (found) provId = found.id
-      }
-      if (!provId) {
-        for (const e of mapEntries.value) {
-          for (const l of e.locations || []) {
-            if (l.province?.province_name === f.province || l.province_name === f.province) {
-              provId = l.province?.id || l.province_id
-              if (provId) break
-            }
-          }
-          if (provId) break
-        }
-      }
-    }
-
-    let distId: number | null = null
-    if (f.district) {
-      for (const list of Object.values(geographyStore.value.districtsCache)) {
-        const match = list.find((d: any) => d.name === f.district)
-        if (match) { distId = match.id; break }
-      }
-      if (!distId) {
-        for (const e of mapEntries.value) {
-          for (const l of e.locations || []) {
-            if (l.district?.name === f.district || l.district_name === f.district) {
-              distId = l.district?.id || l.district_id
-              if (distId) break
-            }
-          }
-          if (distId) break
-        }
-      }
-    }
-
-    let communeId: number | null = null
-    if (f.commune) {
-      for (const list of Object.values(geographyStore.value.communesCache)) {
-        const match = list.find((c: any) => c.name === f.commune)
-        if (match) { communeId = match.id; break }
-      }
-      if (!communeId) {
-        for (const e of mapEntries.value) {
-          for (const l of e.locations || []) {
-            if (l.commune?.name === f.commune || l.commune_name === f.commune) {
-              communeId = l.commune?.id || l.commune_id
-              if (communeId) break
-            }
-          }
-          if (communeId) break
-        }
-      }
-    }
-
-    let catId: number | null = null
-    if (f.category) {
-      const catMatch = taxonomyStore.value.categories.find(
-        (c: any) => c.code === f.category || String(c.id) === f.category || c.category_name === f.category || c.name === f.category
-      )
-      if (catMatch) catId = catMatch.id
-      if (!catId) {
-        for (const e of mapEntries.value) {
-          for (const a of e.activities || []) {
-            const code = a.activity_item?.code || a.code || ''
-            if (code.startsWith(f.category)) {
-              catId = a.activity_item?.subcategory?.category_id || a.category_id
-              if (catId) break
-            }
-          }
-          if (catId) break
-        }
-      }
-    }
-
-    const params: MapFilters = {}
-
-    // When filters are active, pass exact filtered IDs to guarantee 100% export precision
-    if (hasActiveFilters.value) {
-      const activeIds = filtered.value.map((e: any) => e.id).filter(Boolean)
-      if (activeIds.length > 0) {
-        params.entry_ids = activeIds.join(',')
-      }
-    }
-
-    if (catId) params.category_id = catId
-    if (f.level) params.education_level_id = Number(f.level)
-    if (f.inclusion) params.inclusion_group = f.inclusion
-    if (provId) params.province_id = provId
-    if (distId) params.district_id = distId
-    if (communeId) params.commune_id = communeId
-    if (f.keyword) params.keyword = f.keyword
-    if (f.counterpart) params.agreement_counterpart_type = f.counterpart
-
-    return params
-  }
-
-  /**
-   * Lazily resolves the programme geography sub-store.
-   * Wrapped in a computed to keep reactive access in sync.
-   */
-  const geographyStore = computed(() => useProgrammeGeographyStore())
-  /**
-   * Lazily resolves the taxonomy sub-store.
-   * Wrapped in a computed to keep reactive access in sync.
-   */
-  const taxonomyStore = computed(() => useTaxonomyStore())
-
-  /** Province display names for the "Province" filter dropdown. */
-  const provincesList = computed(() =>
-    geographyStore.value.provinces.map(p => p.province_name)
-  )
-
-  /** Lookup province ID from a province name. */
-  const provinceIdByName = computed(() => {
-    const map: Record<string, number> = {}
-    for (const p of geographyStore.value.provinces) {
-      map[p.province_name] = p.id
-    }
-    return map
-  })
-
-  /** District display names for the "District" filter dropdown. */
-  const districtsList = computed(() => {
-    const provName = filters.value.province
-    const distSet = new Set<string>()
-
-    // 1. Extract from loaded map entries
-    for (const e of mapEntries.value) {
-      for (const l of e.locations || []) {
-        if (!provName || l.province?.province_name === provName || l.province_name === provName) {
-          const dName = l.district?.name ?? l.district_name
-          if (dName) distSet.add(dName)
-        }
-      }
-    }
-
-    // 2. Extract from geographyStore districtsCache
-    if (provName) {
-      const pId = provinceIdByName.value[provName]
-      if (pId && geographyStore.value.districtsCache[pId]) {
-        for (const d of geographyStore.value.districtsCache[pId]) {
-          if (d.name) distSet.add(d.name)
-        }
-      }
-    } else {
-      for (const list of Object.values(geographyStore.value.districtsCache)) {
-        for (const d of list) {
-          if (d.name) distSet.add(d.name)
-        }
-      }
-    }
-
-    return [...distSet].sort()
-  })
-
-  /** Commune display names for the "Commune" filter dropdown. */
-  const communesList = computed(() => {
-    const provName = filters.value.province
-    const distName = filters.value.district
-    const commSet = new Set<string>()
-
-    for (const e of mapEntries.value) {
-      for (const l of e.locations || []) {
-        const matchProv = !provName || l.province?.province_name === provName || l.province_name === provName
-        const matchDist = !distName || l.district?.name === distName || l.district_name === distName
-        if (matchProv && matchDist) {
-          const cName = l.commune?.name ?? l.commune_name
-          if (cName) commSet.add(cName)
-        }
-      }
-    }
-    return [...commSet].sort()
-  })
-
-  /** Village display names for the "Village" filter dropdown. */
-  const villagesList = computed(() => {
-    const provName = filters.value.province
-    const distName = filters.value.district
-    const vilSet = new Set<string>()
-
-    // 1. Extract from loaded map entries
-    for (const e of mapEntries.value) {
-      for (const l of e.locations || []) {
-        const matchProv = !provName || l.province?.province_name === provName || l.province_name === provName
-        const matchDist = !distName || l.district?.name === distName || l.district_name === distName
-        if (matchProv && matchDist) {
-          const vName = l.village?.name ?? l.village_name
-          if (vName) vilSet.add(vName)
-        }
-      }
-    }
-
-    // 2. Extract from geographyStore villagesCache
-    for (const list of Object.values(geographyStore.value.villagesCache)) {
-      for (const v of list) {
-        if (v.name) vilSet.add(v.name)
-      }
-    }
-
-    return [...vilSet].sort()
-  })
-
-  watch(
-    () => filters.value.province,
-    (newProv) => {
-      filters.value.district = ''
-      filters.value.village = ''
-      if (newProv) {
-        const pId = provinceIdByName.value[newProv]
-        if (pId) {
-          geographyStore.value.fetchDistricts(pId)
-        }
-      }
-    }
-  )
-
-  watch(
-    () => filters.value.district,
-    (newDist) => {
-      filters.value.village = ''
-      if (newDist) {
-        for (const list of Object.values(geographyStore.value.districtsCache)) {
-          const dist = list.find((d: any) => d.name === newDist)
-          if (dist) {
-            geographyStore.value.fetchCommunes(dist.id)
-          }
-        }
-      }
-    }
-  )
-
-  /**
-   * Unique government counterpart agency names derived from all loaded
-   * entries. Used by the "Govt. counterpart" filter dropdown.
-   */
-  const counterpartOptions = computed(() => {
-    const agencies = mapEntries.value.flatMap(
-      (e: any) => e.government_agreements?.map((a: any) => a.counterpart_agency) ?? []
-    )
-    return [...new Set(agencies)].filter(Boolean)
-  })
-
-  /**
-   * Entries matching all active filters.
-   *
-   * Each filter dimension is optional — when its value is an empty string
-   * that dimension is skipped. The keyword filter matches against both the
-   * programme name and the organisation name.
-   */
   const filtered = computed(() =>
     mapEntries.value.filter(e => {
       const f = filters.value
@@ -359,160 +68,45 @@ export const useMapStore = defineStore('map', () => {
     })
   )
 
-  /**
-   * Filtered entries sorted by the active sort column and direction.
-   *
-   * Supports sorting by programme name (lexicographic) and budget band
-   * (numeric index). Resets to page 1 when the sort changes.
-   */
   const sorted = computed(() => {
     const arr = [...filtered.value]
-    const key = sortKey.value
     const dir = sortDir.value === 'asc' ? 1 : -1
     arr.sort((a, b) => {
-      let va: any, vb: any
-      if (key === 'name') {
-        va = (a.programme_name ?? a.name ?? '').toLowerCase()
-        vb = (b.programme_name ?? b.name ?? '').toLowerCase()
-      } else if (key === 'budgetBand') {
-        va = a.budget_band_id ?? a.budgetBand ?? 0
-        vb = b.budget_band_id ?? b.budgetBand ?? 0
-        return (va - vb) * dir
-      }
-      if (va < vb) return -1 * dir
-      if (va > vb) return 1 * dir
-      return 0
+      if (sortKey.value === 'budgetBand') return ((a.budget_band_id ?? 0) - (b.budget_band_id ?? 0)) * dir
+      const va = (a.programme_name ?? a.name ?? '').toLowerCase()
+      const vb = (b.programme_name ?? b.name ?? '').toLowerCase()
+      return va < vb ? -dir : va > vb ? dir : 0
     })
     return arr
   })
 
-  /** Current page's slice of the sorted entry list. */
-  const paged = computed(() =>
-    sorted.value.slice((page.value - 1) * pageSize, page.value * pageSize)
-  )
-
-  /** Total number of pages based on filtered entry count. */
+  const paged = computed(() => sorted.value.slice((page.value - 1) * pageSize, page.value * pageSize))
   const totalPages = computed(() => Math.max(1, Math.ceil(sorted.value.length / pageSize)))
 
-  /**
-   * Extracts primary activity codes from an entry.
-   *
-   * @param e - A map entry object.
-   * @returns Array of activity codes marked as primary.
-   */
-  function primaryActivities(e: any): string[] {
-    return extractPrimaryActivityCodes(e?.activities)
-  }
+  // Filter options + watchers + toApiFilters from composable
+  const { provincesList, districtsList, communesList, villagesList, counterpartOptions, toApiFilters } =
+    useMapFilterOptions(mapEntries, filters, hasActiveFilters, filtered)
 
-  /**
-   * Formats a budget band value for display.
-   *
-   * @param band - The raw budget band string or null.
-   * @returns Display string (original value or an em-dash placeholder).
-   */
-  function formatBudget(band: string | null | undefined): string {
-    return band || '—'
-  }
+  function primaryActivities(e: any): string[] { return extractPrimaryActivityCodes(e?.activities) }
+  function formatBudget(band: string | null | undefined): string { return band || '—' }
+  function clearFilters() { filters.value = { ...DEFAULT_FILTERS }; page.value = 1 }
 
-  /** Resets all filters to their default empty values and returns to page 1. */
-  function clearFilters() {
-    filters.value = { ...DEFAULT_FILTERS }
-    page.value = 1
-  }
-
-  // ── Cascading geography watchers ──────────────────────────────────────────
-
-  watch(() => filters.value.province, (newProvince, oldProvince) => {
-    if (newProvince !== oldProvince) {
-      filters.value.district = ''
-      filters.value.commune = ''
-      filters.value.village = ''
-    }
-    if (newProvince) {
-      const pId = provinceIdByName.value[newProvince]
-      if (pId) geographyStore.value.fetchDistricts(pId)
-    }
-  })
-
-  watch(() => filters.value.district, (newDistrict, oldDistrict) => {
-    if (newDistrict !== oldDistrict) {
-      filters.value.commune = ''
-      filters.value.village = ''
-    }
-    if (newDistrict) {
-      for (const list of Object.values(geographyStore.value.districtsCache)) {
-        const dist = list.find(d => d.name === newDistrict)
-        if (dist) {
-          geographyStore.value.fetchCommunes(dist.id)
-          break
-        }
-      }
-    }
-  })
-
-  watch(() => filters.value.commune, (newCommune, oldCommune) => {
-    if (newCommune !== oldCommune) {
-      filters.value.village = ''
-    }
-    if (newCommune) {
-      for (const list of Object.values(geographyStore.value.communesCache)) {
-        const commune = list.find(c => c.name === newCommune)
-        if (commune) {
-          geographyStore.value.fetchVillages(commune.id)
-          break
-        }
-      }
-    }
-  })
-
-  /**
-   * Toggles sort column or direction.
-   *
-   * Clicking the same column twice reverses direction; clicking a different
-   * column sets ascending order on that column. Resets to page 1.
-   *
-   * @param key - Sort column key (`'name'` | `'budgetBand'`).
-   */
   function toggleSort(key: string) {
-    if (sortKey.value === key) {
-      sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
-    } else {
-      sortKey.value = key
-      sortDir.value = 'asc'
-    }
+    if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+    else { sortKey.value = key; sortDir.value = 'asc' }
     page.value = 1
   }
 
-  /**
-   * Navigates to a specific pagination page if within valid range.
-   *
-   * @param p - Target page number (1-indexed).
-   */
-  function goToPage(p: number) {
-    if (p >= 1 && p <= totalPages.value) {
-      page.value = p
-    }
-  }
+  function goToPage(p: number) { if (p >= 1 && p <= totalPages.value) page.value = p }
 
-  /**
-   * Fetches map entries, taxonomy categories, and provinces in parallel.
-   *
-   * Called on mount by MapView.vue. Sets `loading` to true during the
-   * request and populates `mapEntries` on success.
-   */
   async function fetchMapEntries() {
     loading.value = true
     try {
       const geoStore = useProgrammeGeographyStore()
       const taxStore = useTaxonomyStore()
-      const [entriesRes] = await Promise.all([
-        getMapEntries(),
-        taxStore.fetchTaxonomy(),
-        geoStore.loadProvinces(),
-      ])
-      const resData = entriesRes.data
-      const rawList = resData?.data?.data ?? resData?.data ?? resData ?? []
-      mapEntries.value = Array.isArray(rawList) ? rawList : []
+      const [entriesRes] = await Promise.all([getMapEntries(), taxStore.fetchTaxonomy(), geoStore.loadProvinces()])
+      const raw = entriesRes.data?.data?.data ?? entriesRes.data?.data ?? entriesRes.data ?? []
+      mapEntries.value = Array.isArray(raw) ? raw : []
     } catch {
       mapEntries.value = []
     } finally {
@@ -521,29 +115,9 @@ export const useMapStore = defineStore('map', () => {
   }
 
   return {
-    mapEntries,
-    loading,
-    filters,
-    hasActiveFilters,
-    page,
-    pageSize,
-    sortKey,
-    sortDir,
-    toApiFilters,
-    provincesList,
-    districtsList,
-    communesList,
-    villagesList,
-    counterpartOptions,
-    filtered,
-    sorted,
-    paged,
-    totalPages,
-    primaryActivities,
-    formatBudget,
-    clearFilters,
-    toggleSort,
-    goToPage,
-    fetchMapEntries,
+    mapEntries, loading, filters, hasActiveFilters, page, pageSize, sortKey, sortDir,
+    provincesList, districtsList, communesList, villagesList, counterpartOptions,
+    filtered, sorted, paged, totalPages,
+    toApiFilters, primaryActivities, formatBudget, clearFilters, toggleSort, goToPage, fetchMapEntries,
   }
 })
