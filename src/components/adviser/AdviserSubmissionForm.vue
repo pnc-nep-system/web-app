@@ -4,6 +4,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAdviserStore } from '@/stores/adviser'
 import { memberApi } from '@/api/member.api'
+import { getMapEntries } from '@/api/map.api'
 import { taxonomyApi } from '@/api/taxonomy.api'
 import FormFileUpload from '@/components/adviser/FormFileUpload.vue'
 import FormScopeSelect from '@/components/adviser/FormScopeSelect.vue'
@@ -84,12 +85,14 @@ function clearSelectedEntry() {
 async function loadProgrammeEntries() {
   loadingEntries.value = true
   try {
-    const res = await memberApi.getAllProgrammeEntries()
-    const data = (res.data as any)?.data ?? res.data ?? []
-    programmeEntries.value = (Array.isArray(data) ? data : []).map((entry: any) => ({
+    const res = await getMapEntries()
+    const resData = res.data
+    const rawList = resData?.data?.data ?? resData?.data ?? resData ?? []
+    const entries = Array.isArray(rawList) ? rawList : []
+    programmeEntries.value = entries.map((entry: any) => ({
       id: entry.id,
-      name: entry.name || entry.programme_name || `Entry #${entry.id}`,
-      organisation_name: entry.organisation_name || '',
+      name: entry.programme_name || entry.name || `Entry #${entry.id}`,
+      organisation_name: entry.organisation_name || entry.organisation?.name || '',
     }))
   } catch {
     programmeEntries.value = []
