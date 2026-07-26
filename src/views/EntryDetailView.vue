@@ -37,7 +37,7 @@ function handleBack() {
       <HeaderBreadcrumb :crumbs="['Programme entries', (entry as any)?.name || (entry as any)?.programme_name || 'Entry Detail']" />
     </template>
 
-    <div v-if="loading" class="bg-white rounded-xl border border-gray-100 shadow-sm p-16 flex items-center justify-center">
+    <div v-if="loading" class="bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius)] shadow-sm p-16 flex items-center justify-center">
       <LoadingSpinner message="Loading programme entry details..." />
     </div>
 
