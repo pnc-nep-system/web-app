@@ -190,6 +190,8 @@ function handleViewDocument() {
 }
 
 // ── Computed ──────────────────────────────────────────────────────────────────
+const isDelivered = computed(() => currentStatus.value === 'advice_delivered')
+
 const scopeDisplay = computed(() => {
   if (!submission.value) return 'full map'
   const s = submission.value
@@ -197,11 +199,18 @@ const scopeDisplay = computed(() => {
   return `${s.analysis_scope}: ${s.analysis_scope_detail}`
 })
 
+// Whether overlaps were found (B is required only when there are overlaps)
+const hasOverlaps = computed(() => form.value.sectionB.length > 0)
+
 const isSectionsComplete = computed(() => {
-  const hasA = Boolean(form.value.sectionA && form.value.sectionA.trim().length > 0)
-  const hasB = Boolean(form.value.sectionB && form.value.sectionB.length > 0)
-  const hasC = Boolean(form.value.sectionC && form.value.sectionC.some(g => g && g.text && g.text.trim().length > 0))
-  return hasA && hasB && hasC
+  // A is always required
+  if (!form.value.sectionA?.trim()) return false
+  // B is required only when overlaps exist
+  if (hasOverlaps.value) {
+    const allBFilled = form.value.sectionB.every(r => r.org?.trim() && r.text?.trim())
+    if (!allBFilled) return false
+  }
+  return true
 })
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -229,9 +238,16 @@ async function saveDraft() {
 }
 
 async function markDelivered() {
-  if (!form.value.sectionA || !form.value.sectionA.trim()) {
+  if (!form.value.sectionA?.trim()) {
     pushToast('Please complete Section A (Programme profile as interpreted) before marking advice as delivered.')
     return
+  }
+  if (form.value.sectionB.length > 0) {
+    const incomplete = form.value.sectionB.some(r => !r.org?.trim() || !r.text?.trim())
+    if (incomplete) {
+      pushToast('Please fill in the organisation name and description for all coordination recommendations (Section B).')
+      return
+    }
   }
 
   if (delivering.value) return
@@ -253,9 +269,13 @@ async function markDelivered() {
     const data = (res.data as any)?.data ?? res.data
     const newStatus = data?.status ?? 'advice_delivered'
     currentStatus.value = newStatus
+    if (submission.value) {
+      submission.value.delivered_at = data?.delivered_at ?? new Date().toISOString()
+    }
     const existing = adviserStore.submissions.find(s => s.id === submissionId.value)
     if (existing) existing.status = newStatus
     pushToast('Advisory note saved and marked as delivered')
+    router.push('/adviser?tab=advice_delivered')
   } catch {
     pushToast('Failed to save — please try again')
   } finally {
@@ -491,11 +511,13 @@ function removeGap(idx: number) {
             badge="MANUAL ENTRY"
             badge-tone="gray"
             placeholder="Type or paste the interpreted programme profile here..."
+            :readonly="isDelivered"
           />
 
           <RecommendationsList
             :items="form.sectionB"
             :fetching="fetchingOverlaps"
+            :readonly="isDelivered"
             @add="addRecommendation"
             @remove="removeRecommendation"
             @find-overlaps="fetchMapOverlaps"
@@ -506,6 +528,7 @@ function removeGap(idx: number) {
 
           <GapsList
             :items="form.sectionC"
+            :readonly="isDelivered"
             @add="addGap"
             @remove="removeGap"
             @update:text="(idx, val) => { if (form.sectionC[idx]) form.sectionC[idx].text = val }"
@@ -518,6 +541,7 @@ function removeGap(idx: number) {
             badge="Internal — not released"
             badge-tone="amber"
             :is-internal="true"
+            :readonly="isDelivered"
             placeholder="Private notes for coordinations. This will not be exported in the final PDF..."
           />
 

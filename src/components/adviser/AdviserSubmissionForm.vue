@@ -1,6 +1,6 @@
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAdviserStore } from '@/stores/adviser'
 import { memberApi } from '@/api/member.api'
@@ -12,6 +12,12 @@ import BaseButton from '@/components/common/BaseButton.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import type { Province } from '@/types/programmeGeographic'
 import type { Category } from '@/types/taxonomy'
+
+interface ProgrammeEntryOption {
+  id: number
+  name: string
+  organisation_name?: string
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -38,16 +44,18 @@ const errors = ref<Record<string, string>>({})
 const submitError = ref<string | null>(null)
 
 // ── Programme entries list (for entity mode) ──────────────────────────────────
-interface ProgrammeEntryOption {
-  id: number
-  name: string
-  organisation_name?: string
-}
 const programmeEntries = ref<ProgrammeEntryOption[]>([])
 const loadingEntries = ref(false)
+const debouncedQuery = ref('')
+let debounceTimer: ReturnType<typeof setTimeout>
+
+watch(entrySearchInput, (val) => {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => { debouncedQuery.value = val }, 250)
+})
 
 const filteredEntries = computed(() => {
-  const q = entrySearchInput.value.toLowerCase().trim()
+  const q = debouncedQuery.value.toLowerCase().trim()
   if (!q) return programmeEntries.value
   return programmeEntries.value.filter(
     (e) =>
@@ -56,16 +64,11 @@ const filteredEntries = computed(() => {
   )
 })
 
-const selectedEntryObj = computed(() => {
-  if (!selectedEntryId.value) return null
-  return programmeEntries.value.find(e => e.id === Number(selectedEntryId.value)) || null
-})
-
-const selectedEntryName = computed(() => {
-  if (!selectedEntryObj.value) return ''
-  const entry = selectedEntryObj.value
-  return entry.organisation_name ? `${entry.name} (${entry.organisation_name})` : entry.name
-})
+const selectedEntryObj = computed(() =>
+  selectedEntryId.value
+    ? programmeEntries.value.find(e => e.id === Number(selectedEntryId.value)) ?? null
+    : null
+)
 
 function selectEntry(entry: ProgrammeEntryOption) {
   selectedEntryId.value = String(entry.id)
@@ -130,6 +133,12 @@ async function loadCategories() {
   }
 }
 
+// Clear sub-selections when scope changes to avoid stale values
+watch(analysisScope, () => {
+  selectedProvince.value = ''
+  selectedCategory.value = ''
+})
+
 onMounted(() => {
   loadProvinces()
   loadCategories()
@@ -183,10 +192,9 @@ async function handleSubmit() {
   let partyName: string
   let docName: string
 
-  if (mode.value === 'entity' && selectedEntryId.value) {
-    const selectedEntry = programmeEntries.value.find(e => e.id === Number(selectedEntryId.value))
-    partyName = selectedEntry?.organisation_name || selectedEntry?.name || selectedEntryId.value
-    docName = selectedFile.value ? selectedFile.value.name : (selectedEntry?.name ? `${selectedEntry.name} Record` : 'Existing Programme Record')
+  if (mode.value === 'entity' && selectedEntryObj.value) {
+    partyName = selectedEntryObj.value.organisation_name || selectedEntryObj.value.name
+    docName = selectedFile.value?.name ?? `${selectedEntryObj.value.name} Record`
   } else {
     partyName = submittingParty.value.trim()
     docName = selectedFile.value ? selectedFile.value.name : 'Document'

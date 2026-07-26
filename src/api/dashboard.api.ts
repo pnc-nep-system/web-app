@@ -28,6 +28,7 @@ export interface RecentActivityItem {
   id: number
   label: string
   programme?: string
+  programme_entry_id?: number
   advisory_note_id?: number
   occurred_at: string
 }

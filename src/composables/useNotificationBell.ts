@@ -30,6 +30,8 @@ export function useNotificationBell() {
   function navigateTo(n: AppNotification) {
     if (n.type === 'adviser_submission_assigned' && n.advisory_note_id) {
       router.push(`/adviser/${n.advisory_note_id}`)
+    } else if (n.type === 'advice_delivered' && n.programme_entry_id) {
+      router.push({ name: 'adviser-entry-detail', params: { entryId: String(n.programme_entry_id) } })
     } else if (n.programme_entry_id) {
       router.push({ path: '/entries/new', query: { id: n.programme_entry_id } })
     }
