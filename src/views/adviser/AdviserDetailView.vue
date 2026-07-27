@@ -218,7 +218,11 @@ function goBack() {
   router.push('/adviser')
 }
 
+const savingDraft = ref(false)
+
 async function saveDraft() {
+  if (savingDraft.value) return
+  savingDraft.value = true
   try {
     await adviserApi.updateSections(submissionId.value, {
       section_profile: form.value.sectionA,
@@ -234,6 +238,8 @@ async function saveDraft() {
     pushToast('Draft saved')
   } catch {
     pushToast('Failed to save draft')
+  } finally {
+    savingDraft.value = false
   }
 }
 
