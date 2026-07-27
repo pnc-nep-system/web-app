@@ -106,7 +106,7 @@ function logout() {
     <div
       class="lg:hidden flex items-center justify-between bg-teal-900 text-white px-5 py-3.5 sticky top-0 z-20 border-b border-white/10 shrink-0">
       <div class="flex items-center gap-2.5 min-w-0">
-        <img :src="nepLogo" alt="NEP Logo" class="w-8 h-8 rounded-lg object-cover shrink-0" />
+        <img :src="nepLogo" alt="NEP Logo" class="h-8 w-auto max-w-[36px] object-contain shrink-0" />
         <div class="leading-snug min-w-0">
           <b class="font-lexend text-xs font-bold block text-white truncate">{{ portalTitle }}</b>
           <span class="text-[9px] text-white/50 block">Programme Mapping &amp; Advisory</span>
@@ -128,7 +128,7 @@ function logout() {
       isSidebarOpen ? 'translate-x-0 fixed inset-y-0 left-0 w-64' : '-translate-x-full fixed inset-y-0 left-0 w-64 lg:relative lg:translate-x-0'
     ]">
       <div class="flex items-center gap-2.5 px-4 py-4.5 shrink-0 min-w-0">
-        <img :src="nepLogo" alt="NEP Logo" class="w-9 h-9 rounded-xl object-cover shrink-0" />
+        <img :src="nepLogo" alt="NEP Logo" class="h-10 w-auto max-w-[44px] object-contain shrink-0" />
         <div class="leading-tight min-w-0 flex-1">
           <b class="font-lexend text-[13px] font-bold block text-white tracking-tight truncate">{{ portalTitle }}</b>
           <span class="text-[10px] text-white/50 block mt-0.5">Programme Mapping &amp; Advisory</span>
