@@ -181,7 +181,7 @@ function applySubmission(data: Submission) {
 }
 
 function handleViewDocument() {
-  const docUrl = submission.value?.document_url || submission.value?.document_path
+  const docUrl = (submission.value as any)?.document_url || (submission.value as any)?.document_path
   if (docUrl) {
     window.open(docUrl, '_blank')
   } else {
@@ -492,7 +492,7 @@ function removeGap(idx: number) {
             :document-name="submission?.document_name"
             :submitting-party="submission?.submitting_party"
             :analysis-scope="submission?.analysis_scope"
-            :analysis-scope-detail="submission?.analysis_scope_detail"
+            :analysis-scope-detail="submission?.analysis_scope_detail ?? undefined"
             :exporting-pdf="exportingPdf"
             @export-pdf="exportAdvisoryNotePdf"
           />

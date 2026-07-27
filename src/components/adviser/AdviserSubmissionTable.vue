@@ -75,7 +75,7 @@ function timeAgo(dateStr: string): string {
             class="border-b border-[var(--line-soft)] last:border-b-0 transition-colors duration-150 hover:bg-[var(--teal-50)] cursor-pointer">
             <td class="px-4 py-3.5 text-[13px] text-[var(--ink-700)] align-middle">
               <span class="text-[13.5px] font-semibold text-[var(--ink-900)] truncate block leading-tight"
-                :title="sub.programme_entry">{{
+                :title="sub.programme_entry?.programme_name">{{
                   sub.programme_entry?.programme_name || `Entry #${sub.programme_entry_id}` }}</span>
               <span class="text-xs text-[var(--ink-400)]" :title="sub.submitting_party">{{ sub.submitting_party
               }}</span>
