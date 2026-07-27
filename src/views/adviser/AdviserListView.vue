@@ -65,7 +65,7 @@ function openSubmission(id: number) {
     </div>
 
     <!-- Tabs -->
-    <div class="overflow-x-auto -mx-1 px-1 mb-6 border-b border-slate-200">
+    <div class="overflow-x-auto no-scrollbar -mx-1 px-1 mb-6 border-b border-slate-200">
       <div class="flex gap-1 min-w-0 w-max">
         <button
           v-for="tab in [

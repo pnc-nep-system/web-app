@@ -98,6 +98,15 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 ::selection {
   background: var(--teal-100);
 }

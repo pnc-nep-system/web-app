@@ -30,7 +30,7 @@ const programmes = useAdminProgrammes()
     </div>
 
     <!-- Tabs -->
-    <div class="overflow-x-auto -mx-1 px-1 mb-5 border-b border-[var(--line)]">
+    <div class="overflow-x-auto no-scrollbar -mx-1 px-1 mb-5 border-b border-[var(--line)]">
       <div class="flex gap-1 min-w-0 w-max">
         <button
           class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
