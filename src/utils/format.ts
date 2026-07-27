@@ -22,6 +22,6 @@ export function formatDate(date?: string): string {
 export const AGREEMENT_STATUS: Record<string, string> = {
   active: 'Active',
   expired: 'Expired',
-  pending: 'Pending',
-  draft: 'Draft',
+  'under renewal': 'Renewal',
+  'under negotiation': 'Negotiating',
 }

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi } from '@/api/auth.api'
 import { connectRealtimeForRole, disconnectRealtime } from '@/realtime'
+import { useNotificationStore } from '@/stores/notification'
 
 export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref<boolean>(sessionStorage.getItem('isLoggedIn') === 'true')
@@ -54,6 +55,7 @@ export const useAuthStore = defineStore('auth', () => {
       sessionStorage.removeItem('currentUserId')
       try {
         disconnectRealtime()
+        useNotificationStore().stopPolling()
       } catch (err) {
         console.error('Failed to disconnect realtime:', err)
       }

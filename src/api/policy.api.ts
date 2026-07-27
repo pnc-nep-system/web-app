@@ -1,26 +1,5 @@
 import api from './axios'
-
-export interface PolicyDocument {
-  id: number
-  title: string
-  authority: string
-  version: string
-  date: string
-  status: 'active' | 'superseded' | 'inactive'
-  file_url?: string | null
-  created_by?: number
-  created_at?: string
-  updated_at?: string
-}
-
-export interface PolicyDocumentPayload {
-  title: string
-  authority: string
-  version: string
-  date: string
-  status?: 'active' | 'superseded' | 'inactive'
-  file?: File | null
-}
+import type { PolicyDocument, PolicyDocumentPayload } from '@/types/policy'
 
 /** Build a FormData object from a payload, including an optional File. */
 function buildFormData(payload: Omit<PolicyDocumentPayload, 'file'>, file?: File | null): FormData {
@@ -72,5 +51,27 @@ export const policyApi = {
    */
   deletePolicy(id: number) {
     return api.delete<{ message: string }>(`/policy-documents/${id}`)
+  },
+
+  /**
+   * Fetch a policy document's file as a blob.
+   */
+  fetchFile(id: number) {
+    return api.get<Blob>(`/policy-documents/${id}/file`, { responseType: 'blob' })
+  },
+
+  /**
+   * Download a policy document's file.
+   */
+  async downloadFile(id: number, filename: string) {
+    const response = await api.get<Blob>(`/policy-documents/${id}/file`, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', filename)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
   },
 }

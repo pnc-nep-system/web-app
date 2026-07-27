@@ -36,6 +36,17 @@ onMounted(() => {
 </script>
 
 <template>
+  <!-- Page Heading + CTA under header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 mt-2">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+      <p class="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
+        Overview of registered programme entries and status tracking.
+      </p>
+    </div>
+    <NewEntryButton />
+  </div>
+
   <!-- KPI Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <KpiCard label="Total Entries" :value="entries.currentItems.length" icon="list" icon-tone="indigo" />

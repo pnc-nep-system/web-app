@@ -79,81 +79,90 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     return map
   })
 
-  let _provincesLoaded = false
-  let _provincesLoading = false
+  let _provincesPromise: Promise<void> | null = null
 
   async function loadProvinces() {
-    if (_provincesLoaded || _provincesLoading) return
-    _provincesLoading = true
+    if (provinces.value.length > 0) return
+    if (_provincesPromise) return _provincesPromise
     loadingProvinces.value = true
     provincesError.value = null
-    try {
-      const res = await memberApi.getProvinces()
-      provinces.value = res.data.data
-      _provincesLoaded = true
-    } catch {
-      provincesError.value = 'Failed to load provinces. Please try again.'
-      _provincesLoaded = false
-      _provincesLoading = false
-    } finally {
-      loadingProvinces.value = false
-    }
+    _provincesPromise = (async () => {
+      try {
+        const res = await memberApi.getProvinces()
+        provinces.value = res.data.data
+      } catch {
+        provincesError.value = 'Failed to load provinces. Please try again.'
+      } finally {
+        loadingProvinces.value = false
+        _provincesPromise = null
+      }
+    })()
+    return _provincesPromise
   }
 
-  // Plain Sets track in-flight + completed fetches — checked synchronously before any async work
-  const _fetchingDistricts = new Set<number>()
-  const _fetchingCommunes = new Set<number>()
-  const _fetchingVillages = new Set<number>()
+  // Promise-based in-flight guards — survive reset() since they're keyed by ID
+  const _districtPromises = new Map<number, Promise<void>>()
+  const _communePromises = new Map<number, Promise<void>>()
+  const _villagePromises = new Map<number, Promise<void>>()
 
   async function fetchDistricts(provinceId: number) {
-    if (_districtsRaw[provinceId] || _fetchingDistricts.has(provinceId)) return
-    _fetchingDistricts.add(provinceId)
+    if (_districtsRaw[provinceId]) return
+    if (_districtPromises.has(provinceId)) return _districtPromises.get(provinceId)
     loadingDistricts.value = new Set([...loadingDistricts.value, provinceId])
-    try {
-      const res = await memberApi.getDistricts(provinceId)
-      _districtsRaw[provinceId] = res.data.data
-      districtsCache.value = { ...districtsCache.value, [provinceId]: res.data.data }
-    } catch {
-      _fetchingDistricts.delete(provinceId)
-    } finally {
-      const next = new Set(loadingDistricts.value)
-      next.delete(provinceId)
-      loadingDistricts.value = next
-    }
+    const promise = (async () => {
+      try {
+        const res = await memberApi.getDistricts(provinceId)
+        _districtsRaw[provinceId] = res.data.data
+        districtsCache.value = { ...districtsCache.value, [provinceId]: res.data.data }
+      } finally {
+        _districtPromises.delete(provinceId)
+        const next = new Set(loadingDistricts.value)
+        next.delete(provinceId)
+        loadingDistricts.value = next
+      }
+    })()
+    _districtPromises.set(provinceId, promise)
+    return promise
   }
 
   async function fetchCommunes(districtId: number) {
-    if (_communesRaw[districtId] || _fetchingCommunes.has(districtId)) return
-    _fetchingCommunes.add(districtId)
+    if (_communesRaw[districtId]) return
+    if (_communePromises.has(districtId)) return _communePromises.get(districtId)
     loadingCommunes.value = new Set([...loadingCommunes.value, districtId])
-    try {
-      const res = await memberApi.getCommunes(districtId)
-      _communesRaw[districtId] = res.data.data
-      communesCache.value = { ...communesCache.value, [districtId]: res.data.data }
-    } catch {
-      _fetchingCommunes.delete(districtId)
-    } finally {
-      const next = new Set(loadingCommunes.value)
-      next.delete(districtId)
-      loadingCommunes.value = next
-    }
+    const promise = (async () => {
+      try {
+        const res = await memberApi.getCommunes(districtId)
+        _communesRaw[districtId] = res.data.data
+        communesCache.value = { ...communesCache.value, [districtId]: res.data.data }
+      } finally {
+        _communePromises.delete(districtId)
+        const next = new Set(loadingCommunes.value)
+        next.delete(districtId)
+        loadingCommunes.value = next
+      }
+    })()
+    _communePromises.set(districtId, promise)
+    return promise
   }
 
   async function fetchVillages(communeId: number) {
-    if (_villagesRaw[communeId] || _fetchingVillages.has(communeId)) return
-    _fetchingVillages.add(communeId)
+    if (_villagesRaw[communeId]) return
+    if (_villagePromises.has(communeId)) return _villagePromises.get(communeId)
     loadingVillages.value = new Set([...loadingVillages.value, communeId])
-    try {
-      const res = await memberApi.getVillages(communeId)
-      _villagesRaw[communeId] = res.data.data
-      villagesCache.value = { ...villagesCache.value, [communeId]: res.data.data }
-    } catch {
-      _fetchingVillages.delete(communeId)
-    } finally {
-      const next = new Set(loadingVillages.value)
-      next.delete(communeId)
-      loadingVillages.value = next
-    }
+    const promise = (async () => {
+      try {
+        const res = await memberApi.getVillages(communeId)
+        _villagesRaw[communeId] = res.data.data
+        villagesCache.value = { ...villagesCache.value, [communeId]: res.data.data }
+      } finally {
+        _villagePromises.delete(communeId)
+        const next = new Set(loadingVillages.value)
+        next.delete(communeId)
+        loadingVillages.value = next
+      }
+    })()
+    _villagePromises.set(communeId, promise)
+    return promise
   }
 
   function toggleProvince(provinceId: number) {
@@ -278,11 +287,6 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     Object.keys(_districtsRaw).forEach(k => delete _districtsRaw[+k])
     Object.keys(_communesRaw).forEach(k => delete _communesRaw[+k])
     Object.keys(_villagesRaw).forEach(k => delete _villagesRaw[+k])
-    _fetchingDistricts.clear()
-    _fetchingCommunes.clear()
-    _fetchingVillages.clear()
-    _provincesLoaded = false
-    _provincesLoading = false
     loadingProvinces.value = false
     provincesError.value = null
     loadingDistricts.value = new Set()

@@ -84,13 +84,13 @@ async function handleConfirm() {
 
 <template>
   <!-- Page Header -->
-  <div class="flex items-start justify-between gap-4 mb-6 flex-col sm:flex-row">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 mt-2">
     <div>
-      <h1 class="text-[22px] font-bold text-[var(--ink-900)] tracking-tight">Organisation Management</h1>
-      <p class="text-xs text-[var(--ink-400)] mt-1">Manage member organisations, contacts and status.</p>
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Organisation Management</h1>
+      <p class="mt-1 text-xs sm:text-sm text-slate-500 font-medium">Manage member organisations, contacts and status.</p>
     </div>
-    <button class="btn btn-primary" @click="openCreate">
-      <BaseIcon name="plus" :size="14" />
+    <button class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] text-white text-xs font-bold rounded-xl hover:bg-[#0c483d] transition-all shadow-2xs cursor-pointer self-start sm:self-auto" @click="openCreate">
+      <BaseIcon name="plus" :size="15" />
       Create Organisation
     </button>
   </div>

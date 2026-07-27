@@ -56,6 +56,9 @@ defineExpose({ validate, getData })
       Select every activity item this programme delivers.
       Mark your most important activities as <strong class="text-gray-700">primary</strong> — NEP's coordination matching prioritises these.
     </p>
+    <p class="text-xs text-gray-400 px-1 sm:hidden">
+      Select activities. Mark key ones as <strong class="text-gray-600">primary</strong> for coordination matching.
+    </p>
 
     <!-- Loading Spinner -->
     <div v-if="accordion.isLoading" class="flex flex-col items-center justify-center py-12 bg-white rounded-xl border border-gray-100 shadow-sm">
@@ -129,7 +132,7 @@ defineExpose({ validate, getData })
 
             <div v-if="accordion.openSubcategories.has(sub.code)" class="border-t border-slate-100 px-4 py-4 space-y-3 bg-slate-50/10 animate-fade-in">
               <ActivityItemCard
-                v-for="item in sub.items"
+                v-for="item in sub.items.filter((i: any) => i.is_active !== false)"
                 :key="item.code"
                 :item="item"
               />

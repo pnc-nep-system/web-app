@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { adviserApi } from '@/api/adviser.api'
-import { userService } from '@/api/user.service'
-import type { SubmissionPayload, SubmissionListParams } from '@/api/adviser.api'
+import { userService } from '@/services/user.service'
+import type { SubmissionPayload, SubmissionListParams } from '@/types/adviser'
 import type { Submission } from '@/types/adviser'
 
 export const useAdviserStore = defineStore('adviser', () => {
@@ -21,25 +21,31 @@ export const useAdviserStore = defineStore('adviser', () => {
     const coordinatorsLoaded = ref(false)
     const isLoadingCoordinators = ref(false)
     const coordinatorError = ref<string | null>(null)
+    let _coordinatorsPromise: Promise<void> | null = null
 
     async function loadCoordinators(force = false) {
-        if (!force && (coordinatorsLoaded.value || isLoadingCoordinators.value)) return
+        if (!force && coordinatorsLoaded.value) return
+        if (!force && _coordinatorsPromise) return _coordinatorsPromise
         isLoadingCoordinators.value = true
         coordinatorsLoaded.value = false
         coordinatorError.value = null
-        try {
-            const res = await adviserApi.listCoordinators()
-            const raw = res.data?.data ?? []
-            const map: Record<number, string> = {}
-            raw.forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
-            coordinatorMap.value = map
-            coordinatorsLoaded.value = true
-        } catch (err: any) {
-            coordinatorError.value = err?.response?.data?.message || err?.response?.status || err.message || 'Unknown error'
-            coordinatorMap.value = {}
-        } finally {
-            isLoadingCoordinators.value = false
-        }
+        _coordinatorsPromise = (async () => {
+            try {
+                const res = await adviserApi.listCoordinators()
+                const raw = res.data?.data ?? []
+                const map: Record<number, string> = {}
+                raw.forEach((u: any) => { map[u.id] = u.name ?? u.email ?? `User ${u.id}` })
+                coordinatorMap.value = map
+                coordinatorsLoaded.value = true
+            } catch (err: any) {
+                coordinatorError.value = err?.response?.data?.message || err?.response?.status || err.message || 'Unknown error'
+                coordinatorMap.value = {}
+            } finally {
+                isLoadingCoordinators.value = false
+                _coordinatorsPromise = null
+            }
+        })()
+        return _coordinatorsPromise
     }
 
     function coordinatorLabel(id: number | null): string {
@@ -47,11 +53,15 @@ export const useAdviserStore = defineStore('adviser', () => {
         return coordinatorMap.value[id] ?? `User #${id}`
     }
 
+    let _fetchSubmissionsPromise: Promise<void> | null = null
+
     async function fetchSubmissions(params: SubmissionListParams = {}) {
+        if (_fetchSubmissionsPromise) return _fetchSubmissionsPromise
         loading.value = true
         error.value = null
+        _fetchSubmissionsPromise = (async () => {
         try {
-            await loadCoordinators(true)
+            await loadCoordinators()
             const response = await adviserApi.list({
                 page: currentPage.value,
                 per_page: perPage.value,
@@ -66,7 +76,10 @@ export const useAdviserStore = defineStore('adviser', () => {
             error.value = err?.response?.data?.message ?? 'Failed to load submissions.'
         } finally {
             loading.value = false
+            _fetchSubmissionsPromise = null
         }
+        })()
+        return _fetchSubmissionsPromise
     }
 
     async function goToPage(page: number, params: SubmissionListParams = {}) {

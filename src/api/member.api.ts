@@ -85,30 +85,6 @@ export const memberApi = {
   markVerified(id: number | string) {
     return api.patch(`/programme-entries/${id}/verify`);
   },
-  suggestActivities(text: string) {
-    return api.post<{ data: string[]; suggestions: Record<string, any> }>('/programme-entries/suggest-activities', { text }, { timeout: 60000 })
-  },
-  suggestActivitiesWithFile(formData: FormData) {
-    return api.post<{ data: string[]; suggestions: Record<string, any> }>('/programme-entries/suggest-activities', formData, {
-      timeout: 60000,
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-  },
-  fetchUrlContent(url: string) {
-    return api.post<{ text: string }>('/programme-entries/fetch-url', { url }, { timeout: 20000 })
-  },
-  aiAutofill(payload: FormData | { text: string }) {
-    const isFormData = payload instanceof FormData
-    return api.post<{
-      activities: { codes: string[]; suggestions: Record<string, any> }
-      geography: { province_ids: number[] }
-      agreements: { counterpart_agency: string; nature: string; status: string; institution_name: string }[]
-      keywords: string[]
-    }>('/programme-entries/ai-autofill', payload, {
-      timeout: 60000,
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
-    })
-  },
   listOrganisations() {
     return api.get('/organisations');
   },

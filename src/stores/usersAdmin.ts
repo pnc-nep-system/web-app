@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 import { useUsers } from '@/composables/useUsers'
-import { userService } from '@/api/user.service'
+import { userService } from '@/services/user.service'
 import type { User, CreateUserPayload, UpdateUserPayload } from '@/types/user'
 
 export const useUsersAdminStore = defineStore('usersAdmin', () => {

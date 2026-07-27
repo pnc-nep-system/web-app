@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import AppShell from '@/components/AppShell.vue'
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import ToastStack from '@/components/common/ToastStack.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { useToast } from '@/composables/useToast'
 import { useAdviserStore } from '@/stores/adviser'
 import { adviserApi } from '@/api/adviser.api'
-import { organisationService } from '@/api/organisation.service'
+import { getMapEntries } from '@/api/map.api'
+import { organisationService } from '@/services/organisation.service'
 import type { Submission } from '@/types/adviser'
 
 // Adviser-specific sub-components
@@ -27,7 +31,9 @@ const { toasts, push: pushToast } = useToast()
 // ── State ─────────────────────────────────────────────────────────────────────
 const loading = ref(true)
 const delivering = ref(false)
-const submissionId = Number(route.params.id)
+const exportingPdf = ref(false)
+// Support both /adviser/:id and /adviser/entry/:entryId routes
+const submissionId = ref<number>(Number(route.params.id) || 0)
 const currentStatus = ref('submitted_for_review')
 const submission = ref<Submission | null>(null)
 const assigneeId = ref<number | null>(null)
@@ -77,7 +83,7 @@ async function generateAndDraft() {
   draftGenerating.value = true
   try {
     // Step 1: generate advisory note to get AI analysis
-    const aiRes = await adviserApi.generateAdvisoryNote(submissionId, programmeProfile.value)
+    const aiRes = await adviserApi.generateAdvisoryNote(submissionId.value, programmeProfile.value)
     const aiData = (aiRes.data as any)?.data ?? {}
 
     // Step 2: create the programme entry draft
@@ -92,12 +98,12 @@ async function generateAndDraft() {
         : [],
     }
 
-    const entryRes = await adviserApi.createProgrammeEntry(submissionId, payload)
+    const entryRes = await adviserApi.createProgrammeEntry(submissionId.value, payload)
     const newId = entryRes.data?.data?.id
 
     showDraftModal.value = false
     pushToast('AI programme draft created — redirecting to form')
-    router.push(`/entries/new?id=${newId}`)
+    router.push(`/entries/new?id=${newId}&org_id=${selectedOrgId.value}`)
   } catch (err: any) {
     const msg = err?.response?.data?.message ?? 'Failed to generate programme draft'
     pushToast(msg)
@@ -115,18 +121,30 @@ const coordinators = computed(() =>
 )
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
+let _bootstrapping = false
 onMounted(async () => {
+  if (_bootstrapping) return
+  _bootstrapping = true
   adviserStore.loadCoordinators()
 
-  const cached = adviserStore.submissions.find(s => s.id === submissionId)
-  if (cached) {
-    applySubmission(cached)
+  // If loaded via /adviser/entry/:entryId, resolve the advisory note first
+  if (!submissionId.value && route.params.entryId) {
+    try {
+      const res = await adviserApi.getByProgrammeEntry(Number(route.params.entryId))
+      const note = (res.data as any)?.data ?? res.data
+      if (note?.id) {
+        submissionId.value = note.id
+        applySubmission(note)
+      }
+    } catch {
+      // fall through to default empty state
+    }
     loading.value = false
     return
   }
 
   try {
-    const res = await adviserApi.getById(submissionId)
+    const res = await adviserApi.getById(submissionId.value)
     const data = (res.data as any)?.data ?? res.data
     if (data) applySubmission(data)
   } catch {
@@ -139,13 +157,39 @@ onMounted(async () => {
 function applySubmission(data: Submission) {
   submission.value = data
   currentStatus.value = data.status
-  assigneeId.value = data.assign_to_staff_user_id
-  if (data.section_profile) form.value.sectionA = data.section_profile
+  assigneeId.value = data.assign_to_staff_user_id ?? null
+
+  form.value.sectionA = data.section_profile || ''
+
   if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
   if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes
+
+  // Populate section B from saved recommendations
+  const recs = (data as any).recommendations
+  if (Array.isArray(recs) && recs.length > 0) {
+    form.value.sectionB = recs.map((r: any) => ({
+      org: r.organisation_name || '',
+      type: r.type || 'Geographic overlap',
+      linked: r.programme_entry_id ? `Entry #${r.programme_entry_id}` : '—',
+      text: r.relational || '',
+    }))
+  } else if (form.value.sectionB.length === 0) {
+    fetchMapOverlaps()
+  }
+}
+
+function handleViewDocument() {
+  const docUrl = (submission.value as any)?.document_url || (submission.value as any)?.document_path
+  if (docUrl) {
+    window.open(docUrl, '_blank')
+  } else {
+    pushToast(`Document: ${submission.value?.document_name || 'Uploaded File'} (read for prototype review)`)
+  }
 }
 
 // ── Computed ──────────────────────────────────────────────────────────────────
+const isDelivered = computed(() => currentStatus.value === 'advice_delivered')
+
 const scopeDisplay = computed(() => {
   if (!submission.value) return 'full map'
   const s = submission.value
@@ -153,41 +197,245 @@ const scopeDisplay = computed(() => {
   return `${s.analysis_scope}: ${s.analysis_scope_detail}`
 })
 
+// Whether overlaps were found (B is required only when there are overlaps)
+const hasOverlaps = computed(() => form.value.sectionB.length > 0)
+
+const isSectionsComplete = computed(() => {
+  // A is always required
+  if (!form.value.sectionA?.trim()) return false
+  // B is required only when overlaps exist
+  if (hasOverlaps.value) {
+    const allBFilled = form.value.sectionB.every(r => r.org?.trim() && r.text?.trim())
+    if (!allBFilled) return false
+  }
+  return true
+})
+
 // ── Actions ───────────────────────────────────────────────────────────────────
 function goBack() {
   router.push('/adviser')
 }
 
-function saveDraft() {
-  pushToast('Draft saved')
+const savingDraft = ref(false)
+
+async function saveDraft() {
+  if (savingDraft.value) return
+  savingDraft.value = true
+  try {
+    await adviserApi.updateSections(submissionId.value, {
+      section_profile: form.value.sectionA,
+      section_gaps: form.value.sectionC.map(g => g.text).filter(Boolean).join('\n'),
+      section_coordinators_notes: form.value.sectionD,
+      recommendations: form.value.sectionB.map(r => ({
+        organisation_name: r.org,
+        type: r.type,
+        relational: r.text,
+        programme_entry_id: r.linked && r.linked !== '—' ? (Number(r.linked.replace(/\D/g, '')) || null) : null,
+      })),
+    })
+    pushToast('Draft saved')
+  } catch {
+    pushToast('Failed to save draft')
+  } finally {
+    savingDraft.value = false
+  }
 }
 
 async function markDelivered() {
+  if (!form.value.sectionA?.trim()) {
+    pushToast('Please complete Section A (Programme profile as interpreted) before marking advice as delivered.')
+    return
+  }
+  if (form.value.sectionB.length > 0) {
+    const incomplete = form.value.sectionB.some(r => !r.org?.trim() || !r.text?.trim())
+    if (incomplete) {
+      pushToast('Please fill in the organisation name and description for all coordination recommendations (Section B).')
+      return
+    }
+  }
+
   if (delivering.value) return
   delivering.value = true
   try {
-    const res = await adviserApi.markDelivered(submissionId)
+    // Save all sections first, then mark delivered
+    await adviserApi.updateSections(submissionId.value, {
+      section_profile: form.value.sectionA,
+      section_gaps: form.value.sectionC.map(g => g.text).filter(Boolean).join('\n'),
+      section_coordinators_notes: form.value.sectionD,
+      recommendations: form.value.sectionB.map(r => ({
+        organisation_name: r.org,
+        type: r.type,
+        relational: r.text,
+        programme_entry_id: r.linked && r.linked !== '—' ? (Number(r.linked.replace(/\D/g, '')) || null) : null,
+      })),
+    })
+    const res = await adviserApi.markDelivered(submissionId.value)
     const data = (res.data as any)?.data ?? res.data
     const newStatus = data?.status ?? 'advice_delivered'
     currentStatus.value = newStatus
-    const existing = adviserStore.submissions.find(s => s.id === submissionId)
+    if (submission.value) {
+      submission.value.delivered_at = data?.delivered_at ?? new Date().toISOString()
+    }
+    const existing = adviserStore.submissions.find(s => s.id === submissionId.value)
     if (existing) existing.status = newStatus
-    pushToast('Advisory note marked as delivered')
+    pushToast('Advisory note saved and marked as delivered')
+    router.push('/adviser?tab=advice_delivered')
   } catch {
-    pushToast('Failed to update status — please try again')
+    pushToast('Failed to save — please try again')
   } finally {
     delivering.value = false
+  }
+}
+
+async function exportAdvisoryNotePdf() {
+  if (exportingPdf.value) return
+  exportingPdf.value = true
+  const docName = (submission.value?.document_name || 'Advisory_Note').replace(/[^a-zA-Z0-9_-]/g, '_')
+
+  // Build a hidden render div
+  const container = document.createElement('div')
+  container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;padding:40px;background:#fff;font-family:Arial,sans-serif;font-size:13px;color:#1e293b;line-height:1.6;'
+
+  const title = submission.value?.document_name || 'Advisory Note'
+  const party = submission.value?.submitting_party || 'Member Organisation'
+  const scope = scopeDisplay.value
+
+  let sectionsHtml = ''
+
+  if (form.value.sectionA?.trim()) {
+    sectionsHtml += `<div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">A · Programme profile as interpreted</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;white-space:pre-wrap">${form.value.sectionA.trim()}</div>
+    </div>`
+  }
+
+  if (form.value.sectionB?.length) {
+    const recHtml = form.value.sectionB.map((r, i) => `
+      <div style="border:1px solid #cbd5e1;border-radius:6px;padding:10px;margin-bottom:8px">
+        <strong>${i + 1}. ${r.org}</strong> <span style="background:#e2e8f0;padding:1px 6px;border-radius:4px;font-size:11px">${r.type}</span><br/>
+        <em style="color:#64748b;font-size:11px">Linked: ${r.linked}</em>
+        <p style="margin:6px 0 0;font-size:12px">${r.text}</p>
+      </div>`).join('')
+    sectionsHtml += `<div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">B · Coordination recommendations</div>
+      ${recHtml}
+    </div>`
+  }
+
+  const validGaps = form.value.sectionC?.filter(g => g?.text?.trim())
+  if (validGaps?.length) {
+    sectionsHtml += `<div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">C · Gaps in the map</div>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px">${validGaps.map(g => `<p style="margin:2px 0">• ${g.text.trim()}</p>`).join('')}</div>
+    </div>`
+  }
+
+  container.innerHTML = `
+    <h1 style="color:#0F5A4D;font-size:20px;margin:0 0 4px">Advisory Note</h1>
+    <div style="color:#64748b;font-size:12px;border-bottom:2px solid #0F5A4D;padding-bottom:8px;margin-bottom:20px">
+      <strong>Source:</strong> ${title} &nbsp;|&nbsp; <strong>Submitted by:</strong> ${party} &nbsp;|&nbsp; <strong>Scope:</strong> ${scope}
+    </div>
+    ${sectionsHtml || '<p style="color:#94a3b8;font-style:italic">No sections recorded.</p>'}
+  `
+
+  document.body.appendChild(container)
+
+  try {
+    const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+    const pageW = pdf.internal.pageSize.getWidth()
+    const pageH = pdf.internal.pageSize.getHeight()
+    const imgW = pageW
+    const imgH = (canvas.height * imgW) / canvas.width
+    let y = 0
+    let remaining = imgH
+    while (remaining > 0) {
+      pdf.addImage(imgData, 'PNG', 0, -y, imgW, imgH)
+      remaining -= pageH
+      if (remaining > 0) { pdf.addPage(); y += pageH }
+    }
+    pdf.save(`Advisory_Note_${docName}.pdf`)
+  } finally {
+    document.body.removeChild(container)
+    exportingPdf.value = false
   }
 }
 
 async function assignCoordinator(userId: number | null) {
   assigneeId.value = userId
   try {
-    await adviserApi.updateAssignee(submissionId, userId)
-    const existing = adviserStore.submissions.find(s => s.id === submissionId)
+    await adviserApi.updateAssignee(submissionId.value, userId)
+    const existing = adviserStore.submissions.find(s => s.id === submissionId.value)
     if (existing) existing.assign_to_staff_user_id = userId
   } catch {
     // silently ignore — local state already updated optimistically
+  }
+}
+
+const fetchingOverlaps = ref(false)
+
+async function fetchMapOverlaps() {
+  fetchingOverlaps.value = true
+  try {
+    const rawScope = (submission.value?.analysis_scope || 'full map').toLowerCase()
+    const validScope = ['full map', 'geographic subset', 'thematic subset'].find(s => rawScope.includes(s)) ?? 'full map'
+
+    const entry = submission.value?.programme_entry
+    const categoryIds = [...new Set(
+      (entry?.activities ?? []).map((a: any) => a.activityItem?.subcategory?.category_id).filter(Boolean)
+    )]
+    const itemIds = [...new Set(
+      (entry?.activities ?? []).map((a: any) => a.activity_item_id).filter(Boolean)
+    )]
+    const provinceIds = [...new Set(
+      (entry?.locations ?? []).map((l: any) => l.province_id).filter(Boolean)
+    )]
+    const districtIds = [...new Set(
+      (entry?.locations ?? []).map((l: any) => l.district_id).filter(Boolean)
+    )]
+
+    const profile = {
+      activities: { category_ids: categoryIds, item_ids: itemIds, education_level_ids: [] as number[], inclusion_groups: [] as string[] },
+      geography: { province_ids: provinceIds, district_ids: districtIds },
+      audiences: { inclusion_types: [] as string[] },
+    }
+
+    let matches: any[] = []
+    try {
+      let res = await adviserApi.queryOverlap(profile, validScope)
+      matches = (res.data as any)?.data ?? res.data ?? []
+      // Exclude the submission's own programme entry from results
+      if (submission.value?.programme_entry_id) {
+        matches = matches.filter((m: any) => m.id !== submission.value!.programme_entry_id)
+      }
+    } catch (err) {
+      console.warn('Overlap query error:', err)
+    }
+
+    if (Array.isArray(matches) && matches.length > 0) {
+      form.value.sectionB = matches.map((m: any) => {
+        const orgName = m.organisation?.name || m.organisation_name || 'Partner Organisation'
+        const entryName = m.programme_name || m.name || `Programme Entry #${m.id}`
+        const locations = (m.locations || []).map((l: any) => l.province?.name || l.province_name || l.province?.province_name).filter(Boolean).join(', ')
+
+        return {
+          org: orgName,
+          type: 'Geographic & Activity overlap',
+          linked: entryName,
+          text: `Registered programme in ${locations || 'target region'}. Recommending coordination with ${orgName} on intervention alignment and avoiding duplication of activities.`,
+        }
+      })
+      pushToast(`Identified ${matches.length} overlapping programme(s) on the map`)
+    } else {
+      form.value.sectionB = []
+      pushToast('No similar programmes found for current profile & scope')
+    }
+  } catch (err) {
+    console.error('Map overlap query error:', err)
+    form.value.sectionB = []
+  } finally {
+    fetchingOverlaps.value = false
   }
 }
 
@@ -213,8 +461,8 @@ function removeGap(idx: number) {
     </template>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-20 flex justify-center text-gray-400">
-      <BaseIcon name="refresh" size="24" class="animate-spin" />
+    <div v-if="loading" class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-16 flex items-center justify-center max-w-[1400px] mx-auto my-6">
+      <LoadingSpinner message="Loading draft advisory note..." />
     </div>
 
     <div v-else class="max-w-[1400px] mx-auto pb-12">
@@ -226,11 +474,12 @@ function removeGap(idx: number) {
         :submitting-party="submission?.submitting_party ?? '—'"
         :scope-display="scopeDisplay"
         :delivering="delivering"
+        :is-complete="isSectionsComplete"
         @back="goBack"
         @save-draft="saveDraft"
         @mark-delivered="markDelivered"
+        @view-document="handleViewDocument"
       />
-
 
       <!-- Dual-pane workspace -->
       <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
@@ -238,18 +487,21 @@ function removeGap(idx: number) {
         <!-- LEFT PANE: Document viewer + Workflow sidebar -->
         <div class="space-y-6">
           <DocumentViewerPanel
-            :document-name="submission?.document_name ?? '—'"
-            document-size=""
-            :submitting-party="submission?.submitting_party ?? '—'"
-            :analysis-scope="submission?.analysis_scope ?? '—'"
-            :submitted-date="submission?.submitted_at ?? ''"
+            :document-name="submission?.document_name"
+            :submitting-party="submission?.submitting_party"
+            :analysis-scope="submission?.analysis_scope"
+            :analysis-scope-detail="submission?.analysis_scope_detail ?? undefined"
+            :exporting-pdf="exportingPdf"
+            @export-pdf="exportAdvisoryNotePdf"
           />
           <WorkflowCard
             :current-status="currentStatus"
             :assignee-id="assigneeId"
             :coordinators="coordinators"
             :delivered-at="submission?.delivered_at ?? null"
+            :final-note-file-url="(submission as any)?.final_note_file_url ?? null"
             @update:assigneeId="assignCoordinator"
+            @open-file="adviserApi.openFinalNoteFile(submissionId)"
           />
         </div>
 
@@ -260,14 +512,19 @@ function removeGap(idx: number) {
             title="A · Programme profile as interpreted"
             :model-value="form.sectionA"
             @update:model-value="form.sectionA = $event"
-            badge="AI-GENERATED"
-            badge-tone="indigo"
+            badge="MANUAL ENTRY"
+            badge-tone="gray"
+            placeholder="Type or paste the interpreted programme profile here..."
+            :readonly="isDelivered"
           />
 
           <RecommendationsList
             :items="form.sectionB"
+            :fetching="fetchingOverlaps"
+            :readonly="isDelivered"
             @add="addRecommendation"
             @remove="removeRecommendation"
+            @find-overlaps="fetchMapOverlaps"
             @update:org="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].org = val }"
             @update:type="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].type = val }"
             @update:text="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].text = val }"
@@ -275,6 +532,7 @@ function removeGap(idx: number) {
 
           <GapsList
             :items="form.sectionC"
+            :readonly="isDelivered"
             @add="addGap"
             @remove="removeGap"
             @update:text="(idx, val) => { if (form.sectionC[idx]) form.sectionC[idx].text = val }"
@@ -287,6 +545,7 @@ function removeGap(idx: number) {
             badge="Internal — not released"
             badge-tone="amber"
             :is-internal="true"
+            :readonly="isDelivered"
             placeholder="Private notes for coordinations. This will not be exported in the final PDF..."
           />
 

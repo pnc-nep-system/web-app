@@ -302,8 +302,8 @@ function preventNegativeKey(e: KeyboardEvent) {
           <label for="endYear" class="block text-sm font-medium text-gray-700 mb-1.5">
             End year <span v-if="!store.section1Data.isOngoing" class="text-red-500">*</span>
           </label>
-          <div class="flex items-center gap-3">
-            <div class="flex-1">
+          <div class="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+            <div class="flex-1 min-w-[120px]">
               <input
                 id="endYear"
                 v-model.number="store.section1Data.endYear"

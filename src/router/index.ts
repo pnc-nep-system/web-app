@@ -27,22 +27,21 @@ const router = createRouter({
     {
       path: "/map",
       name: "map",
-      component: () => import("@/views/MapView.vue"),
+      component: () => import("@/views/staff/MapView.vue"),
       meta: {
         requiresAuth: true,
-        roles: ["nep_admin", "nep_coordinator"],
       },
     },
     {
       path: "/admin/taxonomy",
       name: "admin-taxonomy",
-      component: () => import("@/views/staff/TaxonomyAdminView.vue"),
+      component: () => import("@/views/admin/TaxonomyManagement.vue"),
       meta: { requiresAuth: true, roles: ["nep_admin"] },
     },
     {
       path: "/policy",
       name: "policy",
-      component: () => import("@/views/PolicyView.vue"),
+      component: () => import("@/views/staff/PolicyView.vue"),
       meta: { requiresAuth: true, roles: ["nep_admin", "nep_coordinator"] },
     },
     {
@@ -87,6 +86,13 @@ const router = createRouter({
       name: "adviser-new",
       component: () => import("@/views/adviser/NewSubmissionView.vue"),
       meta: { requiresAuth: true, roles: ["nep_coordinator", "nep_admin"] },
+    },
+    {
+      path: "/adviser/entry/:entryId",
+      name: "adviser-entry-detail",
+      component: () => import("@/views/adviser/AdvisoryNoteView.vue"),
+      meta: { requiresAuth: true },
+      props: true,
     },
     {
       path: "/adviser/:id",

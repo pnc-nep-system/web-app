@@ -1,4 +1,5 @@
 import api from './axios'
+import type { MapFilters } from '@/types/map'
 
 /**
  * Fetches all programme entries for the map view.
@@ -7,26 +8,6 @@ import api from './axios'
  */
 export async function getMapEntries() {
   return api.get('/map/entries', { params: { format: 'flat', per_page: 1000 } })
-}
-
-/**
- * API-facing filter parameters sent with export requests.
- *
- * Unlike MapViewFilters (which uses display-oriented strings), this interface
- * uses numeric IDs matching the backend's expected query parameters.
- */
-export interface MapFilters {
-  category_id?: number | null
-  subcategory_id?: number | null
-  item_id?: number | null
-  education_level_id?: number | null
-  inclusion_group?: string | null
-  inclusion_type?: string | null
-  province_id?: number | null
-  district_id?: number | null
-  commune_id?: number | null
-  keyword?: string | null
-  organisation_name?: string | null
 }
 
 /**

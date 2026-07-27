@@ -5,6 +5,7 @@ import { useOrganisationsStore } from '@/stores/organisations'
 import { useTaxonomyStore } from '@/stores/taxonomy'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/utils/toast'
+import { adviserApi } from '@/api/adviser.api'
 import type { EntryDetail, ActivityRow } from '@/types/entryDetail'
 
 export function useEntryDetail(id: Ref<string | undefined>) {
@@ -18,14 +19,28 @@ export function useEntryDetail(id: Ref<string | undefined>) {
   const entry = ref<EntryDetail | null>(null)
   const loading = ref(true)
   const marking = ref(false)
+  const advisoryNoteStatus = ref<string | null>(null)
+
+  let activeId: string | null = null
 
   watch(id, async (newId) => {
-    loading.value = true
     if (!newId) { entry.value = null; loading.value = false; return }
+    if (activeId === newId) return
+    activeId = newId
+    loading.value = true
     try {
       entry.value = await entries.fetchById(newId)
+      if (auth.userRole === 'member_org' && activeId === newId) {
+        try {
+          const res = await adviserApi.getByProgrammeEntry(Number(newId))
+          const note = (res.data as any)?.data ?? res.data
+          advisoryNoteStatus.value = note?.status ?? null
+        } catch {
+          advisoryNoteStatus.value = null
+        }
+      }
     } finally {
-      loading.value = false
+      if (activeId === newId) loading.value = false
     }
   }, { immediate: true })
 
@@ -41,7 +56,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
 
   const relatedEntries = computed(() => {
     if (!entry.value) return []
-    const myProvinces = new Set(entry.value.provinces)
+    const myProvinces = new Set((entry.value as any)?.provinces || [])
     const myCategories = new Set(entry.value.activities.map((a) => a.code.split('.')[0]))
     return entries.items
       .filter((e: any) => e.id !== entry.value!.id)
@@ -59,14 +74,59 @@ export function useEntryDetail(id: Ref<string | undefined>) {
     toast.success('Entry marked as verified')
   }
 
-  function analyseInAdviser() {
-    router.push({ name: 'adviser' })
+  const analysing = ref(false)
+
+  async function analyseInAdviser() {
+    if (!entry.value || analysing.value) return
+    const entryId = (entry.value as any).id
+    const isMember = auth.userRole === 'member_org'
+    analysing.value = true
+    try {
+      const res = await adviserApi.getByProgrammeEntry(entryId)
+      const note = (res.data as any)?.data ?? res.data
+      if (note?.id) {
+        const dest = isMember
+          ? { name: 'adviser-entry-detail', params: { entryId: String(entryId) }, state: { note } }
+          : { name: 'adviser-detail', params: { id: String(note.id) } }
+        router.push(dest)
+        return
+      }
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        if (isMember) {
+          // Members see the friendly "not yet available" message
+          router.push({ name: 'adviser-entry-detail', params: { entryId: String(entryId) } })
+        } else {
+          // Staff: auto-create an advisory note linked to this programme entry
+          try {
+            const orgName = (entry.value as any).organisationName
+              ?? (entry.value as any).organisation?.name
+              ?? 'Unknown Organisation'
+            const createRes = await adviserApi.submit({
+              submitting_party: orgName,
+              document_name: (entry.value as any).name ?? (entry.value as any).programme_name ?? `Programme Entry #${entryId}`,
+              analysis_scope: 'full map',
+              programme_entry_id: entryId,
+            })
+            const created = (createRes.data as any)?.data ?? createRes.data
+            router.push({ name: 'adviser-detail', params: { id: String(created.id) } })
+          } catch {
+            toast.error?.('Failed to create advisory note')
+          }
+        }
+        return
+      }
+      toast.error?.('Failed to load advisory note')
+    } finally {
+      analysing.value = false
+    }
   }
 
   return {
     entry,
     loading,
     marking,
+    analysing,
     status,
     activityRows,
     relatedEntries,
@@ -74,5 +134,6 @@ export function useEntryDetail(id: Ref<string | undefined>) {
     analyseInAdviser,
     organisations,
     auth,
+    advisoryNoteStatus,
   }
 }

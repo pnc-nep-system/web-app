@@ -165,7 +165,7 @@ function formatDate(iso: string): string {
                   title="Deactivate account"
                   @click="emit('deactivate', user)"
                 >
-                  <BaseIcon name="lock" :size="14" />
+                  <BaseIcon name="ban" :size="14" />
                 </button>
                 <button
                   v-else
@@ -218,7 +218,7 @@ function formatDate(iso: string): string {
               class="btn btn-danger-ghost btn-sm"
               @click="emit('deactivate', user)"
             >
-              <BaseIcon name="lock" :size="13" /> Deactivate
+              <BaseIcon name="ban" :size="13" /> Deactivate
             </button>
             <button
               v-else

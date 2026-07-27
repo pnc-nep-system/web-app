@@ -9,11 +9,13 @@ export interface Toast {
   text: string
 }
 
-export function useToast(duration = 4000) {
+export function useToast(duration = 3000) {
   const toasts = ref<Toast[]>([])
 
   function push(text: string) {
-    const id = Date.now()
+    if (toasts.value.some(t => t.text === text)) return
+
+    const id = Date.now() + Math.random()
     toasts.value.push({ id, text })
     setTimeout(() => {
       toasts.value = toasts.value.filter(t => t.id !== id)

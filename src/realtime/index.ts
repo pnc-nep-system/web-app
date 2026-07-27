@@ -45,6 +45,19 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
           title: `New programme: ${payload.programme_name}`,
           message: payload.message,
           programme_entry_id: payload.programme_entry_id,
+          advisory_note_id: null,
+          read_at: null,
+          created_at: new Date().toISOString(),
+        })
+      })
+      .listen('.advice.delivered', (payload: any) => {
+        notificationStore.pushNotification({
+          id: payload.notification_id ?? String(Date.now()),
+          type: 'advice_delivered',
+          title: payload.title ?? 'Coordination advice delivered',
+          message: payload.message,
+          programme_entry_id: payload.programme_entry_id ?? null,
+          advisory_note_id: payload.advisory_note_id ?? null,
           read_at: null,
           created_at: new Date().toISOString(),
         })

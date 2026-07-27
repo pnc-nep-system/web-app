@@ -42,7 +42,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { dashboardApi, type RecentActivityItem } from '@/api/dashboard.api'
+import { dashboardApi } from '@/api/dashboard.api'
+import type { RecentActivityItem } from '@/types/dashboard'
 
 const router = useRouter()
 const items = ref<RecentActivityItem[]>([])
@@ -61,14 +62,11 @@ onMounted(async () => {
 
 function navigate(item: RecentActivityItem) {
   if (item.type === 'advisory_note') {
-    // Delivered advisory note → open the adviser detail
     router.push(`/adviser/${item.id}`)
-  } else if (item.type === 'programme_new' && item.advisory_note_id) {
-    // New programme → open its draft advisory note
-    router.push(`/adviser/${item.advisory_note_id}`)
-  } else if (item.type === 'programme_updated') {
-    // Updated programme → open on the map
-    router.push('/admin/map')
+  } else {
+    // programme_new or programme_updated → go to map, highlight the entry
+    const entryId = item.programme_entry_id ?? item.id
+    router.push({ path: '/map', query: { entry: String(entryId) } })
   }
 }
 

@@ -20,8 +20,15 @@ const router = useRouter()
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 
-const { entry, loading, marking, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth }
+const { entry, loading, marking, analysing, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth, advisoryNoteStatus }
   = useEntryDetail(toRef(props, 'id'))
+function handleBack() {
+  if (auth.isAdmin || (auth as any).userRole === 'nep_coordinator') {
+    router.push({ name: 'map' })
+  } else {
+    router.push({ name: 'dashboard' })
+  }
+}
 </script>
 
 <template>
@@ -30,14 +37,13 @@ const { entry, loading, marking, status, activityRows, relatedEntries, markVerif
       <HeaderBreadcrumb :crumbs="['Programme entries', (entry as any)?.name || (entry as any)?.programme_name || 'Entry Detail']" />
     </template>
 
-    <div v-if="loading" class="bg-white rounded-xl border border-gray-100 shadow-sm p-16 flex items-center justify-center">
+    <div v-if="loading" class="bg-[var(--card)] border border-[var(--line)] rounded-[var(--radius)] shadow-sm p-16 flex items-center justify-center">
       <LoadingSpinner message="Loading programme entry details..." />
     </div>
 
     <div v-else-if="!entry">
       <EmptyState icon="search" title="Entry not found" message="It may have been removed, or the link is out of date.">
-        <template #action><BaseButton variant="secondary" size="sm" @click="router.push({ name: 'map' })">← Back to
-            map</BaseButton></template>
+        <template #action><BaseButton variant="secondary" size="sm" @click="handleBack">← Back</BaseButton></template>
       </EmptyState>
     </div>
 
@@ -48,7 +54,7 @@ const { entry, loading, marking, status, activityRows, relatedEntries, markVerif
         :marking
         :is-admin="auth.isAdmin"
         @mark-verified="markVerified"
-        @back="router.push({ name: 'map' })"
+        @back="handleBack"
       />
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -62,8 +68,12 @@ const { entry, loading, marking, status, activityRows, relatedEntries, markVerif
           <EntryGeographicCoverage :locations="entry.locations" :other-countries="entry.otherCountries" />
           <EntryKeywords :keywords="entry.keywords" />
           <EntryCoordinationNote
+            v-if="auth.isCoordinatorOrAdmin || auth.userRole === 'member_org'"
             :has-overlaps="relatedEntries.length > 0"
             :overlap-count="relatedEntries.length"
+            :analysing="analysing"
+            :is-member="auth.userRole === 'member_org'"
+            :is-delivered="advisoryNoteStatus === 'advice_delivered'"
             @analyse="analyseInAdviser"
           />
         </div>

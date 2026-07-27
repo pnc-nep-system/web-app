@@ -18,8 +18,8 @@ const usersComposable = store.usersComposable
     title="User Management"
     subtitle="Manage system accounts, roles and organisation access."
   >
-    <button id="create-user-btn" class="btn btn-primary" @click="store.openCreateModal">
-      <BaseIcon name="plus" :size="14" />
+    <button id="create-user-btn" class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] text-white text-xs font-bold rounded-xl hover:bg-[#0c483d] transition-all shadow-2xs cursor-pointer self-start sm:self-auto" @click="store.openCreateModal">
+      <BaseIcon name="plus" :size="15" />
       Create User
     </button>
   </PageHeader>

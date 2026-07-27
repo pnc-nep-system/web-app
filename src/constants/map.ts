@@ -12,11 +12,15 @@ export const EDUCATION_LEVELS: Record<string, string> = {
 /**
  * Maps inclusion group keys to their display labels.
  * Used by the "Inclusion group" filter dropdown in MapFilterBar.
+ * Aligned 1:1 with target inclusion taxonomy in Programme Entry form.
  */
 export const INCLUSION_GROUPS: Record<string, string> = {
   disability: 'Disability',
-  ethnic: 'Ethnic minority',
-  poverty: 'Extreme poverty',
-  rural: 'Rural/remote',
-  girls: 'Girls/women',
+  gender: 'Gender',
+  lgbtiq: 'LGBTIQ+',
+  ethnicity: 'Ethnicity/language',
+  displacement: 'Displacement',
+  migrant: 'Migrant families',
+  statelessness: 'Statelessness',
+  other: 'Other',
 }

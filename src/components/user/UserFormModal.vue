@@ -3,7 +3,7 @@ import { ref, watch, computed } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import type { User, UserRole, CreateUserPayload, UpdateUserPayload } from '@/types/user'
-import type { OrganisationOption } from '@/api/user.service'
+import type { OrganisationOption } from '@/types/user'
 
 // ─── Props / Emits ────────────────────────────────────────────────────────────
 

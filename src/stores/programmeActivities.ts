@@ -203,7 +203,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
             educationLevels.value = { ...educationLevels.value, [code]: suggestion.education_levels }
           }
           if (suggestion.inclusion) {
-            inclusions.value = { ...inclusions.value, [code]: suggestion.inclusion }
+            inclusions.value = { ...inclusions.value, [code]: suggestion.inclusion as ActivityInclusion }
           }
         }
       })

@@ -10,19 +10,19 @@ const mapStore = useMapStore()
 </script>
 
 <template>
-  <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3.5 border-t border-slate-200/80 bg-slate-50/30">
-    <span class="text-xs font-semibold text-slate-500">Page {{ mapStore.page }} of {{ mapStore.totalPages }}</span>
-    <div class="flex gap-2 w-full sm:w-auto justify-end">
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3.5 border-t border-[var(--line)] bg-white">
+    <span class="text-xs text-[var(--ink-400)]">Page {{ mapStore.page }} of {{ mapStore.totalPages }}</span>
+    <div class="flex gap-0.5 w-full sm:w-auto justify-end">
       <button
         :disabled="mapStore.page <= 1"
-        class="px-3.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 cursor-pointer transition-all duration-150 enabled:hover:border-teal-500 enabled:hover:text-teal-700 shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+        class="min-w-[34px] h-[34px] inline-flex items-center justify-center px-2.5 rounded-lg border border-[var(--line)] bg-[var(--card)] text-[12.5px] font-semibold text-[var(--ink-600)] cursor-pointer transition-all duration-120 whitespace-nowrap hover:not-disabled:border-[var(--teal-600)] hover:not-disabled:text-[var(--teal-700)] hover:not-disabled:bg-[var(--teal-50)] disabled:opacity-35 disabled:cursor-not-allowed"
         @click="mapStore.goToPage(mapStore.page - 1)"
-      >Previous</button>
+      >‹ Prev</button>
       <button
         :disabled="mapStore.page >= mapStore.totalPages"
-        class="px-3.5 py-1.5 text-xs font-bold rounded-xl border border-slate-200 bg-white text-slate-700 cursor-pointer transition-all duration-150 enabled:hover:border-teal-500 enabled:hover:text-teal-700 shadow-xs disabled:opacity-40 disabled:cursor-not-allowed"
+        class="min-w-[34px] h-[34px] inline-flex items-center justify-center px-2.5 rounded-lg border border-[var(--line)] bg-[var(--card)] text-[12.5px] font-semibold text-[var(--ink-600)] cursor-pointer transition-all duration-120 whitespace-nowrap hover:not-disabled:border-[var(--teal-600)] hover:not-disabled:text-[var(--teal-700)] hover:not-disabled:bg-[var(--teal-50)] disabled:opacity-35 disabled:cursor-not-allowed"
         @click="mapStore.goToPage(mapStore.page + 1)"
-      >Next</button>
+      >Next ›</button>
     </div>
   </div>
 </template>

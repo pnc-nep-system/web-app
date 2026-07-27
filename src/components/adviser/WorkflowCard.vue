@@ -8,11 +8,13 @@ const props = defineProps<{
   assigneeId: number | null
   coordinators: Array<{ id: number; name: string; email?: string }>
   deliveredAt?: string | null
+  finalNoteFileUrl?: string | null
 }>()
 
 const emit = defineEmits<{
   'update:assigneeId': [value: number | null]
   upload: []
+  'open-file': []
 }>()
 
 const assigneeName = computed(() => {
@@ -37,9 +39,9 @@ function onSelectChange(e: Event) {
 <template>
   <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
     <h2 class="text-[14px] font-bold text-gray-900 mb-6">Workflow</h2>
-    
+
     <div class="relative pl-8 space-y-7 mt-4 border-l-2 border-gray-100 ml-3">
-      
+
       <div class="relative">
         <div class="absolute -left-[41px] top-0 w-6 h-6 rounded-full bg-[#DCFCE7] border-2 border-white flex items-center justify-center text-[#15803D]">
           <BaseIcon name="check" size="14" />
@@ -61,7 +63,7 @@ function onSelectChange(e: Event) {
         <div v-else class="absolute -left-[39px] top-1 w-5 h-5 rounded-full bg-[#FFF4ED] border-4 border-white flex items-center justify-center">
           <div class="w-2.5 h-2.5 bg-[#C2410C] rounded-full"></div>
         </div>
-        
+
         <template v-if="currentStatus === 'advice_delivered'">
           <h3 class="text-[13px] font-bold text-gray-900 leading-none">Advice delivered</h3>
           <p class="text-[12px] text-gray-500 mt-1">{{ formatDate(deliveredAt) }}</p>
@@ -76,47 +78,24 @@ function onSelectChange(e: Event) {
     </div>
 
     <!-- Divider -->
-    <!-- <hr class="border-gray-100 my-6" /> -->
 
     <!-- Post-delivery State -->
-    <div v-if="currentStatus === 'advice_delivered'">
-      <p class="text-[13px] text-gray-900 font-semibold mb-1">
+    <div v-if="currentStatus === 'advice_delivered'" class="mt-5 pt-4 border-t border-gray-100">
+      <p class="text-[13px] text-gray-900 font-semibold">
         Delivered on <span class="font-normal text-gray-600">{{ formatDate(deliveredAt) }}</span>
       </p>
+      <a
+        v-if="finalNoteFileUrl"
+        href="#"
+        @click.prevent="emit('open-file')"
+        class="inline-flex items-center gap-1.5 mt-2 text-[12px] font-semibold text-[#0F5A4D] hover:underline underline-offset-2"
+      >
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+        </svg>
+        Final note: {{ finalNoteFileUrl.split('/').pop() }}
+      </a>
     </div>
 
-    <!-- Pre-delivery Editing State -->
-    <div v-else class="space-y-4">
-      <div v-if="false">
-        <label class="block text-[12px] font-bold text-gray-700 mb-2">Assign to coordinator</label>
-        <div class="relative">
-          <select
-            :value="assigneeId ?? ''"
-            @change="onSelectChange"
-            class="w-full text-[13px] text-gray-900 border border-gray-200 rounded-lg px-4 py-2.5 appearance-none bg-white hover:border-gray-300 focus:outline-none focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D] transition shadow-sm"
-          >
-            <option value="">Unassigned — leave in shared queue</option>
-            <option
-              v-for="c in coordinators"
-              :key="c.id"
-              :value="c.id"
-            >
-              {{ c.name ?? c.email ?? `User #${c.id}` }}
-            </option>
-          </select>
-          <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
-            <BaseIcon name="chevronDown" size="16" />
-          </div>
-        </div>
-      </div>
-
-      <div v-if="false">
-        <label class="block text-[12px] font-bold text-gray-700 mb-2">Upload final note (Word/PDF)</label>
-        <div class="border-2 border-dashed border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-[#0F5A4D]/50 transition cursor-pointer group">
-          <BaseIcon name="upload" size="24" class="text-gray-400 group-hover:text-[#0F5A4D] transition mb-2" />
-          <span class="text-[13px] text-gray-500 font-medium">Drop final file or browse</span>
-        </div>
-      </div>
-    </div>
   </div>
 </template>

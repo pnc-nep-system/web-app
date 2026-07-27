@@ -189,7 +189,7 @@ const scopeIcon = computed(() => {
             Assigned to
           </span>
           <span class="text-sm font-medium text-[var(--ink-900)]">
-            {{ adviserStore.coordinatorLabel(submission.assign_to_staff_user_id) }}
+            {{ adviserStore.coordinatorLabel(submission.assign_to_staff_user_id ?? null) }}
           </span>
         </div>
 
