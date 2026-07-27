@@ -27,6 +27,8 @@ export interface CoordinatorListResponse {
     data: User[]
 }
 
+const programmeEntryNotePromises = new Map<number, Promise<any>>()
+
 export const adviserApi = {
     /**
      * Fetch a paginated list of submissions.
@@ -70,20 +72,30 @@ export const adviserApi = {
     /**
      * Save advisory note sections A, B, C, D.
      */
+    _updateSectionsPromises: new Map<number, Promise<any>>(),
     updateSections(id: number, payload: {
         section_profile?: string
         section_gaps?: string
         section_coordinators_notes?: string
         recommendations?: { organisation_name: string | null; type: string; relational: string; programme_entry_id: number | null }[]
     }) {
-        return api.patch<{ data: Submission }>(`/adviser/submissions/${id}`, payload)
+        if (this._updateSectionsPromises.has(id)) return this._updateSectionsPromises.get(id)!
+        const p = api.patch<{ data: Submission }>(`/adviser/submissions/${id}`, payload)
+            .finally(() => this._updateSectionsPromises.delete(id))
+        this._updateSectionsPromises.set(id, p)
+        return p
     },
 
     /**
      * Mark a submission's status as advice_delivered.
      */
+    _deliverPromises: new Map<number, Promise<any>>(),
     markDelivered(id: number) {
-        return api.patch<{ data: Submission }>(`/adviser/submissions/${id}/deliver`)
+        if (this._deliverPromises.has(id)) return this._deliverPromises.get(id)!
+        const p = api.patch<{ data: Submission }>(`/adviser/submissions/${id}/deliver`)
+            .finally(() => this._deliverPromises.delete(id))
+        this._deliverPromises.set(id, p)
+        return p
     },
 
     /**
@@ -129,7 +141,13 @@ export const adviserApi = {
      * Returns 404 if no advisory note exists for the entry.
      */
     getByProgrammeEntry(programmeEntryId: number) {
-        return api.get<{ data: Submission }>(`/adviser/programme-entries/${programmeEntryId}/advisory-note`)
+        if (programmeEntryNotePromises.has(programmeEntryId)) {
+            return programmeEntryNotePromises.get(programmeEntryId)!
+        }
+        const promise = api.get<{ data: Submission }>(`/adviser/programme-entries/${programmeEntryId}/advisory-note`)
+            .finally(() => programmeEntryNotePromises.delete(programmeEntryId))
+        programmeEntryNotePromises.set(programmeEntryId, promise)
+        return promise
     },
 
     /**

@@ -15,7 +15,6 @@ const adviserStore = useAdviserStore()
 
 onMounted(() => {
   adviserStore.fetchSubmissions()
-  adviserStore.loadCoordinators()
 })
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
