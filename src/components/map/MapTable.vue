@@ -49,23 +49,21 @@ function formatBudgetBand(b: any): string {
     <table class="w-full table-fixed text-left border-collapse hidden md:table">
       <thead>
         <tr class="border-b border-[var(--line)]">
-          <th class="w-[22%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)] cursor-pointer select-none hover:text-[var(--ink-700)] transition-colors" @click="mapStore.toggleSort('name')">
+          <th class="w-[25%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)] cursor-pointer select-none hover:text-[var(--ink-700)] transition-colors" @click="mapStore.toggleSort('name')">
             Programme {{ mapStore.sortKey === 'name' ? (mapStore.sortDir === 'asc' ? '↑' : '↓') : '' }}
           </th>
-          <th class="w-[10%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Status</th>
+          <th class="w-[7%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Status</th>
           <th class="w-[20%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Primary activities</th>
-          <th class="w-[16%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Audiences</th>
-          <th class="w-[16%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Provinces</th>
-          <th class="w-[10%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)] cursor-pointer select-none hover:text-[var(--ink-700)] transition-colors" @click="mapStore.toggleSort('budgetBand')">
-            Budget {{ mapStore.sortKey === 'budgetBand' ? (mapStore.sortDir === 'asc' ? '↑' : '↓') : '' }}
-          </th>
-          <th class="w-[6%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] whitespace-nowrap bg-[var(--bg)] text-right">Action</th>
+          <th class="w-[20%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Audiences</th>
+          <th class="w-[18%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Provinces</th>
+          <th class="w-[10%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] whitespace-nowrap bg-[var(--bg)] text-right">Action</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-[var(--line-soft)]">
         <tr v-for="e in mapStore.paged" :key="e.id" class="cursor-pointer transition-colors duration-150 hover:bg-[var(--teal-50)]" @click="router.push({ name: 'entry-detail', params: { id: String(e.id) } })">
           <td class="px-4 py-3.5">
             <div class="font-semibold text-[var(--ink-900)]">{{ e.programme_name ?? e.name }}</div>
+            <div class="text-xs text-[var(--ink-400)]">{{ formatBudgetBand(e.budget_band ?? e.budgetBand) }}</div>
           </td>
           <td class="px-4 py-3.5">
             <BaseBadge :tone="entriesStore.statusOf(e) === 'verified' ? 'green' : 'amber'">
@@ -95,9 +93,6 @@ function formatBudgetBand(b: any): string {
               <span v-if="getProvinces(e).length > 2" class="px-1.5 py-0.5 rounded-md bg-[var(--line-soft)]/80 text-[var(--ink-500)] text-xs font-semibold"> +{{ getProvinces(e).length - 2 }}</span>
               <span v-if="!getProvinces(e).length" class="text-xs text-[var(--ink-300)]">—</span>
             </div>
-          </td>
-          <td class="px-4 py-3.5 text-xs text-[var(--ink-600)] whitespace-nowrap">
-            {{ formatBudgetBand(e.budget_band ?? e.budgetBand) }}
           </td>
           <td class="px-4 py-3.5 text-right whitespace-nowrap">
             <button
