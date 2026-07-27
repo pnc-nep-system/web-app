@@ -33,7 +33,8 @@ onMounted(async () => {
   }
 
   mountedId = route.query.id ? String(route.query.id) : null
-  await store.initializeForm(mountedId)
+  _skipNextIdWatch = true
+  store.initializeForm(mountedId)
 })
 
 watch(

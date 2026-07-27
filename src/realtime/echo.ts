@@ -20,14 +20,6 @@ export async function getEcho() {
     forceTLS: (import.meta.env.VITE_REVERB_SCHEME || "https") === "https",
     enabledTransports: ["ws", "wss"],
     authEndpoint: `${apiRootUrl}/broadcasting/auth`,
-    channelAuthorization: {
-      endpoint: `${apiRootUrl}/broadcasting/auth`,
-      transport: "ajax",
-      headers: {
-        Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-      },
-    },
   });
 
   window.Echo = echo;

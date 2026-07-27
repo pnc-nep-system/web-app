@@ -121,7 +121,10 @@ const coordinators = computed(() =>
 )
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────────
+let _bootstrapping = false
 onMounted(async () => {
+  if (_bootstrapping) return
+  _bootstrapping = true
   adviserStore.loadCoordinators()
 
   // If loaded via /adviser/entry/:entryId, resolve the advisory note first
@@ -131,12 +134,7 @@ onMounted(async () => {
       const note = (res.data as any)?.data ?? res.data
       if (note?.id) {
         submissionId.value = note.id
-        // Fetch full detail so programme_entry.activities/locations are included
-        const full = await adviserApi.getById(note.id)
-        const fullData = (full.data as any)?.data ?? full.data
-        applySubmission(fullData ?? note)
-        loading.value = false
-        return
+        applySubmission(note)
       }
     } catch {
       // fall through to default empty state

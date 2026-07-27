@@ -21,13 +21,16 @@ export function useEntryDetail(id: Ref<string | undefined>) {
   const marking = ref(false)
   const advisoryNoteStatus = ref<string | null>(null)
 
+  let activeId: string | null = null
+
   watch(id, async (newId) => {
-    loading.value = true
     if (!newId) { entry.value = null; loading.value = false; return }
+    if (activeId === newId) return
+    activeId = newId
+    loading.value = true
     try {
       entry.value = await entries.fetchById(newId)
-      // Check if advice has been delivered for this entry (member_org needs to know)
-      if (auth.userRole === 'member_org') {
+      if (auth.userRole === 'member_org' && activeId === newId) {
         try {
           const res = await adviserApi.getByProgrammeEntry(Number(newId))
           const note = (res.data as any)?.data ?? res.data
@@ -37,7 +40,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
         }
       }
     } finally {
-      loading.value = false
+      if (activeId === newId) loading.value = false
     }
   }, { immediate: true })
 
@@ -83,7 +86,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
       const note = (res.data as any)?.data ?? res.data
       if (note?.id) {
         const dest = isMember
-          ? { name: 'adviser-entry-detail', params: { entryId: String(entryId) } }
+          ? { name: 'adviser-entry-detail', params: { entryId: String(entryId) }, state: { note } }
           : { name: 'adviser-detail', params: { id: String(note.id) } }
         router.push(dest)
         return

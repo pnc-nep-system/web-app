@@ -149,9 +149,9 @@ export const useEntriesStore = defineStore('entries', () => {
 
   function switchTab(tab: 'all' | 'draft' | 'submitted') {
     activeTab.value = tab
-    if (tab === 'all') fetchAllEntries(1)
-    else if (tab === 'draft') fetchDraftEntries(1)
-    else fetchSubmittedEntries(1)
+    if (tab === 'all' && allItems.value.length === 0) fetchAllEntries(1)
+    else if (tab === 'draft' && draftItems.value.length === 0) fetchDraftEntries(1)
+    else if (tab === 'submitted' && submittedItems.value.length === 0) fetchSubmittedEntries(1)
   }
 
   function goToPage(page: number) {

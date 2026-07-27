@@ -11,7 +11,6 @@ export function useNotificationBell() {
   const bellRef = ref<HTMLElement | null>(null)
   const isRinging = ref(false)
 
-  let pollTimer: ReturnType<typeof setInterval> | null = null
   let loaded = false
   const seenIds = new Set<string>()
 
@@ -71,26 +70,15 @@ export function useNotificationBell() {
 
   onMounted(async () => {
     document.addEventListener('click', onOutsideClick)
-    await store.fetchNotifications()
-    // Alert the first unread notification on load (e.g. assigned while logged out)
+    await store.init()
+    store.items.forEach(n => seenIds.add(n.id))
+    loaded = true
     const firstUnread = store.items.find(n => !n.read_at)
-    if (firstUnread) {
-      loaded = true
-      store.items.forEach(n => seenIds.add(n.id))
-      triggerRing()
-    } else {
-      store.items.forEach(n => seenIds.add(n.id))
-      loaded = true
-    }
-    pollTimer = setInterval(async () => {
-      await store.fetchNotifications()
-      checkForNew()
-    }, 15_000)
+    if (firstUnread) triggerRing()
   })
 
   onUnmounted(() => {
     document.removeEventListener('click', onOutsideClick)
-    if (pollTimer) clearInterval(pollTimer)
   })
 
   return {

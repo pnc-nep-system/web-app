@@ -19,6 +19,12 @@ const notFound = ref(false)
 const isMember = computed(() => auth.userRole === 'member_org')
 
 onMounted(async () => {
+  const stateNote = (history.state as any)?.note
+  if (stateNote?.id) {
+    note.value = stateNote
+    loading.value = false
+    return
+  }
   try {
     const res = await adviserApi.getByProgrammeEntry(Number(props.entryId))
     note.value = (res.data as any)?.data ?? res.data

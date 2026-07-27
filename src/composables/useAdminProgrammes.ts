@@ -75,22 +75,31 @@ export function useAdminProgrammes() {
     selectedOrgName.value ? filteredEntries.value.length : total.value
   )
 
+  let _loadOrgNamesPromise: Promise<void> | null = null
+
   async function loadOrgNames() {
-    try {
-      const res = await organisationService.getOrganisations(1, '', { per_page: 200 })
-      const data = res.data.data ?? []
-      if (Array.isArray(data)) {
-        const map: Record<number, string> = {}
-        for (const o of data) {
-          const id = Number((o as any).id)
-          const name = ((o as any).name || (o as any).organisation_name) as string | undefined
-          if (Number.isFinite(id) && name) map[id] = name
+    if (Object.keys(orgNameById.value).length > 0) return
+    if (_loadOrgNamesPromise) return _loadOrgNamesPromise
+    _loadOrgNamesPromise = (async () => {
+      try {
+        const res = await organisationService.getOrganisations(1, '', { per_page: 200 })
+        const data = res.data.data ?? []
+        if (Array.isArray(data)) {
+          const map: Record<number, string> = {}
+          for (const o of data) {
+            const id = Number((o as any).id)
+            const name = ((o as any).name || (o as any).organisation_name) as string | undefined
+            if (Number.isFinite(id) && name) map[id] = name
+          }
+          orgNameById.value = map
         }
-        orgNameById.value = map
+      } catch {
+        // silently ignore — admin works, coordinator falls back to Org #ID
+      } finally {
+        _loadOrgNamesPromise = null
       }
-    } catch {
-      // silently ignore — admin works, coordinator falls back to Org #ID
-    }
+    })()
+    return _loadOrgNamesPromise
   }
 
   const filteredPickerOrgs = computed<Organisation[]>(() => {
@@ -115,46 +124,53 @@ export function useAdminProgrammes() {
     }
   }
 
+  let _fetchEntriesPromise: Promise<void> | null = null
+
   async function fetchEntries(page: number) {
+    if (_fetchEntriesPromise) return _fetchEntriesPromise
     entriesLoading.value = true
     entriesError.value = ''
-    try {
-      const res = await memberApi.getSubmittedProgrammeEntries(page, 200)
-      const body = res.data
-      entries.value = (body.data || []).map((e: unknown): EntryRow => {
-        const entry = e as Record<string, unknown>
-        const org = entry.organisation as Record<string, unknown> | null | undefined
-        let orgName: string | null = org && typeof org.name === 'string'
-          ? org.name
-          : (typeof entry.organisation_name === 'string' ? entry.organisation_name : null)
-        if (!orgName) {
-          const orgId = Number(entry.organisation_id)
-          if (Number.isFinite(orgId)) {
-            orgName = orgNameById.value[orgId] ?? `Org #${orgId}`
+    _fetchEntriesPromise = (async () => {
+      try {
+        const res = await memberApi.getSubmittedProgrammeEntries(page, 200)
+        const body = res.data
+        entries.value = (body.data || []).map((e: unknown): EntryRow => {
+          const entry = e as Record<string, unknown>
+          const org = entry.organisation as Record<string, unknown> | null | undefined
+          let orgName: string | null = org && typeof org.name === 'string'
+            ? org.name
+            : (typeof entry.organisation_name === 'string' ? entry.organisation_name : null)
+          if (!orgName) {
+            const orgId = Number(entry.organisation_id)
+            if (Number.isFinite(orgId)) {
+              orgName = orgNameById.value[orgId] ?? `Org #${orgId}`
+            }
           }
-        }
-        const primaryActivities = extractPrimaryActivityCodes(entry.activities as any[])
+          const primaryActivities = extractPrimaryActivityCodes(entry.activities as any[])
 
-        return {
-          id: Number(entry.id),
-          programme_name: String(entry.programme_name ?? ''),
-          is_submitted: !!entry.is_submitted,
-          is_unverified: !!entry.is_unverified,
-          start_year: entry.start_year as number | null,
-          end_year: entry.end_year as number | null,
-          organisation: orgName ? { name: orgName } : null,
-          primaryActivities,
-          relativeUpdated: formatRelativeTime(entry.updated_at as string) || '—',
-        }
-      })
-      currentPage.value = body.current_page ?? page
-      lastPage.value = body.last_page ?? 1
-      total.value = body.total ?? 0
-    } catch {
-      entriesError.value = 'Failed to load entries.'
-    } finally {
-      entriesLoading.value = false
-    }
+          return {
+            id: Number(entry.id),
+            programme_name: String(entry.programme_name ?? ''),
+            is_submitted: !!entry.is_submitted,
+            is_unverified: !!entry.is_unverified,
+            start_year: entry.start_year as number | null,
+            end_year: entry.end_year as number | null,
+            organisation: orgName ? { name: orgName } : null,
+            primaryActivities,
+            relativeUpdated: formatRelativeTime(entry.updated_at as string) || '—',
+          }
+        })
+        currentPage.value = body.current_page ?? page
+        lastPage.value = body.last_page ?? 1
+        total.value = body.total ?? 0
+      } catch {
+        entriesError.value = 'Failed to load entries.'
+      } finally {
+        entriesLoading.value = false
+        _fetchEntriesPromise = null
+      }
+    })()
+    return _fetchEntriesPromise
   }
 
   async function fetchMyDrafts() {
@@ -242,8 +258,11 @@ export function useAdminProgrammes() {
       activeTab.value = 'my-drafts'
     }
     await loadOrgNames()
-    fetchEntries(1)
-    fetchMyDrafts()
+    if (activeTab.value === 'my-drafts') {
+      fetchMyDrafts()
+    } else {
+      fetchEntries(1)
+    }
   })
 
   return reactive({
