@@ -239,10 +239,10 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
     }
   }
 
-  function askDeprecate(row: any) {
+  function askDeprecate(row: any, kind?: string) {
     confirmTarget.value = {
       ...row,
-      kind: row.kind || (row.items ? 'subcategory' : 'category')
+      kind: kind || row.kind || (row.items ? 'subcategory' : 'category')
     }
   }
 
@@ -252,6 +252,22 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
 
     await taxonomy.deprecateEntry(row.kind, row.id)
     toast.success('Taxonomy entry deprecated')
+    confirmTarget.value = null
+  }
+
+  function askRestore(row: any, kind?: string) {
+    confirmTarget.value = {
+      ...row,
+      kind: kind || row.kind || (row.items ? 'subcategory' : 'category')
+    }
+  }
+
+  async function confirmRestore() {
+    const row = confirmTarget.value
+    if (!row) return
+
+    await taxonomy.restoreEntry(row.kind, row.id)
+    toast.success('Taxonomy entry restored')
     confirmTarget.value = null
   }
 
@@ -313,6 +329,8 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
     saveRename,
     askDeprecate,
     confirmDeprecate,
+    askRestore,
+    confirmRestore,
     openPromote,
     confirmPromote,
     dismiss,

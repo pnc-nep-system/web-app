@@ -132,7 +132,7 @@ defineExpose({ validate, getData })
 
             <div v-if="accordion.openSubcategories.has(sub.code)" class="border-t border-slate-100 px-4 py-4 space-y-3 bg-slate-50/10 animate-fade-in">
               <ActivityItemCard
-                v-for="item in sub.items"
+                v-for="item in sub.items.filter((i: any) => i.is_active !== false)"
                 :key="item.code"
                 :item="item"
               />

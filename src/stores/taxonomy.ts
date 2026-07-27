@@ -215,6 +215,20 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
     }
   }
 
+  async function restoreEntry(kind: TaxonomyAdminNodeKind, id: number) {
+    const node = findNodeById(kind, id)
+    if (!node) return
+
+    loading.value = true
+    try {
+      await taxonomyApi.reactivate(toApiNodeType(kind), id)
+      node.status = 'active'
+      writeCache(categories.value)
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function promoteOtherEntry(id: number, payload: PromoteOtherEntryPayload) {
     const entry = otherQueue.value.find((item) => item.id === id)
     if (!entry) return
@@ -340,6 +354,7 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
     setItemStatus,
     renameEntry,
     deprecateEntry,
+    restoreEntry,
     promoteOtherEntry,
     dismissOtherEntry,
     itemByCode: findItemByCode,

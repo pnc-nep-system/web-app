@@ -35,7 +35,7 @@ const router = createRouter({
     {
       path: "/admin/taxonomy",
       name: "admin-taxonomy",
-      component: () => import("@/views/staff/TaxonomyAdminView.vue"),
+      component: () => import("@/views/admin/TaxonomyManagement.vue"),
       meta: { requiresAuth: true, roles: ["nep_admin"] },
     },
     {

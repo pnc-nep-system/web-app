@@ -135,11 +135,26 @@ export const taxonomyApi = {
     return unwrapData<Category | SubCategory | TaxonomyItem>(response)
   },
 
+  async reactivate(type: TaxonomyNodeType, id: number) {
+    const path = type === 'category'
+      ? `/taxonomy/categories/${id}/deprecate`
+      : type === 'subCategory'
+        ? `/taxonomy/subcategories/${id}/deprecate`
+        : `/taxonomy/items/${id}/deprecate`
+
+    const response = await api.patch<Category | SubCategory | TaxonomyItem | { data: Category | SubCategory | TaxonomyItem }>(
+      path,
+      { is_active: true },
+    )
+    invalidateTaxonomyCache()
+    return unwrapData<Category | SubCategory | TaxonomyItem>(response)
+  },
+
   async setItemStatus(id: number, status: TaxonomyItemStatus) {
     if (status === 'deprecated') {
       return this.deprecate('item', id) as Promise<TaxonomyItem>
     }
 
-    return Promise.reject(new Error('Backend does not expose a reactivate taxonomy item endpoint.'))
+    return this.reactivate('item', id) as Promise<TaxonomyItem>
   },
 }
