@@ -25,30 +25,43 @@
       <KpiCard
         icon="bolt"
         iconTone="indigo"
-        :value="loading ? '...' : stats?.coordinator_advisory_notes ?? 0"
+        :value="loading ? '...' : awaitingReviewCount"
         label="Advisory notes awaiting review"
       >
         <template #badge>
-          <BaseBadge tone="green">{{ loading ? '...' : stats?.total_advisory_notes ?? 0 }} total</BaseBadge>
+          <BaseBadge tone="green">{{ loading ? '...' : totalAdvisoryNotesCount }} total</BaseBadge>
         </template>
       </KpiCard>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import KpiCard from '@/components/KpiCard.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
-import { dashboardApi } from '@/api/dashboard.api'
-import type { DashboardStats } from '@/types/dashboard'
+import { dashboardApi, type DashboardStats } from '@/api/dashboard.api'
+import { useAdviserStore } from '@/stores/adviser'
 
 const stats = ref<DashboardStats | null>(null)
 const loading = ref(true)
+const adviserStore = useAdviserStore()
+
+const awaitingReviewCount = computed(() => {
+  if (adviserStore.submissions.length > 0) {
+    return adviserStore.submissions.filter(s => s.status !== 'advice_delivered').length
+  }
+  return stats.value?.coordinator_advisory_notes ?? stats.value?.total_advisory_notes ?? 0
+})
+
+const totalAdvisoryNotesCount = computed(() => {
+  return stats.value?.total_advisory_notes ?? adviserStore.submissions.length ?? 0
+})
 
 onMounted(async () => {
   try {
     const res = await dashboardApi.getStats()
     stats.value = res.data
+    await adviserStore.fetchSubmissions()
   } catch (err) {
     console.error('Failed to fetch dashboard stats', err)
   } finally {
