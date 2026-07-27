@@ -5,6 +5,7 @@ export type SubmissionStatus = 'pending' | 'submitted_for_review' | 'advice_deli
 
 export interface SubmissionProgrammeEntry {
     id: number
+    programme_name?: string
     activities?: { activity_item_id: number; activityItem?: { id: number; subcategory?: { id: number; category_id: number } } }[]
     locations?: { province_id: number | null; district_id: number | null; commune_id: number | null }[]
 }
