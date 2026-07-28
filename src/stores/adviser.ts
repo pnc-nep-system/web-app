@@ -68,7 +68,13 @@ export const useAdviserStore = defineStore('adviser', () => {
                 ...params,
             })
             const paginated = response.data
-            submissions.value = paginated.data.map((s: any) => enrichSubmission(s))
+            submissions.value = paginated.data
+                .map((s: any) => enrichSubmission(s))
+                .sort((a, b) => {
+                    const da = new Date(a.created_at || a.updated_at || 0).getTime() || (a.id ?? 0)
+                    const db = new Date(b.created_at || b.updated_at || 0).getTime() || (b.id ?? 0)
+                    return db - da
+                })
             currentPage.value = paginated.current_page
             lastPage.value = paginated.last_page
             total.value = paginated.total

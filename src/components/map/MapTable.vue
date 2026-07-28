@@ -99,7 +99,7 @@ function formatBudgetBand(b: any): string {
               class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-[var(--ink-600)] bg-[var(--bg)] border border-[var(--line)] rounded-md hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] transition-colors whitespace-nowrap"
               @click.stop="router.push({ name: 'entry-detail', params: { id: String(e.id) } })"
             >
-              View →
+              Open →
             </button>
           </td>
         </tr>

@@ -18,8 +18,8 @@ export const useMapStore = defineStore('map', () => {
   const filters = ref<MapViewFilters>({ ...DEFAULT_FILTERS })
   const page = ref(1)
   const pageSize = 20
-  const sortKey = ref('name')
-  const sortDir = ref<'asc' | 'desc'>('asc')
+  const sortKey = ref('created_at')
+  const sortDir = ref<'asc' | 'desc'>('desc')
 
   const hasActiveFilters = computed(() => Object.values(filters.value).some(v => v !== ''))
 
@@ -72,6 +72,11 @@ export const useMapStore = defineStore('map', () => {
     const arr = [...filtered.value]
     const dir = sortDir.value === 'asc' ? 1 : -1
     arr.sort((a, b) => {
+      if (sortKey.value === 'created_at' || sortKey.value === 'submitted_at' || sortKey.value === 'id') {
+        const da = new Date(a.created_at || a.submitted_at || a.updated_at || 0).getTime() || (a.id ?? 0)
+        const db = new Date(b.created_at || b.submitted_at || b.updated_at || 0).getTime() || (b.id ?? 0)
+        return (da - db) * dir
+      }
       if (sortKey.value === 'budgetBand') return ((a.budget_band_id ?? 0) - (b.budget_band_id ?? 0)) * dir
       const va = (a.programme_name ?? a.name ?? '').toLowerCase()
       const vb = (b.programme_name ?? b.name ?? '').toLowerCase()

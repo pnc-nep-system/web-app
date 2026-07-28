@@ -20,7 +20,7 @@ onMounted(() => {
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 const validTabs = ['all', 'submitted_for_review', 'advice_delivered'] as const
 const _activeTab = ref<'all' | 'submitted_for_review' | 'advice_delivered'>(
-  validTabs.includes(route.query.tab as any) ? (route.query.tab as any) : 'submitted_for_review'
+  validTabs.includes(route.query.tab as any) ? (route.query.tab as any) : 'all'
 )
 
 const filteredSubmissions = computed(() => {
