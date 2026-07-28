@@ -91,5 +91,14 @@ export const memberApi = {
   listAllOrganisations() {
     return api.get('/organisations', { params: { per_page: 200 } });
   },
+  fetchUrlContent(url: string) {
+    return api.post<{ text: string }>('/programme-entries/fetch-url', { url });
+  },
+  aiAutofill(payload: FormData | { text: string }) {
+    return api.post('/programme-entries/ai-autofill', payload, {
+      headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+      timeout: 60000,
+    });
+  },
 };
 

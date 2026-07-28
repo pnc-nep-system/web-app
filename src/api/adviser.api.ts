@@ -111,6 +111,39 @@ export const adviserApi = {
     },
 
     /**
+     * AI autofill - Extract programme data from description text or PDF
+     */
+    aiAutofill(text?: string, file?: File) {
+        const form = new FormData()
+        if (text) form.append('text', text)
+        if (file) form.append('file', file)
+        return api.post('/programme-entries/ai-autofill', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
+        })
+    },
+
+    /**
+     * AI suggest activities - Get activity suggestions from programme description
+     */
+    suggestActivities(text?: string, file?: File) {
+        const form = new FormData()
+        if (text) form.append('text', text)
+        if (file) form.append('file', file)
+        return api.post('/programme-entries/suggest-activities', form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
+        })
+    },
+
+    /**
+     * Fetch URL - Extract text content from a URL
+     */
+    fetchUrl(url: string) {
+        return api.post('/programme-entries/fetch-url', { url })
+    },
+
+    /**
      * Get the advisory note linked to a programme entry.
      * Returns 404 if no advisory note exists for the entry.
      */

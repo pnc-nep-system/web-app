@@ -29,7 +29,7 @@ export function usePolicyDocumentLoader() {
       return blob
     } catch (error: any) {
       fileError.value = true
-      fileErrorMsg.value = error?.message || 'Failed to load document'
+      fileErrorMsg.value = error?.response?.data?.message || error?.message || 'Failed to load document'
       return null
     } finally {
       fileLoading.value = false
