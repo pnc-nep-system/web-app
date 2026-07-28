@@ -71,6 +71,7 @@ onMounted(() => policy.fetchPolicies())
 
     <PolicyFormModal
       :show="policy.showForm"
+      :submitting="policy.submitting"
       :initial-data="policy.editingPolicy"
       @close="policy.showForm = false"
       @submit="policy.handleSavePolicy"

@@ -26,9 +26,7 @@ export const policyApi = {
    */
   createPolicy(payload: PolicyDocumentPayload) {
     const fd = buildFormData(payload, payload.file)
-    return api.post<{ message: string; data: PolicyDocument }>('/policy-documents', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    return api.post<{ message: string; data: PolicyDocument }>('/policy-documents', fd)
   },
 
   /**
@@ -41,9 +39,7 @@ export const policyApi = {
       payload.file
     )
     fd.append('_method', 'PATCH')
-    return api.post<{ message: string; data: PolicyDocument }>(`/policy-documents/${id}`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
+    return api.post<{ message: string; data: PolicyDocument }>(`/policy-documents/${id}`, fd)
   },
 
   /**

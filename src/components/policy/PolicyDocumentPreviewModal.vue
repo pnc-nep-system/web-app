@@ -13,9 +13,17 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-const isPdf = computed(() => props.document?.file_url?.toLowerCase().includes('.pdf'))
+const hasFile = computed(() => Boolean(props.document?.has_file || props.document?.file_name || props.document?.file_url))
+const fileName = computed(() => props.document?.file_name || props.document?.file_url?.split('/').pop() || props.document?.title || 'Document')
+
+const isPdf = computed(() =>
+  fileName.value.toLowerCase().endsWith('.pdf') || (props.document?.mime_type?.includes('pdf') ?? false)
+)
 const isWord = computed(() =>
-  props.document?.file_url?.toLowerCase().includes('.doc') || props.document?.file_url?.toLowerCase().includes('.docx')
+  fileName.value.toLowerCase().endsWith('.doc') ||
+  fileName.value.toLowerCase().endsWith('.docx') ||
+  (props.document?.mime_type?.includes('word') ?? false) ||
+  (props.document?.mime_type?.includes('document') ?? false)
 )
 
 const {
@@ -25,7 +33,7 @@ const {
 } = usePolicyDocumentLoader()
 
 watch(() => props.show, async (val) => {
-  if (val && props.document?.id && props.document?.file_url) {
+  if (val && props.document?.id && hasFile.value) {
     const blob = await loadFile(props.document.id)
     if (blob && isWord.value) {
       await loadDocx(blob)
@@ -37,8 +45,7 @@ watch(() => props.show, async (val) => {
 
 async function handleDownload() {
   if (!props.document?.id) return
-  const filename = props.document.file_url?.split('/').pop() || props.document.title || 'document'
-  await downloadDocument(props.document.id, filename)
+  await downloadDocument(props.document.id, fileName.value)
 }
 </script>
 
@@ -58,14 +65,14 @@ async function handleDownload() {
               <div>
                 <h2 class="text-[15px] font-bold text-[var(--ink-900)]">{{ document?.title || 'Document Preview' }}</h2>
                 <p class="text-[12px] text-[var(--ink-500)] mt-0.5">
-                  {{ document?.file_url || 'No file attached' }}
+                  {{ hasFile ? fileName : 'No file attached' }}
                   <span v-if="document?.version"> • v{{ document.version }}</span>
                 </p>
               </div>
             </div>
             <div class="flex items-center gap-2">
               <button
-                v-if="document?.file_url"
+                v-if="hasFile"
                 @click="handleDownload"
                 class="p-2 text-[var(--ink-400)] hover:text-[var(--ink-900)] rounded-lg transition-colors hover:bg-[var(--bg)]"
                 title="Download"
@@ -145,13 +152,13 @@ async function handleDownload() {
                 <BaseIcon name="file" size="32" class="text-[var(--ink-400)]" />
               </div>
               <h3 class="text-[16px] font-semibold text-[var(--ink-700)] mb-1">
-                {{ document?.file_url ? 'Preview not available' : 'No file attached' }}
+                {{ hasFile ? 'Preview not available' : 'No file attached' }}
               </h3>
               <p class="text-[13px] text-[var(--ink-400)] max-w-xs">
-                {{ document?.file_url ? 'This file type cannot be previewed in the browser.' : 'This policy document doesn\'t have a file uploaded yet.' }}
+                {{ hasFile ? 'This file type cannot be previewed in the browser.' : 'This policy document doesn\'t have a file uploaded yet.' }}
               </p>
               <button
-                v-if="document?.file_url"
+                v-if="hasFile"
                 @click="handleDownload"
                 class="mt-4 px-4 py-2 bg-[var(--teal-700)] text-white rounded-lg text-[13px] font-semibold hover:bg-[var(--teal-800)] transition"
               >Download file</button>

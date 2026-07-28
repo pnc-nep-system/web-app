@@ -6,6 +6,10 @@ export interface PolicyDocument {
   date: string
   status: 'active' | 'superseded' | 'inactive'
   file_url?: string | null
+  file_name?: string | null
+  mime_type?: string | null
+  file_size?: number | null
+  has_file?: boolean
   created_by?: number
   created_at?: string
   updated_at?: string
