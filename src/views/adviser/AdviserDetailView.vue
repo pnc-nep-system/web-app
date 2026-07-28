@@ -1,457 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import AppShell from '@/components/AppShell.vue'
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
-import BaseIcon from '@/components/common/BaseIcon.vue'
 import ToastStack from '@/components/common/ToastStack.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
-import { useToast } from '@/composables/useToast'
-import { useAdviserStore } from '@/stores/adviser'
-import { adviserApi } from '@/api/adviser.api'
-import { getMapEntries } from '@/api/map.api'
-import { organisationService } from '@/services/organisation.service'
-import type { Submission } from '@/types/adviser'
-
-// Adviser-specific sub-components
 import DetailPageHeader from '@/components/adviser/DetailPageHeader.vue'
 import DocumentViewerPanel from '@/components/adviser/DocumentViewerPanel.vue'
 import WorkflowCard from '@/components/adviser/WorkflowCard.vue'
 import SectionEditor from '@/components/adviser/SectionEditor.vue'
 import RecommendationsList from '@/components/adviser/RecommendationsList.vue'
 import GapsList from '@/components/adviser/GapsList.vue'
+import { useAdviserDetailController } from '@/composables/useAdviserDetailController'
 
-const route = useRoute()
-const router = useRouter()
-const adviserStore = useAdviserStore()
-const { toasts, push: pushToast } = useToast()
-
-// ── State ─────────────────────────────────────────────────────────────────────
-const loading = ref(true)
-const delivering = ref(false)
-const exportingPdf = ref(false)
-// Support both /adviser/:id and /adviser/entry/:entryId routes
-const submissionId = ref<number>(Number(route.params.id) || 0)
-const currentStatus = ref('submitted_for_review')
-const submission = ref<Submission | null>(null)
-const assigneeId = ref<number | null>(null)
-
-const form = ref({
-  sectionA: '',
-  sectionB: [] as { org: string; type: string; linked: string; text: string }[],
-  sectionC: [] as { text: string }[],
-  sectionD: '',
-})
-
-// ── AI Draft Programme Modal State ────────────────────────────────────────────
-const showDraftModal = ref(false)
-const draftGenerating = ref(false)
-const organisations = ref<{ id: number; name: string }[]>([])
-const selectedOrgId = ref<number | null>(null)
-const programmeName = ref('')
-const startYear = ref<number>(new Date().getFullYear())
-const programmeProfile = ref({
-  activities: { category_ids: [] as number[], education_level_ids: [] as number[], inclusion_groups: [] as string[] },
-  geography: { province_ids: [] as number[] },
-  audiences: { inclusion_types: [] as string[] },
-})
-
-async function openDraftModal() {
-  showDraftModal.value = true
-  if (!organisations.value.length) {
-    try {
-      const res = await organisationService.getOrganisations(1, '', { per_page: 200 })
-      const data = (res.data as any)?.data ?? res.data
-      organisations.value = Array.isArray(data) ? data : data?.data ?? []
-    } catch {
-      pushToast('Failed to load organisations')
-    }
-  }
-}
-
-async function generateAndDraft() {
-  if (!selectedOrgId.value) {
-    pushToast('Please select an organisation')
-    return
-  }
-  if (!programmeName.value.trim()) {
-    pushToast('Please enter a programme name')
-    return
-  }
-  draftGenerating.value = true
-  try {
-    // Step 1: generate advisory note to get AI analysis
-    const aiRes = await adviserApi.generateAdvisoryNote(submissionId.value, programmeProfile.value)
-    const aiData = (aiRes.data as any)?.data ?? {}
-
-    // Step 2: create the programme entry draft
-    const payload = {
-      organisation_id: selectedOrgId.value,
-      programme_name: programmeName.value.trim(),
-      start_year: startYear.value,
-      activities: [],
-      geography: programmeProfile.value.geography,
-      keywords: aiData.executive_summary
-        ? aiData.executive_summary.split(' ').slice(0, 3).map((w: string) => w.replace(/[^a-zA-Z]/g, '').toLowerCase()).filter(Boolean)
-        : [],
-    }
-
-    const entryRes = await adviserApi.createProgrammeEntry(submissionId.value, payload)
-    const newId = entryRes.data?.data?.id
-
-    showDraftModal.value = false
-    pushToast('AI programme draft created — redirecting to form')
-    router.push(`/entries/new?id=${newId}&org_id=${selectedOrgId.value}`)
-  } catch (err: any) {
-    const msg = err?.response?.data?.message ?? 'Failed to generate programme draft'
-    pushToast(msg)
-  } finally {
-    draftGenerating.value = false
-  }
-}
-
-// Coordinators are loaded into the store (shared, cached, role-filtered)
-const coordinators = computed(() =>
-  Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({
-    id: Number(id),
-    name,
-  }))
-)
-
-// ── Bootstrap ─────────────────────────────────────────────────────────────────
-let _bootstrapping = false
-onMounted(async () => {
-  if (_bootstrapping) return
-  _bootstrapping = true
-  adviserStore.loadCoordinators()
-
-  // If loaded via /adviser/entry/:entryId, resolve the advisory note first
-  if (!submissionId.value && route.params.entryId) {
-    try {
-      const res = await adviserApi.getByProgrammeEntry(Number(route.params.entryId))
-      const note = (res.data as any)?.data ?? res.data
-      if (note?.id) {
-        submissionId.value = note.id
-        applySubmission(note)
-      }
-    } catch {
-      // fall through to default empty state
-    }
-    loading.value = false
-    return
-  }
-
-  try {
-    const res = await adviserApi.getById(submissionId.value)
-    const data = (res.data as any)?.data ?? res.data
-    if (data) applySubmission(data)
-  } catch {
-    // silently fall back to defaults
-  } finally {
-    loading.value = false
-  }
-})
-
-function applySubmission(data: Submission) {
-  submission.value = data
-  currentStatus.value = data.status
-  assigneeId.value = data.assign_to_staff_user_id ?? null
-
-  form.value.sectionA = data.section_profile || ''
-
-  if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
-  if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes
-
-  // Populate section B from saved recommendations
-  const recs = (data as any).recommendations
-  if (Array.isArray(recs) && recs.length > 0) {
-    form.value.sectionB = recs.map((r: any) => ({
-      org: r.organisation_name || '',
-      type: r.type || 'Geographic overlap',
-      linked: r.programme_entry_id ? `Entry #${r.programme_entry_id}` : '—',
-      text: r.relational || '',
-    }))
-  } else if (form.value.sectionB.length === 0) {
-    fetchMapOverlaps()
-  }
-}
-
-function handleViewDocument() {
-  const docUrl = (submission.value as any)?.document_url || (submission.value as any)?.document_path
-  if (docUrl) {
-    window.open(docUrl, '_blank')
-  } else {
-    pushToast(`Document: ${submission.value?.document_name || 'Uploaded File'} (read for prototype review)`)
-  }
-}
-
-// ── Computed ──────────────────────────────────────────────────────────────────
-const isDelivered = computed(() => currentStatus.value === 'advice_delivered')
-
-const scopeDisplay = computed(() => {
-  if (!submission.value) return 'full map'
-  const s = submission.value
-  if (!s.analysis_scope_detail) return s.analysis_scope ?? 'full map'
-  return `${s.analysis_scope}: ${s.analysis_scope_detail}`
-})
-
-// Whether overlaps were found (B is required only when there are overlaps)
-const hasOverlaps = computed(() => form.value.sectionB.length > 0)
-
-const isSectionsComplete = computed(() => {
-  // A is always required
-  if (!form.value.sectionA?.trim()) return false
-  // B is required only when overlaps exist
-  if (hasOverlaps.value) {
-    const allBFilled = form.value.sectionB.every(r => r.org?.trim() && r.text?.trim())
-    if (!allBFilled) return false
-  }
-  return true
-})
-
-// ── Actions ───────────────────────────────────────────────────────────────────
-function goBack() {
-  router.push('/adviser')
-}
-
-const savingDraft = ref(false)
-
-async function saveDraft() {
-  if (savingDraft.value) return
-  savingDraft.value = true
-  try {
-    await adviserApi.updateSections(submissionId.value, {
-      section_profile: form.value.sectionA,
-      section_gaps: form.value.sectionC.map(g => g.text).filter(Boolean).join('\n'),
-      section_coordinators_notes: form.value.sectionD,
-      recommendations: form.value.sectionB.map(r => ({
-        organisation_name: r.org,
-        type: r.type,
-        relational: r.text,
-        programme_entry_id: r.linked && r.linked !== '—' ? (Number(r.linked.replace(/\D/g, '')) || null) : null,
-      })),
-    })
-    pushToast('Draft saved')
-  } catch {
-    pushToast('Failed to save draft')
-  } finally {
-    savingDraft.value = false
-  }
-}
-
-async function markDelivered() {
-  if (!form.value.sectionA?.trim()) {
-    pushToast('Please complete Section A (Programme profile as interpreted) before marking advice as delivered.')
-    return
-  }
-  if (form.value.sectionB.length > 0) {
-    const incomplete = form.value.sectionB.some(r => !r.org?.trim() || !r.text?.trim())
-    if (incomplete) {
-      pushToast('Please fill in the organisation name and description for all coordination recommendations (Section B).')
-      return
-    }
-  }
-
-  if (delivering.value) return
-  delivering.value = true
-  try {
-    // Save all sections first, then mark delivered
-    await adviserApi.updateSections(submissionId.value, {
-      section_profile: form.value.sectionA,
-      section_gaps: form.value.sectionC.map(g => g.text).filter(Boolean).join('\n'),
-      section_coordinators_notes: form.value.sectionD,
-      recommendations: form.value.sectionB.map(r => ({
-        organisation_name: r.org,
-        type: r.type,
-        relational: r.text,
-        programme_entry_id: r.linked && r.linked !== '—' ? (Number(r.linked.replace(/\D/g, '')) || null) : null,
-      })),
-    })
-    const res = await adviserApi.markDelivered(submissionId.value)
-    const data = (res.data as any)?.data ?? res.data
-    const newStatus = data?.status ?? 'advice_delivered'
-    currentStatus.value = newStatus
-    if (submission.value) {
-      submission.value.delivered_at = data?.delivered_at ?? new Date().toISOString()
-    }
-    const existing = adviserStore.submissions.find(s => s.id === submissionId.value)
-    if (existing) existing.status = newStatus
-    pushToast('Advisory note saved and marked as delivered')
-    router.push('/adviser?tab=advice_delivered')
-  } catch {
-    pushToast('Failed to save — please try again')
-  } finally {
-    delivering.value = false
-  }
-}
-
-async function exportAdvisoryNotePdf() {
-  if (exportingPdf.value) return
-  exportingPdf.value = true
-  const docName = (submission.value?.document_name || 'Advisory_Note').replace(/[^a-zA-Z0-9_-]/g, '_')
-
-  // Build a hidden render div
-  const container = document.createElement('div')
-  container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;padding:40px;background:#fff;font-family:Arial,sans-serif;font-size:13px;color:#1e293b;line-height:1.6;'
-
-  const title = submission.value?.document_name || 'Advisory Note'
-  const party = submission.value?.submitting_party || 'Member Organisation'
-  const scope = scopeDisplay.value
-
-  let sectionsHtml = ''
-
-  if (form.value.sectionA?.trim()) {
-    sectionsHtml += `<div style="margin-bottom:20px">
-      <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">A · Programme profile as interpreted</div>
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;white-space:pre-wrap">${form.value.sectionA.trim()}</div>
-    </div>`
-  }
-
-  if (form.value.sectionB?.length) {
-    const recHtml = form.value.sectionB.map((r, i) => `
-      <div style="border:1px solid #cbd5e1;border-radius:6px;padding:10px;margin-bottom:8px">
-        <strong>${i + 1}. ${r.org}</strong> <span style="background:#e2e8f0;padding:1px 6px;border-radius:4px;font-size:11px">${r.type}</span><br/>
-        <em style="color:#64748b;font-size:11px">Linked: ${r.linked}</em>
-        <p style="margin:6px 0 0;font-size:12px">${r.text}</p>
-      </div>`).join('')
-    sectionsHtml += `<div style="margin-bottom:20px">
-      <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">B · Coordination recommendations</div>
-      ${recHtml}
-    </div>`
-  }
-
-  const validGaps = form.value.sectionC?.filter(g => g?.text?.trim())
-  if (validGaps?.length) {
-    sectionsHtml += `<div style="margin-bottom:20px">
-      <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">C · Gaps in the map</div>
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px">${validGaps.map(g => `<p style="margin:2px 0">• ${g.text.trim()}</p>`).join('')}</div>
-    </div>`
-  }
-
-  container.innerHTML = `
-    <h1 style="color:#0F5A4D;font-size:20px;margin:0 0 4px">Advisory Note</h1>
-    <div style="color:#64748b;font-size:12px;border-bottom:2px solid #0F5A4D;padding-bottom:8px;margin-bottom:20px">
-      <strong>Source:</strong> ${title} &nbsp;|&nbsp; <strong>Submitted by:</strong> ${party} &nbsp;|&nbsp; <strong>Scope:</strong> ${scope}
-    </div>
-    ${sectionsHtml || '<p style="color:#94a3b8;font-style:italic">No sections recorded.</p>'}
-  `
-
-  document.body.appendChild(container)
-
-  try {
-    const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-    const pageW = pdf.internal.pageSize.getWidth()
-    const pageH = pdf.internal.pageSize.getHeight()
-    const imgW = pageW
-    const imgH = (canvas.height * imgW) / canvas.width
-    let y = 0
-    let remaining = imgH
-    while (remaining > 0) {
-      pdf.addImage(imgData, 'PNG', 0, -y, imgW, imgH)
-      remaining -= pageH
-      if (remaining > 0) { pdf.addPage(); y += pageH }
-    }
-    pdf.save(`Advisory_Note_${docName}.pdf`)
-  } finally {
-    document.body.removeChild(container)
-    exportingPdf.value = false
-  }
-}
-
-async function assignCoordinator(userId: number | null) {
-  assigneeId.value = userId
-  try {
-    await adviserApi.updateAssignee(submissionId.value, userId)
-    const existing = adviserStore.submissions.find(s => s.id === submissionId.value)
-    if (existing) existing.assign_to_staff_user_id = userId
-  } catch {
-    // silently ignore — local state already updated optimistically
-  }
-}
-
-const fetchingOverlaps = ref(false)
-
-async function fetchMapOverlaps() {
-  fetchingOverlaps.value = true
-  try {
-    const rawScope = (submission.value?.analysis_scope || 'full map').toLowerCase()
-    const validScope = ['full map', 'geographic subset', 'thematic subset'].find(s => rawScope.includes(s)) ?? 'full map'
-
-    const entry = submission.value?.programme_entry
-    const categoryIds = [...new Set(
-      (entry?.activities ?? []).map((a: any) => a.activityItem?.subcategory?.category_id).filter(Boolean)
-    )]
-    const itemIds = [...new Set(
-      (entry?.activities ?? []).map((a: any) => a.activity_item_id).filter(Boolean)
-    )]
-    const provinceIds = [...new Set(
-      (entry?.locations ?? []).map((l: any) => l.province_id).filter(Boolean)
-    )]
-    const districtIds = [...new Set(
-      (entry?.locations ?? []).map((l: any) => l.district_id).filter(Boolean)
-    )]
-
-    const profile = {
-      activities: { category_ids: categoryIds, item_ids: itemIds, education_level_ids: [] as number[], inclusion_groups: [] as string[] },
-      geography: { province_ids: provinceIds, district_ids: districtIds },
-      audiences: { inclusion_types: [] as string[] },
-    }
-
-    let matches: any[] = []
-    try {
-      let res = await adviserApi.queryOverlap(profile, validScope)
-      matches = (res.data as any)?.data ?? res.data ?? []
-      // Exclude the submission's own programme entry from results
-      if (submission.value?.programme_entry_id) {
-        matches = matches.filter((m: any) => m.id !== submission.value!.programme_entry_id)
-      }
-    } catch (err) {
-      console.warn('Overlap query error:', err)
-    }
-
-    if (Array.isArray(matches) && matches.length > 0) {
-      form.value.sectionB = matches.map((m: any) => {
-        const orgName = m.organisation?.name || m.organisation_name || 'Partner Organisation'
-        const entryName = m.programme_name || m.name || `Programme Entry #${m.id}`
-        const locations = (m.locations || []).map((l: any) => l.province?.name || l.province_name || l.province?.province_name).filter(Boolean).join(', ')
-
-        return {
-          org: orgName,
-          type: 'Geographic & Activity overlap',
-          linked: entryName,
-          text: `Registered programme in ${locations || 'target region'}. Recommending coordination with ${orgName} on intervention alignment and avoiding duplication of activities.`,
-        }
-      })
-      pushToast(`Identified ${matches.length} overlapping programme(s) on the map`)
-    } else {
-      form.value.sectionB = []
-      pushToast('No similar programmes found for current profile & scope')
-    }
-  } catch (err) {
-    console.error('Map overlap query error:', err)
-    form.value.sectionB = []
-  } finally {
-    fetchingOverlaps.value = false
-  }
-}
-
-// ── Section B / C helpers ─────────────────────────────────────────────────────
-function addRecommendation() {
-  form.value.sectionB.push({ org: '', type: 'Geographic overlap', linked: '—', text: '' })
-}
-function removeRecommendation(idx: number) {
-  form.value.sectionB.splice(idx, 1)
-}
-function addGap() {
-  form.value.sectionC.push({ text: '' })
-}
-function removeGap(idx: number) {
-  form.value.sectionC.splice(idx, 1)
-}
+const {
+  assigneeId, coordinators, currentStatus, delivering, exportingPdf,
+  fetchingOverlaps, form, generatingAiDraft, isDelivered, isDraftEntry, incompleteSectionBCount, isSectionsComplete,
+  loading, overlapNoResults, scopeDisplay, submission, submissionId, toasts,
+  showDraftModal, draftGenerating, draftOrganisations, selectedOrgId, programmeName, startYear,
+  addGap, addRecommendation, assignCoordinator, exportAdvisoryNotePdf,
+  fetchMapOverlaps, generateAiAdvisoryDraft, generateAndDraft, goBack,
+  handleViewDocument, markDelivered, openDraftModal, openFinalNoteFile,
+  removeGap, removeRecommendation, saveDraft,
+} = useAdviserDetailController()
 </script>
 
 <template>
@@ -475,11 +44,26 @@ function removeGap(idx: number) {
         :scope-display="scopeDisplay"
         :delivering="delivering"
         :is-complete="isSectionsComplete"
+        :incomplete-section-b-count="incompleteSectionBCount"
         @back="goBack"
         @save-draft="saveDraft"
         @mark-delivered="markDelivered"
         @view-document="handleViewDocument"
       />
+
+      <!-- Draft entry warning banner -->
+      <div
+        v-if="isDraftEntry"
+        class="mb-6 flex items-start gap-3 px-5 py-4 rounded-xl bg-amber-50 border border-amber-200"
+      >
+        <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+        </svg>
+        <div>
+          <p class="text-[13px] font-semibold text-amber-800">Programme not yet submitted by member organisation</p>
+          <p class="text-[12px] text-amber-700 mt-0.5">This programme entry is still a draft. Advisory notes can be prepared, but advice cannot be marked as delivered until the member org submits the programme.</p>
+        </div>
+      </div>
 
       <!-- Dual-pane workspace -->
       <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
@@ -501,7 +85,7 @@ function removeGap(idx: number) {
             :delivered-at="submission?.delivered_at ?? null"
             :final-note-file-url="(submission as any)?.final_note_file_url ?? null"
             @update:assigneeId="assignCoordinator"
-            @open-file="adviserApi.openFinalNoteFile(submissionId)"
+            @open-file="openFinalNoteFile"
           />
         </div>
 
@@ -512,16 +96,18 @@ function removeGap(idx: number) {
             title="A · Programme profile as interpreted"
             :model-value="form.sectionA"
             @update:model-value="form.sectionA = $event"
-            badge="MANUAL ENTRY"
-            badge-tone="gray"
+            :badge="generatingAiDraft ? 'ANALYSING…' : (form.sectionA ? 'AI + MANUAL' : 'MANUAL ENTRY')"
+            :badge-tone="generatingAiDraft ? 'amber' : (form.sectionA ? 'teal' : 'gray')"
             placeholder="Type or paste the interpreted programme profile here..."
-            :readonly="isDelivered"
+            :readonly="isDelivered || isDraftEntry || generatingAiDraft"
           />
 
           <RecommendationsList
             :items="form.sectionB"
-            :fetching="fetchingOverlaps"
-            :readonly="isDelivered"
+            :fetching="fetchingOverlaps || generatingAiDraft"
+            :no-results="overlapNoResults"
+            :profile-empty="isProfileEmpty"
+            :readonly="isDelivered || isDraftEntry || generatingAiDraft"
             @add="addRecommendation"
             @remove="removeRecommendation"
             @find-overlaps="fetchMapOverlaps"
@@ -532,22 +118,67 @@ function removeGap(idx: number) {
 
           <GapsList
             :items="form.sectionC"
-            :readonly="isDelivered"
+            :readonly="isDelivered || isDraftEntry || generatingAiDraft"
             @add="addGap"
             @remove="removeGap"
             @update:text="(idx, val) => { if (form.sectionC[idx]) form.sectionC[idx].text = val }"
           />
 
-          <SectionEditor
-            title="D · Notes for the coordinator"
-            :model-value="form.sectionD"
-            @update:model-value="form.sectionD = $event"
-            badge="Internal — not released"
-            badge-tone="amber"
-            :is-internal="true"
-            :readonly="isDelivered"
-            placeholder="Private notes for coordinations. This will not be exported in the final PDF..."
-          />
+          <!-- D: Coordinator notes -->
+          <div class="rounded-xl shadow-sm overflow-hidden flex flex-col bg-rose-50/30 border border-rose-200/60">
+            <div class="px-6 py-4 border-b border-rose-200/60 bg-rose-50/50 flex items-center justify-between">
+              <h2 class="text-[14px] font-bold text-rose-900">D · Notes for the coordinator</h2>
+              <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  Internal — not released
+                </span>
+                <button
+                  v-if="!isDelivered && !isDraftEntry"
+                  @click="generateAiAdvisoryDraft"
+                  :disabled="generatingAiDraft || fetchingOverlaps"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition disabled:opacity-60"
+                  :class="(generatingAiDraft || fetchingOverlaps)
+                    ? 'bg-[#0F5A4D]/60 text-white cursor-not-allowed'
+                    : 'bg-[#0F5A4D] hover:bg-[#0c483d] text-white shadow-sm'"
+                >
+                  <svg v-if="generatingAiDraft || fetchingOverlaps" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                  </svg>
+                  {{ (generatingAiDraft || fetchingOverlaps) ? 'Analysing…' : 'AI Analysis' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Generating skeleton — shown across all 4 sections while AI runs -->
+            <div v-if="generatingAiDraft" class="p-6 space-y-3">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-4 h-4 rounded-full bg-[#0F5A4D]/40 animate-pulse"></div>
+                <span class="text-[12px] text-[#0F5A4D] font-medium animate-pulse">AI is analysing the programme and populating all four sections…</span>
+              </div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-full"></div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-5/6"></div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-4/6"></div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-full mt-2"></div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-3/4"></div>
+            </div>
+
+            <!-- Editable textarea -->
+            <div v-else class="p-6 focus-within:ring-2 focus-within:ring-rose-500/20 transition-all rounded-b-xl">
+              <textarea
+                :value="form.sectionD"
+                @input="form.sectionD = ($event.target as HTMLTextAreaElement).value"
+                :placeholder="isDelivered || isDraftEntry ? '' : 'Internal notes for the coordinator. Not included in the version released to the requesting party…'"
+                :readonly="isDelivered || isDraftEntry"
+                class="w-full text-sm leading-relaxed resize-y min-h-[160px] border-none focus:ring-0 p-0 outline-none font-medium text-rose-900 bg-transparent placeholder-rose-300"
+                :class="isDelivered || isDraftEntry ? 'cursor-default select-text' : ''"
+              ></textarea>
+            </div>
+          </div>
 
         </div>
       </div>
@@ -581,7 +212,7 @@ function removeGap(idx: number) {
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option :value="null" disabled>Select organisation…</option>
-              <option v-for="org in organisations" :key="org.id" :value="org.id">{{ org.name }}</option>
+              <option v-for="org in draftOrganisations" :key="org.id" :value="org.id">{{ org.name }}</option>
             </select>
           </div>
 

@@ -1,6 +1,7 @@
 import { getEcho, disconnectEcho } from './echo'
 import { useTaxonomyStore } from '@/stores/taxonomy'
 import { useNotificationStore } from '@/stores/notification'
+import { useEntriesStore } from '@/stores/entries.store'
 import type { ProgrammeDraftCreatedPayload } from '@/types/notification'
 
 let subscribed = false
@@ -16,6 +17,7 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
   if (subscribed) return
 
   const echo = await getEcho()
+  const notificationStore = useNotificationStore()
 
   if (role === 'nep_admin' || role === 'nep_coordinator') {
     const taxonomy = useTaxonomyStore()
@@ -29,16 +31,38 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
           status: 'pending',
         })
       })
+      .listen('.programme.draft.created', (payload: ProgrammeDraftCreatedPayload) => {
+        notificationStore.pushNotification({
+          id: payload.notification_id,
+          type: 'programme_sent',
+          title: `Programme drafted: ${payload.programme_name}`,
+          message: payload.message,
+          programme_entry_id: payload.programme_entry_id,
+          advisory_note_id: null,
+          read_at: null,
+          created_at: new Date().toISOString(),
+        })
+      })
+      .listen('.advice.delivered', (payload: any) => {
+        notificationStore.pushNotification({
+          id: payload.notification_id ?? String(Date.now()),
+          type: 'advice_delivered',
+          title: payload.title ?? 'Coordination advice delivered',
+          message: payload.message,
+          programme_entry_id: payload.programme_entry_id ?? null,
+          advisory_note_id: payload.advisory_note_id ?? null,
+          read_at: null,
+          created_at: new Date().toISOString(),
+        })
+      })
     subscribedChannels.push('private-nep-admin')
   }
 
   if (role === 'member_org' && userId) {
-    const notificationStore = useNotificationStore()
+    const entriesStore = useEntriesStore()
     const channelName = `App.Models.User.${userId}`
-    console.log('[Realtime] Subscribing to channel:', channelName)
     echo.private(channelName)
       .listen('.programme.draft.created', (payload: ProgrammeDraftCreatedPayload) => {
-        console.log('[Realtime] Event received:', payload)
         notificationStore.pushNotification({
           id: payload.notification_id,
           type: 'programme_sent',
@@ -49,6 +73,9 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
           read_at: null,
           created_at: new Date().toISOString(),
         })
+        // Refetch entries so dashboard updates without manual refresh
+        entriesStore.fetchAllEntries(1)
+        entriesStore.fetchDraftEntries(1)
       })
       .listen('.advice.delivered', (payload: any) => {
         notificationStore.pushNotification({

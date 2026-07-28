@@ -19,15 +19,11 @@ export const useNotificationStore = defineStore('notifications', () => {
       try {
         const res = await notificationApi.list()
         const fresh = res.data.data ?? []
-        const existingIds = new Set(items.value.map(n => n.id))
-        const incoming = fresh.filter(n => !existingIds.has(n.id))
-        if (incoming.length > 0) {
-          items.value = [...incoming, ...items.value]
-        }
-        fresh.forEach(n => {
-          const existing = items.value.find(i => i.id === n.id)
-          if (existing && existing.read_at !== n.read_at) existing.read_at = n.read_at
-        })
+        // Replace list with server truth, then re-prepend any real-time pushed
+        // items that arrived after the fetch was initiated (not yet in fresh)
+        const freshIds = new Set(fresh.map((n: AppNotification) => n.id))
+        const realtimeOnly = items.value.filter(n => !freshIds.has(n.id))
+        items.value = [...realtimeOnly, ...fresh]
         hasLoaded.value = true
       } finally {
         loading.value = false

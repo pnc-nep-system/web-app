@@ -314,9 +314,12 @@ export const useProgrammeSaveStore = defineStore('programmeSave', () => {
       }
 
       const entriesStore = useEntriesStore()
-      const refreshedEntry = await entriesStore.refreshById(savedId)
-      const savedIsSubmitted = shouldSubmit || refreshedEntry?.isDraft === false
-      await entriesStore.refreshAfterSave(savedIsSubmitted)
+      let savedIsSubmitted = shouldSubmit
+      try {
+        const refreshedEntry = await entriesStore.refreshById(savedId)
+        savedIsSubmitted = shouldSubmit || refreshedEntry?.isDraft === false
+      } catch { /* coordinator may not have access to member entry list */ }
+      entriesStore.refreshAfterSave(savedIsSubmitted).catch(() => {})
       useMapStore().fetchMapEntries()
 
       if (exitAfterSave) {

@@ -11,7 +11,9 @@ interface Recommendation {
 defineProps<{
   items: Recommendation[]
   fetching?: boolean
+  noResults?: boolean
   readonly?: boolean
+  profileEmpty?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -55,30 +57,46 @@ const emit = defineEmits<{
     
     <div class="p-6 space-y-4">
       <!-- Empty State -->
-      <div v-if="items.length === 0" class="py-8 px-6 text-center border-2 border-dashed border-slate-200 rounded-xl bg-slate-50/40">
-        <div class="w-12 h-12 rounded-full bg-[#0F5A4D]/10 text-[#0F5A4D] mx-auto flex items-center justify-center mb-3">
-          <BaseIcon name="search" size="22" />
-        </div>
-        <h3 class="text-sm font-bold text-slate-800">No Overlap Recommendations Found Yet</h3>
-        <p class="text-xs text-slate-500 max-w-md mx-auto mt-2 mb-4">
-          Click below to compare this programme against the map database by location & activity taxonomy to find similar registered programmes.
-        </p>
-        <button
-          @click="emit('findOverlaps')"
-          :disabled="fetching"
-          class="inline-flex items-center mt-2 gap-2 px-4 py-2 text-xs font-bold text-white bg-[#0F5A4D] hover:bg-[#0c483d] rounded-lg transition shadow-sm cursor-pointer disabled:opacity-50"
+      <div v-if="items.length === 0" class="py-8 px-6 text-center border-2 border-dashed rounded-xl"
+        :class="profileEmpty ? 'border-orange-200 bg-orange-50/40' : 'border-slate-200 bg-slate-50/40'"
+      >
+        <div class="w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-3"
+          :class="profileEmpty ? 'bg-orange-100 text-orange-500' : 'bg-[#0F5A4D]/10 text-[#0F5A4D]'"
         >
-          <BaseIcon v-if="fetching" name="refresh" size="14" class="animate-spin" />
-          <BaseIcon v-else name="search" size="14" />
-          {{ fetching ? 'Searching System Map…' : 'Run Overlap Search Query' }}
-        </button>
+          <BaseIcon :name="profileEmpty ? 'alert' : 'search'" size="22" />
+        </div>
+
+        <!-- Profile has no structured data -->
+        <template v-if="profileEmpty">
+          <h3 class="text-sm font-bold text-orange-800">No structured data to compare</h3>
+          <p class="text-xs text-orange-600 max-w-sm mx-auto mt-2">
+            The linked programme entry has no activities or locations saved. Complete the programme entry first, then run the overlap search.
+          </p>
+        </template>
+
+        <!-- Searched, nothing found -->
+        <template v-else-if="noResults">
+          <h3 class="text-sm font-bold text-slate-800">No overlapping programmes found</h3>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto mt-2">
+            No programmes in the map share the same geography or activities for this scope. You can add a manual recommendation if needed.
+          </p>
+        </template>
+
+        <!-- Not searched yet -->
+        <template v-else>
+          <h3 class="text-sm font-bold text-slate-800">No recommendations yet</h3>
+          <p class="text-xs text-slate-500 max-w-sm mx-auto mt-2">
+            Run "Query Overlaps on Map" to automatically find programmes with matching geography or activities.
+          </p>
+        </template>
       </div>
       
       <!-- Recommendation Cards -->
       <div
         v-for="(rec, idx) in items"
         :key="idx"
-        class="border border-slate-200 hover:border-emerald-300 rounded-xl p-5 bg-white transition-all shadow-2xs relative group"
+        class="border hover:border-emerald-300 rounded-xl p-5 bg-white transition-all shadow-2xs relative group"
+        :class="!readonly && (!rec.org?.trim() || !rec.text?.trim()) ? 'border-red-300 bg-red-50/30' : 'border-slate-200'"
       >
         <button
           v-if="!readonly"

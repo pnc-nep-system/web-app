@@ -51,7 +51,7 @@ export const adviserApi = {
         section_profile?: string
         section_gaps?: string
         section_coordinators_notes?: string
-        recommendations?: { organisation_name: string | null; type: string; relational: string; programme_entry_id: number | null }[]
+        recommendations?: { organisation_name: string | null; programme_name?: string | null; type: string; relational: string | null; rationale?: string | null; programme_entry_id: number | null }[]
     }) {
         if (this._updateSectionsPromises.has(id)) return this._updateSectionsPromises.get(id)!
         const p = api.patch<{ data: Submission }>(`/adviser/submissions/${id}`, payload)
@@ -141,6 +141,13 @@ export const adviserApi = {
      */
     fetchUrl(url: string) {
         return api.post('/programme-entries/fetch-url', { url })
+    },
+
+    /**
+     * Fetch a single programme entry with full nested activities and locations.
+     */
+    getProgrammeEntry(id: number) {
+        return api.get<{ data: any }>(`/programme-entries/${id}`)
     },
 
     /**

@@ -11,7 +11,6 @@ export function useNotificationBell() {
   const bellRef = ref<HTMLElement | null>(null)
   const isRinging = ref(false)
 
-  let loaded = false
   const seenIds = new Set<string>()
 
   function onOutsideClick(e: MouseEvent) {
@@ -52,7 +51,6 @@ export function useNotificationBell() {
   }
 
   function checkForNew() {
-    if (!loaded) return
     for (const item of store.items) {
       if (item.read_at) continue
       if (seenIds.has(item.id)) continue
@@ -62,28 +60,22 @@ export function useNotificationBell() {
     }
   }
 
-  async function loadActiveNotifications() {
-    const wasLoaded = store.hasLoaded
-    await store.fetchNotifications()
-    store.items.forEach(n => seenIds.add(n.id))
-    loaded = true
-    if (wasLoaded) checkForNew()
-  }
-
-  // Watch items length — fires whenever an item is added
+  // Watch items — fires immediately whenever a new notification is pushed (real-time or fetched)
   watch(() => store.items.length, checkForNew)
-
-  // Also watch the first item id in case length stays same but item changes
   watch(() => store.items[0]?.id, checkForNew)
 
   watch(open, (isOpen) => {
-    if (isOpen) void loadActiveNotifications()
+    if (isOpen) void store.fetchNotifications()
   })
 
-  onMounted(() => {
+  onMounted(async () => {
     document.addEventListener('click', onOutsideClick)
+    // Seed seenIds from already-read notifications only — unread ones should ring
+    store.items.filter(n => n.read_at).forEach(n => seenIds.add(n.id))
+    // Fetch on mount so unread count badge is accurate immediately
+    await store.fetchNotifications()
+    // After fetch, seed seenIds for everything currently loaded so only future arrivals ring
     store.items.forEach(n => seenIds.add(n.id))
-    loaded = store.hasLoaded
   })
 
   onUnmounted(() => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ProgrammeIdentityForm from './ProgrammeIdentityForm.vue'
 import ActivitiesForm from './ActivitiesForm.vue'
@@ -21,8 +21,12 @@ const auth = useAuthStore()
 
 let mountedId: string | null = null
 let _skipNextIdWatch = false
+let _isMounted = false
+
+onUnmounted(() => { _isMounted = false })
 
 onMounted(async () => {
+  _isMounted = true
   const isStaff = ['nep_admin', 'nep_coordinator'].includes(auth.userRole || '')
   const hasOrgId = !!route.query.org_id
   const hasEntryId = !!route.query.id
@@ -40,6 +44,7 @@ onMounted(async () => {
 watch(
   () => route.query.id,
   async (newId) => {
+    if (!_isMounted) return
     if (_skipNextIdWatch) {
       _skipNextIdWatch = false
       mountedId = newId ? String(newId) : null

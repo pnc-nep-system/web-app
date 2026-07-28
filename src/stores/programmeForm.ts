@@ -135,6 +135,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     currentStep.value = 1
     _cachedOrgId.value = null
     saveStore.clearSubmissionResult()
+    saveStore.isSaving = false
   }
 
   // --- Init ---

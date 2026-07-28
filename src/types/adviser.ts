@@ -1,11 +1,12 @@
 import type { User } from './user'
 
 export type AnalysisScope = 'full map' | 'geographic subset' | 'thematic subset'
-export type SubmissionStatus = 'pending' | 'submitted_for_review' | 'advice_delivered'
+export type SubmissionStatus = 'pending' | 'submitted_for_review' | 'Submitted for review' | 'analysed' | 'advice_delivered'
 
 export interface SubmissionProgrammeEntry {
     id: number
     programme_name?: string
+    is_submitted?: number | boolean
     activities?: { activity_item_id: number; activityItem?: { id: number; subcategory?: { id: number; category_id: number } } }[]
     locations?: { province_id: number | null; district_id: number | null; commune_id: number | null }[]
 }
@@ -40,8 +41,10 @@ export interface AdvisoryRecommendation {
     advisory_note_id: number
     programme_entry_id: number | null
     organisation_name: string | null
+    programme_name: string | null
     type: string
-    relational: string
+    relational: string | null
+    rationale: string | null
 }
 
 export interface PaginationLink {

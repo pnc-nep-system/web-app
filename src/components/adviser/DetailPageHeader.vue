@@ -10,7 +10,18 @@ defineProps<{
   scopeDisplay: string
   delivering: boolean
   isComplete?: boolean
+  incompleteSectionBCount?: number
 }>()
+
+function deliverTitle(isComplete: boolean | undefined, incompleteSectionBCount: number | undefined): string {
+  if (!isComplete) {
+    if (incompleteSectionBCount) {
+      return `${incompleteSectionBCount} Section B card${incompleteSectionBCount > 1 ? 's are' : ' is'} missing organisation name or description.`
+    }
+    return 'Section A (programme profile) is required before delivering.'
+  }
+  return ''
+}
 
 const emit = defineEmits<{
   back: []
@@ -83,7 +94,7 @@ const emit = defineEmits<{
         <button
           @click="emit('markDelivered')"
           :disabled="delivering || !isComplete"
-          :title="!isComplete ? 'Section A is required. If overlaps are found, all Section B cards must be completed.' : ''"
+          :title="deliverTitle(isComplete, incompleteSectionBCount)"
           class="px-4 py-2 bg-[#0F5A4D] text-white rounded-lg text-xs font-bold hover:bg-[#0c483d] transition shadow-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <BaseIcon v-if="delivering" name="refresh" size="14" class="animate-spin" />

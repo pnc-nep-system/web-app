@@ -24,15 +24,19 @@ const _activeTab = ref<'all' | 'submitted_for_review' | 'advice_delivered'>(
 )
 
 const filteredSubmissions = computed(() => {
-  const list = adviserStore.submissions
+  const list = adviserStore.submissions.filter(s => {
+    // exclude submissions linked to a draft entry (not yet submitted by member org)
+    if (s.programme_entry && !Number(s.programme_entry.is_submitted)) return false
+    return true
+  })
   if (_activeTab.value === 'all') return list
   if (_activeTab.value === 'submitted_for_review') return list.filter(s => s.status !== 'advice_delivered')
   return list.filter(s => s.status === _activeTab.value)
 })
 
-const countAll = computed(() => adviserStore.submissions.length)
-const countReview = computed(() => adviserStore.submissions.filter(s => s.status !== 'advice_delivered').length)
-const countDelivered = computed(() => adviserStore.submissions.filter(s => s.status === 'advice_delivered').length)
+const countAll = computed(() => adviserStore.submissions.filter(s => !s.programme_entry || Number(s.programme_entry.is_submitted)).length)
+const countReview = computed(() => adviserStore.submissions.filter(s => (!s.programme_entry || Number(s.programme_entry.is_submitted)) && s.status !== 'advice_delivered').length)
+const countDelivered = computed(() => adviserStore.submissions.filter(s => (!s.programme_entry || Number(s.programme_entry.is_submitted)) && s.status === 'advice_delivered').length)
 
 // ── Navigation ────────────────────────────────────────────────────────────────
 function openSubmission(id: number) {
