@@ -8,6 +8,7 @@ import { useCategoriesStore } from './categories'
 import { useTaxonomyStore } from './taxonomy'
 import { useAuthStore } from './auth'
 import { useMapStore } from './map'
+import { useEntriesStore } from './entries.store'
 import { useProgrammeIdentityStore } from './programmeIdentity'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 import { useProgrammeGeographyStore } from './programmeGeography'
@@ -312,13 +313,17 @@ export const useProgrammeSaveStore = defineStore('programmeSave', () => {
         await router.replace({ query: { ...currentQuery, id: String(savedId) } })
       }
 
+      const entriesStore = useEntriesStore()
+      const refreshedEntry = await entriesStore.refreshById(savedId)
+      const savedIsSubmitted = shouldSubmit || refreshedEntry?.isDraft === false
+      await entriesStore.refreshAfterSave(savedIsSubmitted)
       useMapStore().fetchMapEntries()
 
       if (exitAfterSave) {
         if (isStaff) {
-          router.push('/admin/programmes?tab=my-drafts')
+          router.push(`/admin/programmes?tab=${savedIsSubmitted ? 'submitted' : 'my-drafts'}`)
         } else {
-          router.push(`/dashboard?tab=${shouldSubmit ? 'submitted' : 'draft'}`)
+          router.push(`/dashboard?tab=${savedIsSubmitted ? 'submitted' : 'draft'}`)
         }
       }
       return true

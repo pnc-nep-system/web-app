@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import KpiCard from '@/components/KpiCard.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -8,7 +8,6 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import DashboardGuidance from '@/components/programme/DashboardGuidance.vue'
 import { useEntriesStore } from '@/stores/entries.store'
-import { useProgrammeFormStore } from '@/stores/programmeForm'
 import { useAuthStore } from '@/stores/auth'
 import NewEntryButton from '@/components/programme/NewEntryButton.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -16,23 +15,17 @@ import PageHeader from '@/components/common/PageHeader.vue'
 const router = useRouter()
 const route = useRoute()
 const entries = useEntriesStore()
-const formStore = useProgrammeFormStore()
 const auth = useAuthStore()
 
 const canSeeDraft = computed(() => !['nep_admin', 'nep_coordinator'].includes(auth.userRole))
 
-function clearDraft() {
-  sessionStorage.removeItem('new_programme_entry_draft')
-  formStore.resetAll()
-}
-
-onMounted(() => {
+watch(() => route.query.tab, () => {
   const requestedTab = route.query.tab as 'all' | 'draft' | 'submitted' || 'all'
   const validTabs = ['all', 'draft', 'submitted']
   const parsedTab = validTabs.includes(requestedTab) ? requestedTab : 'all'
   const tab = !canSeeDraft.value && parsedTab !== 'submitted' ? 'submitted' : parsedTab
-  entries.switchTab(tab as 'all' | 'draft' | 'submitted')
-})
+  entries.switchTab(tab as 'all' | 'draft' | 'submitted', true)
+}, { immediate: true })
 </script>
 
 <template>

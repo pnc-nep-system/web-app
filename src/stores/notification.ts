@@ -6,8 +6,8 @@ import type { AppNotification } from '@/types/notification'
 export const useNotificationStore = defineStore('notifications', () => {
   const items = ref<AppNotification[]>([])
   const loading = ref(false)
+  const hasLoaded = ref(false)
   let fetchPromise: Promise<void> | null = null
-  let pollTimer: ReturnType<typeof setInterval> | null = null
   let initialised = false
 
   const unreadCount = computed(() => items.value.filter(n => !n.read_at).length)
@@ -28,6 +28,7 @@ export const useNotificationStore = defineStore('notifications', () => {
           const existing = items.value.find(i => i.id === n.id)
           if (existing && existing.read_at !== n.read_at) existing.read_at = n.read_at
         })
+        hasLoaded.value = true
       } finally {
         loading.value = false
         fetchPromise = null
@@ -36,23 +37,13 @@ export const useNotificationStore = defineStore('notifications', () => {
     return fetchPromise
   }
 
-  function startPolling() {
-    if (pollTimer) return
-    pollTimer = setInterval(async () => {
-      if (document.visibilityState === 'hidden') return
-      await fetchNotifications()
-    }, 30_000)
-  }
-
   async function init() {
     if (initialised) return
     initialised = true
     await fetchNotifications()
-    startPolling()
   }
 
   function stopPolling() {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
     initialised = false
   }
 
@@ -79,5 +70,5 @@ export const useNotificationStore = defineStore('notifications', () => {
     items.value.unshift(notification)
   }
 
-  return { items, loading, unreadCount, fetchNotifications, init, stopPolling, markRead, markAllRead, pushNotification }
+  return { items, loading, hasLoaded, unreadCount, fetchNotifications, init, stopPolling, markRead, markAllRead, pushNotification }
 })

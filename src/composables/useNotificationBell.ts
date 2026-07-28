@@ -62,19 +62,28 @@ export function useNotificationBell() {
     }
   }
 
+  async function loadActiveNotifications() {
+    const wasLoaded = store.hasLoaded
+    await store.fetchNotifications()
+    store.items.forEach(n => seenIds.add(n.id))
+    loaded = true
+    if (wasLoaded) checkForNew()
+  }
+
   // Watch items length — fires whenever an item is added
   watch(() => store.items.length, checkForNew)
 
   // Also watch the first item id in case length stays same but item changes
   watch(() => store.items[0]?.id, checkForNew)
 
-  onMounted(async () => {
+  watch(open, (isOpen) => {
+    if (isOpen) void loadActiveNotifications()
+  })
+
+  onMounted(() => {
     document.addEventListener('click', onOutsideClick)
-    await store.init()
     store.items.forEach(n => seenIds.add(n.id))
-    loaded = true
-    const firstUnread = store.items.find(n => !n.read_at)
-    if (firstUnread) triggerRing()
+    loaded = store.hasLoaded
   })
 
   onUnmounted(() => {

@@ -105,63 +105,66 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
   const _communePromises = new Map<number, Promise<void>>()
   const _villagePromises = new Map<number, Promise<void>>()
 
-  async function fetchDistricts(provinceId: number) {
-    if (_districtsRaw[provinceId]) return
-    if (_districtPromises.has(provinceId)) return _districtPromises.get(provinceId)
-    loadingDistricts.value = new Set([...loadingDistricts.value, provinceId])
+  async function fetchDistricts(provinceId: number | string) {
+    const id = Number(provinceId)
+    if (_districtsRaw[id]) return
+    if (_districtPromises.has(id)) return _districtPromises.get(id)
+    loadingDistricts.value = new Set([...loadingDistricts.value, id])
     const promise = (async () => {
       try {
-        const res = await memberApi.getDistricts(provinceId)
-        _districtsRaw[provinceId] = res.data.data
-        districtsCache.value = { ...districtsCache.value, [provinceId]: res.data.data }
+        const res = await memberApi.getDistricts(id)
+        _districtsRaw[id] = res.data.data
+        districtsCache.value = { ...districtsCache.value, [id]: res.data.data }
       } finally {
-        _districtPromises.delete(provinceId)
+        _districtPromises.delete(id)
         const next = new Set(loadingDistricts.value)
-        next.delete(provinceId)
+        next.delete(id)
         loadingDistricts.value = next
       }
     })()
-    _districtPromises.set(provinceId, promise)
+    _districtPromises.set(id, promise)
     return promise
   }
 
-  async function fetchCommunes(districtId: number) {
-    if (_communesRaw[districtId]) return
-    if (_communePromises.has(districtId)) return _communePromises.get(districtId)
-    loadingCommunes.value = new Set([...loadingCommunes.value, districtId])
+  async function fetchCommunes(districtId: number | string) {
+    const id = Number(districtId)
+    if (_communesRaw[id]) return
+    if (_communePromises.has(id)) return _communePromises.get(id)
+    loadingCommunes.value = new Set([...loadingCommunes.value, id])
     const promise = (async () => {
       try {
-        const res = await memberApi.getCommunes(districtId)
-        _communesRaw[districtId] = res.data.data
-        communesCache.value = { ...communesCache.value, [districtId]: res.data.data }
+        const res = await memberApi.getCommunes(id)
+        _communesRaw[id] = res.data.data
+        communesCache.value = { ...communesCache.value, [id]: res.data.data }
       } finally {
-        _communePromises.delete(districtId)
+        _communePromises.delete(id)
         const next = new Set(loadingCommunes.value)
-        next.delete(districtId)
+        next.delete(id)
         loadingCommunes.value = next
       }
     })()
-    _communePromises.set(districtId, promise)
+    _communePromises.set(id, promise)
     return promise
   }
 
-  async function fetchVillages(communeId: number) {
-    if (_villagesRaw[communeId]) return
-    if (_villagePromises.has(communeId)) return _villagePromises.get(communeId)
-    loadingVillages.value = new Set([...loadingVillages.value, communeId])
+  async function fetchVillages(communeId: number | string) {
+    const id = Number(communeId)
+    if (_villagesRaw[id]) return
+    if (_villagePromises.has(id)) return _villagePromises.get(id)
+    loadingVillages.value = new Set([...loadingVillages.value, id])
     const promise = (async () => {
       try {
-        const res = await memberApi.getVillages(communeId)
-        _villagesRaw[communeId] = res.data.data
-        villagesCache.value = { ...villagesCache.value, [communeId]: res.data.data }
+        const res = await memberApi.getVillages(id)
+        _villagesRaw[id] = res.data.data
+        villagesCache.value = { ...villagesCache.value, [id]: res.data.data }
       } finally {
-        _villagePromises.delete(communeId)
+        _villagePromises.delete(id)
         const next = new Set(loadingVillages.value)
-        next.delete(communeId)
+        next.delete(id)
         loadingVillages.value = next
       }
     })()
-    _villagePromises.set(communeId, promise)
+    _villagePromises.set(id, promise)
     return promise
   }
 

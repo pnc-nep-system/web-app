@@ -2,6 +2,27 @@ import api from './axios';
 import { taxonomyApi } from './taxonomy.api';
 import type { ProgrammeIdentity, Province, District, Commune, Village } from '@/types/programme'
 
+const provinceRequestCache = new Map<string, ReturnType<typeof api.get<{ data: Province[] }>>>()
+const districtRequestCache = new Map<string, ReturnType<typeof api.get<{ data: District[] }>>>()
+const communeRequestCache = new Map<string, ReturnType<typeof api.get<{ data: Commune[] }>>>()
+const villageRequestCache = new Map<string, ReturnType<typeof api.get<{ data: Village[] }>>>()
+
+function rememberRequest<K, T>(
+  cache: Map<K, ReturnType<typeof api.get<T>>>,
+  key: K,
+  request: () => ReturnType<typeof api.get<T>>
+) {
+  const cached = cache.get(key)
+  if (cached) return cached
+
+  const pending = request().catch(error => {
+    cache.delete(key)
+    throw error
+  })
+  cache.set(key, pending)
+  return pending
+}
+
 export const memberApi = {
   listProgrammeEntries(organisationId: number | string) {
     return api.get(`/organisations/${organisationId}/programme-entries`);
@@ -16,16 +37,19 @@ export const memberApi = {
     return api.get(`/programme-entries/${id}`);
   },
   getProvinces() {
-    return api.get<{ data: Province[] }>('/provinces');
+    return rememberRequest(provinceRequestCache, 'all', () => api.get<{ data: Province[] }>('/provinces'));
   },
-  getDistricts(provinceId: number) {
-    return api.get<{ data: District[] }>(`/provinces/${provinceId}/districts`);
+  getDistricts(provinceId: number | string) {
+    const id = String(provinceId)
+    return rememberRequest(districtRequestCache, id, () => api.get<{ data: District[] }>(`/provinces/${id}/districts`));
   },
-  getCommunes(districtId: number) {
-    return api.get<{ data: Commune[] }>(`/districts/${districtId}/communes`);
+  getCommunes(districtId: number | string) {
+    const id = String(districtId)
+    return rememberRequest(communeRequestCache, id, () => api.get<{ data: Commune[] }>(`/districts/${id}/communes`));
   },
-  getVillages(communeId: number) {
-    return api.get<{ data: Village[] }>(`/communes/${communeId}/villages`);
+  getVillages(communeId: number | string) {
+    const id = String(communeId)
+    return rememberRequest(villageRequestCache, id, () => api.get<{ data: Village[] }>(`/communes/${id}/villages`));
   },
   getMapEntries() {
     return api.get('/map/entries');
@@ -101,4 +125,3 @@ export const memberApi = {
     });
   },
 };
-

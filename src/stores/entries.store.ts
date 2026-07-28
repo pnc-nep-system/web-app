@@ -98,6 +98,16 @@ export const useEntriesStore = defineStore('entries', () => {
     return promise
   }
 
+  async function refreshById(id: string | number): Promise<any> {
+    const key = String(id)
+    fetchPromises.delete(key)
+    delete entryCache.value[key]
+    const res = await memberApi.getProgrammeEntry(id)
+    const mapped = mapDetailEntry(res.data.data ?? res.data)
+    entryCache.value = { ...entryCache.value, [key]: mapped }
+    return mapped
+  }
+
   async function markVerified(id: string | number) {
     try {
       await memberApi.markVerified(id)
@@ -147,11 +157,11 @@ export const useEntriesStore = defineStore('entries', () => {
     }
   }
 
-  function switchTab(tab: 'all' | 'draft' | 'submitted') {
+  function switchTab(tab: 'all' | 'draft' | 'submitted', force = false) {
     activeTab.value = tab
-    if (tab === 'all' && allItems.value.length === 0) fetchAllEntries(1)
-    else if (tab === 'draft' && draftItems.value.length === 0) fetchDraftEntries(1)
-    else if (tab === 'submitted' && submittedItems.value.length === 0) fetchSubmittedEntries(1)
+    if (tab === 'all' && (force || allItems.value.length === 0)) fetchAllEntries(1)
+    else if (tab === 'draft' && (force || draftItems.value.length === 0)) fetchDraftEntries(1)
+    else if (tab === 'submitted' && (force || submittedItems.value.length === 0)) fetchSubmittedEntries(1)
   }
 
   function goToPage(page: number) {
@@ -165,7 +175,21 @@ export const useEntriesStore = defineStore('entries', () => {
 
   function retry() { goToPage(currentPagination.value.currentPage) }
   function forOrganisation(_orgId: number | null) { return [] }
-  function clearEntryCache() { entryCache.value = {} }
+  async function refreshAfterSave(isSubmitted: boolean) {
+    await Promise.allSettled([
+      fetchAllEntries(1),
+      isSubmitted ? fetchSubmittedEntries(1) : fetchDraftEntries(1),
+    ])
+  }
+  function clearEntryCache(id?: string | number) {
+    if (id == null) {
+      entryCache.value = {}
+      return
+    }
+    const next = { ...entryCache.value }
+    delete next[String(id)]
+    entryCache.value = next
+  }
 
   return {
     activeTab, allItems, draftItems, submittedItems,
@@ -174,8 +198,8 @@ export const useEntriesStore = defineStore('entries', () => {
     allPagination, draftPagination, submittedPagination,
     currentItems, items, currentLoading, currentError, currentPagination,
     entriesWithStatus, verifiedCount, unverifiedCount,
-    statusOf, byId, fetchById, markVerified,
-    fetchAllEntries, fetchDraftEntries, fetchSubmittedEntries,
+    statusOf, byId, fetchById, refreshById, markVerified,
+    fetchAllEntries, fetchDraftEntries, fetchSubmittedEntries, refreshAfterSave,
     switchTab, goToPage, retry, forOrganisation, clearEntryCache,
   }
 })
