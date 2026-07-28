@@ -153,7 +153,17 @@ function formatTime(dt: string | null | undefined) {
               >
                 <div class="flex flex-wrap items-center gap-3 mb-2">
                   <span class="font-bold text-[14px] text-slate-900">{{ rec.organisation_name || '—' }}</span>
-                  <span class="px-2.5 py-1 text-[11px] font-bold rounded-full bg-teal-100 text-teal-800">{{ rec.type }}</span>
+                  <span
+                    class="px-2.5 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider border shadow-2xs"
+                    :class="{
+                      'bg-emerald-100 text-emerald-800 border-emerald-200': rec.type && rec.type.includes('Geographic') && rec.type.includes('Activity'),
+                      'bg-teal-100 text-teal-800 border-teal-200': rec.type && rec.type.includes('Geographic') && !rec.type.includes('Activity'),
+                      'bg-indigo-100 text-indigo-800 border-indigo-200': rec.type && rec.type.includes('Thematic') && !rec.type.includes('adjacency'),
+                      'bg-amber-100 text-amber-800 border-amber-200': rec.type && rec.type.includes('adjacency'),
+                    }"
+                  >
+                    {{ rec.type }}
+                  </span>
                 </div>
                 <p v-if="rec.programme_entry_id" class="text-xs text-indigo-600 font-medium mb-2">
                   Linked entry: Entry #{{ rec.programme_entry_id }}

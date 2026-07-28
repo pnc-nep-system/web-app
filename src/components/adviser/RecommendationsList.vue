@@ -5,6 +5,7 @@ interface Recommendation {
   org: string
   type: string
   linked: string
+  province?: string
   text: string
 }
 
@@ -100,38 +101,53 @@ const emit = defineEmits<{
             class="font-bold text-[14px] text-slate-900 border border-slate-200 rounded-lg px-3 py-1.5 min-w-[220px] focus:outline-none focus:border-[#0F5A4D] focus:ring-1 focus:ring-[#0F5A4D]"
             :class="readonly ? 'bg-slate-50 cursor-default' : ''"
           />
+          <!-- Overlap Type Select Dropdown (Other options disabled) -->
           <select 
             :value="rec.type"
             @change="!readonly && $emit('update:type', idx, ($event.target as HTMLSelectElement).value)"
             :disabled="readonly"
             class="text-xs font-semibold text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 focus:outline-none focus:border-[#0F5A4D]"
-            :class="readonly ? 'cursor-default opacity-100' : ''"
+            :class="readonly ? 'cursor-default opacity-100' : 'cursor-pointer'"
           >
-            <option>Geographic & Activity overlap</option>
-            <option>Geographic overlap</option>
-            <option>Thematic overlap</option>
-            <option>Thematic adjacency</option>
+            <option 
+              v-for="opt in ['Geographic & Activity overlap', 'Geographic overlap', 'Thematic overlap', 'Thematic adjacency']"
+              :key="opt"
+              :value="opt"
+              :disabled="opt !== rec.type"
+              class="disabled:text-slate-400 disabled:bg-slate-100"
+            >
+              {{ opt }}
+            </option>
           </select>
 
-          <!-- Type Badge -->
+          <!-- Status Badge (Distinct Color for Each Status) -->
           <span
-            class="px-2.5 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider"
+            class="px-2.5 py-1 text-[11px] font-bold rounded-full uppercase tracking-wider border shadow-2xs"
             :class="{
-              'bg-emerald-100 text-emerald-800': rec.type.includes('Geographic') && rec.type.includes('Activity'),
-              'bg-teal-100 text-teal-800': rec.type.includes('Geographic') && !rec.type.includes('Activity'),
-              'bg-indigo-100 text-indigo-800': rec.type.includes('Thematic'),
+              'bg-emerald-100 text-emerald-800 border-emerald-200': rec.type.includes('Geographic') && rec.type.includes('Activity'),
+              'bg-teal-100 text-teal-800 border-teal-200': rec.type.includes('Geographic') && !rec.type.includes('Activity'),
+              'bg-indigo-100 text-indigo-800 border-indigo-200': rec.type.includes('Thematic') && !rec.type.includes('adjacency'),
+              'bg-amber-100 text-amber-800 border-amber-200': rec.type.includes('adjacency'),
             }"
           >
             {{ rec.type }}
           </span>
         </div>
         
-        <!-- Linked entry & Description -->
-        <div class="flex items-center gap-2 text-xs text-slate-500 mb-2 font-medium">
-          <span class="text-slate-400">Linked Map Entry:</span>
-          <span class="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-            {{ rec.linked }}
-          </span>
+        <!-- Linked entry & Province Location -->
+        <div class="flex flex-wrap items-center gap-4 text-xs text-slate-500 mb-2 font-medium">
+          <div class="flex items-center gap-1.5">
+            <span class="text-slate-400">Linked Map Entry:</span>
+            <span class="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+              {{ rec.linked }}
+            </span>
+          </div>
+          <div v-if="rec.province" class="flex items-center gap-1.5">
+            <span class="text-slate-400">Location / Province:</span>
+            <span class="font-bold text-teal-900 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">
+              📍 {{ rec.province }}
+            </span>
+          </div>
         </div>
         <textarea 
           :value="rec.text"

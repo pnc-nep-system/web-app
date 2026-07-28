@@ -418,12 +418,17 @@ async function fetchMapOverlaps() {
         const orgName = m.organisation?.name || m.organisation_name || 'Partner Organisation'
         const entryName = m.programme_name || m.name || `Programme Entry #${m.id}`
         const locations = (m.locations || []).map((l: any) => l.province?.name || l.province_name || l.province?.province_name).filter(Boolean).join(', ')
+        // Calculate whether location overlap exists
+        const matchProvIds = (m.locations || []).map((l: any) => l.province_id || l.province?.id).filter(Boolean)
+        const isGeoOverlap = provinceIds.length > 0 && provinceIds.some(id => matchProvIds.includes(id))
+        const overlapType = m.type || m.overlap_type || (isGeoOverlap ? 'Geographic & Activity overlap' : 'Thematic overlap')
 
         return {
           org: orgName,
-          type: 'Geographic & Activity overlap',
+          type: overlapType,
           linked: entryName,
-          text: `Registered programme in ${locations || 'target region'}. Recommending coordination with ${orgName} on intervention alignment and avoiding duplication of activities.`,
+          province: locations || 'Target Region',
+          text: `Registered programme operating in ${locations || 'target region'}. Recommending coordination with ${orgName} on intervention alignment and avoiding duplication of activities.`,
         }
       })
       pushToast(`Identified ${matches.length} overlapping programme(s) on the map`)
