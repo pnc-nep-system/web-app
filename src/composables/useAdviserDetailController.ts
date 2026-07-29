@@ -8,16 +8,8 @@ import { adviserApi } from '@/api/adviser.api'
 import { memberApi } from '@/api/member.api'
 import type { Submission } from '@/types/adviser'
 
-interface RecommendationForm {
-  org: string
-  type: string
-  linked: string
-  text: string
-}
-
-interface GapForm {
-  text: string
-}
+interface RecommendationForm { org: string; type: string; linked: string; text: string }
+interface GapForm { text: string }
 
 export function useAdviserDetailController() {
   const route = useRoute()
@@ -35,6 +27,8 @@ export function useAdviserDetailController() {
   const currentStatus = ref('submitted_for_review')
   const submission = ref<Submission | null>(null)
   const assigneeId = ref<number | null>(null)
+  const overlapSearched = ref(false)
+  const lastOverlapMatches = ref<any[]>([])
 
   const form = ref({
     sectionA: '',
@@ -58,9 +52,7 @@ export function useAdviserDetailController() {
         const res = await memberApi.listAllOrganisations()
         const data = (res.data as any)?.data ?? res.data
         draftOrganisations.value = Array.isArray(data) ? data : data?.data ?? []
-      } catch {
-        pushToast('Failed to load organisations')
-      }
+      } catch { pushToast('Failed to load organisations') }
     }
   }
 
@@ -89,77 +81,51 @@ export function useAdviserDetailController() {
       router.push(`/entries/new?id=${newId}&org_id=${selectedOrgId.value}`)
     } catch (err: any) {
       pushToast(err?.response?.data?.message ?? 'Failed to generate programme draft')
-    } finally {
-      draftGenerating.value = false
-    }
+    } finally { draftGenerating.value = false }
   }
 
   const coordinators = computed(() =>
-    Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({
-      id: Number(id),
-      name,
-    }))
+    Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({ id: Number(id), name }))
   )
-
   const isDelivered = computed(() => currentStatus.value === 'advice_delivered')
-
   const isDraftEntry = computed(() =>
     !!submission.value?.programme_entry && !Number(submission.value.programme_entry.is_submitted)
   )
-
   const scopeDisplay = computed(() => {
     if (!submission.value) return 'full map'
     const s = submission.value
-    if (!s.analysis_scope_detail) return s.analysis_scope ?? 'full map'
-    return `${s.analysis_scope}: ${s.analysis_scope_detail}`
+    return s.analysis_scope_detail ? `${s.analysis_scope}: ${s.analysis_scope_detail}` : (s.analysis_scope ?? 'full map')
   })
-
   const hasOverlaps = computed(() => form.value.sectionB.length > 0)
-  const overlapSearched = ref(false)
   const overlapNoResults = computed(() => overlapSearched.value && form.value.sectionB.length === 0)
-  const lastOverlapMatches = ref<any[]>([])
-
   const isProfileEmpty = computed(() => {
     const entry = submission.value?.programme_entry
     return !(entry?.activities?.length) && !(entry?.locations?.length)
   })
-
   const isSectionsComplete = computed(() => {
     if (!form.value.sectionA?.trim()) return false
-    if (hasOverlaps.value) {
-      return form.value.sectionB.every(r => r.org?.trim() && r.text?.trim())
-    }
+    if (hasOverlaps.value) return form.value.sectionB.every(r => r.org?.trim() && r.text?.trim())
     return true
   })
-
   const incompleteSectionBCount = computed(() =>
     form.value.sectionB.filter(r => !r.org?.trim() || !r.text?.trim()).length
   )
 
   onMounted(async () => {
     adviserStore.loadCoordinators()
-
     if (!submissionId.value && route.params.entryId) {
       try {
         const res = await adviserApi.getByProgrammeEntry(Number(route.params.entryId))
         const note = (res.data as any)?.data ?? res.data
-        if (note?.id) {
-          submissionId.value = note.id
-          applySubmission(note)
-        }
-      } finally {
-        loading.value = false
-      }
+        if (note?.id) { submissionId.value = note.id; applySubmission(note) }
+      } finally { loading.value = false }
       return
     }
-
     try {
       const res = await adviserApi.getById(submissionId.value)
       const data = (res.data as any)?.data ?? res.data
       if (data) applySubmission(data)
-    } finally {
-      loading.value = false
-    }
+    } finally { loading.value = false }
   })
 
   function applySubmission(data: Submission) {
@@ -167,10 +133,8 @@ export function useAdviserDetailController() {
     currentStatus.value = data.status
     assigneeId.value = data.assign_to_staff_user_id ?? null
     form.value.sectionA = data.section_profile || ''
-
     if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
     if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes
-
     const recs = (data as any).recommendations
     if (Array.isArray(recs) && recs.length > 0) {
       form.value.sectionB = recs.map((r: any) => ({
@@ -183,24 +147,18 @@ export function useAdviserDetailController() {
   }
 
   function buildProfileFromEntry(entry: any) {
-    const categoryIds = uniqueNumbers((entry?.activities ?? []).map((a: any) => a.activityItem?.subcategory?.category_id))
-    const subcategoryIds = uniqueNumbers((entry?.activities ?? []).map((a: any) => a.activityItem?.subcategory?.id))
-    const itemIds = uniqueNumbers((entry?.activities ?? []).map((a: any) => a.activity_item_id ?? a.activityItem?.id))
-    const provinceIds = uniqueNumbers((entry?.locations ?? []).map((l: any) => l.province_id))
-    const districtIds = uniqueNumbers((entry?.locations ?? []).map((l: any) => l.district_id))
-    const communeIds = uniqueNumbers((entry?.locations ?? []).map((l: any) => l.commune_id))
     return {
       activities: {
-        category_ids: categoryIds,
-        subcategory_ids: subcategoryIds,
-        item_ids: itemIds,
+        category_ids: uniqueNumbers((entry?.activities ?? []).map((a: any) => a.activityItem?.subcategory?.category_id)),
+        subcategory_ids: uniqueNumbers((entry?.activities ?? []).map((a: any) => a.activityItem?.subcategory?.id)),
+        item_ids: uniqueNumbers((entry?.activities ?? []).map((a: any) => a.activity_item_id ?? a.activityItem?.id)),
         education_level_ids: [] as number[],
         inclusion_groups: [] as string[],
       },
       geography: {
-        province_ids: provinceIds,
-        district_ids: districtIds,
-        commune_ids: communeIds,
+        province_ids: uniqueNumbers((entry?.locations ?? []).map((l: any) => l.province_id)),
+        district_ids: uniqueNumbers((entry?.locations ?? []).map((l: any) => l.district_id)),
+        commune_ids: uniqueNumbers((entry?.locations ?? []).map((l: any) => l.commune_id)),
       },
       audiences: { inclusion_types: [] as string[] },
     }
@@ -208,21 +166,14 @@ export function useAdviserDetailController() {
 
   async function buildProgrammeProfileFromSubmission() {
     let entry = submission.value?.programme_entry
-
     const entryId = submission.value?.programme_entry_id
     if (entryId && (!entry?.activities?.length && !entry?.locations?.length)) {
       try {
         const res = await adviserApi.getProgrammeEntry(entryId)
         const fetched = (res.data as any)?.data ?? res.data
-        if (fetched) {
-          entry = fetched
-          if (submission.value) submission.value.programme_entry = fetched
-        }
-      } catch (err) {
-        console.warn('Could not fetch programme entry:', err)
-      }
+        if (fetched) { entry = fetched; if (submission.value) submission.value.programme_entry = fetched }
+      } catch { /* use whatever we have */ }
     }
-
     return buildProfileFromEntry(entry)
   }
 
@@ -234,37 +185,25 @@ export function useAdviserDetailController() {
       pushToast('AI Analysis complete — all four sections populated')
     } catch (err: any) {
       pushToast(err?.response?.data?.message ?? 'AI Analysis failed')
-    } finally {
-      generatingAiDraft.value = false
-    }
+    } finally { generatingAiDraft.value = false }
   }
 
   function handleViewDocument() {
     const docUrl = (submission.value as any)?.document_url || (submission.value as any)?.document_path
-    if (docUrl) {
-      window.open(docUrl, '_blank')
-    } else {
-      pushToast(`Document: ${submission.value?.document_name || 'Uploaded File'} (read for prototype review)`)
-    }
+    if (docUrl) window.open(docUrl, '_blank')
+    else pushToast(`Document: ${submission.value?.document_name || 'Uploaded File'} (read for prototype review)`)
   }
 
-  function goBack() {
-    router.push('/adviser')
-  }
+  function goBack() { router.push('/adviser') }
 
   let _saveDraftPromise: Promise<void> | null = null
   async function saveDraft() {
     if (isDraftEntry.value) return
     if (_saveDraftPromise) return _saveDraftPromise
     _saveDraftPromise = (async () => {
-      try {
-        await saveSections()
-        pushToast('Draft saved')
-      } catch {
-        pushToast('Failed to save draft')
-      } finally {
-        _saveDraftPromise = null
-      }
+      try { await saveSections(); pushToast('Draft saved') }
+      catch { pushToast('Failed to save draft') }
+      finally { _saveDraftPromise = null }
     })()
     return _saveDraftPromise
   }
@@ -278,12 +217,10 @@ export function useAdviserDetailController() {
       pushToast('Please complete Section A (Programme profile as interpreted) before marking advice as delivered.')
       return
     }
-
     if (form.value.sectionB.some(r => !r.org?.trim() || !r.text?.trim())) {
       pushToast('Please fill in the organisation name and description for all coordination recommendations (Section B).')
       return
     }
-
     if (delivering.value) return
     delivering.value = true
     try {
@@ -292,54 +229,38 @@ export function useAdviserDetailController() {
       const data = (res.data as any)?.data ?? res.data
       const newStatus = data?.status ?? 'advice_delivered'
       currentStatus.value = newStatus
-      if (submission.value) {
-        submission.value.delivered_at = data?.delivered_at ?? new Date().toISOString()
-      }
+      if (submission.value) submission.value.delivered_at = data?.delivered_at ?? new Date().toISOString()
       const existing = adviserStore.submissions.find(s => s.id === submissionId.value)
       if (existing) existing.status = newStatus
       pushToast('Advisory note saved and marked as delivered')
       router.push('/adviser?tab=advice_delivered')
-    } catch {
-      pushToast('Failed to save - please try again')
-    } finally {
-      delivering.value = false
-    }
+    } catch { pushToast('Failed to save - please try again') }
+    finally { delivering.value = false }
   }
 
   async function exportAdvisoryNotePdf() {
     if (exportingPdf.value) return
     exportingPdf.value = true
-
     const docName = (submission.value?.document_name || 'Advisory_Note').replace(/[^a-zA-Z0-9_-]/g, '_')
     const container = document.createElement('div')
     container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:794px;padding:40px;background:#fff;font-family:Arial,sans-serif;font-size:13px;color:#1e293b;line-height:1.6;'
     container.innerHTML = buildPdfHtml(form.value, submission.value, scopeDisplay.value)
     document.body.appendChild(container)
-
     try {
       const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
       const pageW = pdf.internal.pageSize.getWidth()
       const pageH = pdf.internal.pageSize.getHeight()
-      const imgW = pageW
-      const imgH = (canvas.height * imgW) / canvas.width
-      let y = 0
-      let remaining = imgH
-
+      const imgH = (canvas.height * pageW) / canvas.width
+      let y = 0, remaining = imgH
       while (remaining > 0) {
-        pdf.addImage(imgData, 'PNG', 0, -y, imgW, imgH)
+        pdf.addImage(imgData, 'PNG', 0, -y, pageW, imgH)
         remaining -= pageH
-        if (remaining > 0) {
-          pdf.addPage()
-          y += pageH
-        }
+        if (remaining > 0) { pdf.addPage(); y += pageH }
       }
       pdf.save(`Advisory_Note_${docName}.pdf`)
-    } finally {
-      document.body.removeChild(container)
-      exportingPdf.value = false
-    }
+    } finally { document.body.removeChild(container); exportingPdf.value = false }
   }
 
   async function assignCoordinator(userId: number | null) {
@@ -348,48 +269,26 @@ export function useAdviserDetailController() {
       await adviserApi.updateAssignee(submissionId.value, userId)
       const existing = adviserStore.submissions.find(s => s.id === submissionId.value)
       if (existing) existing.assign_to_staff_user_id = userId
-    } catch {
-      // keep optimistic UI; assignment can be retried by selecting again
-    }
+    } catch { /* optimistic — retry by re-selecting */ }
   }
 
   async function fetchMapOverlaps() {
     if (fetchingOverlaps.value) return
     fetchingOverlaps.value = true
     try {
-      const profile = await buildProgrammeProfileFromSubmission()
-      const rawScope = (submission.value?.analysis_scope || 'full map').toLowerCase()
-      const validScope = ['full map', 'geographic subset', 'thematic subset'].find(s => rawScope.includes(s)) ?? 'full map'
+      // For non-member submissions send an empty profile — the backend will extract
+      // the profile from the stored document_text automatically.
+      // For member submissions send the full profile from the linked programme entry.
+      const isNonMember = !submission.value?.programme_entry_id
+      const profile = isNonMember ? emptyProfile() : await buildProgrammeProfileFromSubmission()
 
-      let matches: any[] = []
-      let aiData: any = {}
-
-      try {
-        const res = await adviserApi.generateAdvisoryNote(submissionId.value, profile)
-        aiData = (res.data as any)?.data ?? {}
-        matches = Array.isArray(aiData.map_overlap_entries) ? aiData.map_overlap_entries : []
-      } catch (err) {
-        console.warn('[fetchMapOverlaps] generateAdvisoryNote failed, falling back to queryOverlap:', err)
-      }
-
-      // Fallback: if AI endpoint failed or returned no map_overlap_entries
-      if (!matches.length) {
-        try {
-          const fallback = await adviserApi.queryOverlap(profile, validScope)
-          const raw = (fallback.data as any)?.data ?? fallback.data ?? []
-          matches = Array.isArray(raw) ? raw : []
-          if (submission.value?.programme_entry_id) {
-            matches = matches.filter((m: any) => m.id !== submission.value!.programme_entry_id)
-          }
-        } catch (err) {
-          console.warn('queryOverlap fallback error:', err)
-        }
-      }
+      const res = await adviserApi.generateAdvisoryNote(submissionId.value, profile)
+      const aiData = (res.data as any)?.data ?? {}
+      const matches: any[] = Array.isArray(aiData.map_overlap_entries) ? aiData.map_overlap_entries : []
 
       lastOverlapMatches.value = matches
       overlapSearched.value = true
 
-      // Build an index of AI section_b by programme_name for rationale/type lookup
       const aiSectionBIndex: Record<string, any> = {}
       if (Array.isArray(aiData.section_b)) {
         for (const item of aiData.section_b) {
@@ -399,33 +298,20 @@ export function useAdviserDetailController() {
 
       if (matches.length > 0) {
         form.value.sectionB = matches.map((m: any) => {
-          const orgName = typeof m.organisation === 'string'
-            ? m.organisation
-            : (m.organisation?.name || 'Partner Organisation')
+          const orgName = typeof m.organisation === 'string' ? m.organisation : (m.organisation?.name || 'Partner Organisation')
           const entryName = m.programme_name || `Entry #${m.id}`
-          const locationNames = (m.locations || [])
-            .map((l: any) => l.province_name || l.province?.name || l.province?.province_name)
-            .filter(Boolean)
-            .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
-          const activityNames = (m.activities || [])
-            .map((a: any) => a.name || a.activityItem?.label)
-            .filter(Boolean)
-            .filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
-
-          // Use AI rationale and overlap_type if available, otherwise build from DB data
+          const locationNames = (m.locations || []).map((l: any) => l.province_name).filter(Boolean).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
+          const activityNames = (m.activities || []).map((a: any) => a.name).filter(Boolean).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i)
           const aiMatch = aiSectionBIndex[entryName]
-          const overlapType = aiMatch?.overlap_type || 'Geographic overlap'
-          const rationale = aiMatch?.rationale || [
-            locationNames.length ? `Locations: ${locationNames.join(', ')}` : null,
-            activityNames.length ? `Activities: ${activityNames.join(', ')}` : null,
-            `Coordinate with ${orgName} to avoid duplication.`,
-          ].filter(Boolean).join(' ')
-
           return {
             org: orgName,
-            type: overlapType,
+            type: aiMatch?.overlap_type || 'Geographic overlap',
             linked: entryName,
-            text: rationale,
+            text: aiMatch?.rationale || [
+              locationNames.length ? `Locations: ${locationNames.join(', ')}` : null,
+              activityNames.length ? `Activities: ${activityNames.join(', ')}` : null,
+              `Coordinate with ${orgName} to avoid duplication.`,
+            ].filter(Boolean).join(' '),
           }
         })
         pushToast(`Found ${matches.length} overlapping programme(s) on the map`)
@@ -433,7 +319,6 @@ export function useAdviserDetailController() {
         form.value.sectionB = []
       }
 
-      // AI always populates A, C, D — overwrite with fresh AI output
       if (aiData.section_a) form.value.sectionA = aiData.section_a
       if (aiData.section_c) form.value.sectionC = [{ text: aiData.section_c }]
       if (aiData.section_d) form.value.sectionD = aiData.section_d
@@ -446,29 +331,24 @@ export function useAdviserDetailController() {
         })
         if (submission.value) submission.value.section_coordinators_notes = form.value.sectionD
       }
-    } finally {
-      fetchingOverlaps.value = false
+    } finally { fetchingOverlaps.value = false }
+  }
+
+  function emptyProfile() {
+    return {
+      activities: { category_ids: [], subcategory_ids: [], item_ids: [], education_level_ids: [], inclusion_groups: [] },
+      geography: { province_ids: [], district_ids: [], commune_ids: [] },
+      audiences: { inclusion_types: [] },
     }
   }
 
-  function addRecommendation() {
-    form.value.sectionB.push({ org: '', type: 'Geographic overlap', linked: '-', text: '' })
-  }
-
-  function removeRecommendation(idx: number) {
-    form.value.sectionB.splice(idx, 1)
-  }
-
-  function addGap() {
-    form.value.sectionC.push({ text: '' })
-  }
-
-  function removeGap(idx: number) {
-    form.value.sectionC.splice(idx, 1)
-  }
+  function addRecommendation() { form.value.sectionB.push({ org: '', type: 'Geographic overlap', linked: '-', text: '' }) }
+  function removeRecommendation(idx: number) { form.value.sectionB.splice(idx, 1) }
+  function addGap() { form.value.sectionC.push({ text: '' }) }
+  function removeGap(idx: number) { form.value.sectionC.splice(idx, 1) }
 
   async function saveSections(options: { recommendationEntryIds?: boolean } = {}) {
-    const useRecommendationEntryIds = options.recommendationEntryIds ?? true
+    const useIds = options.recommendationEntryIds ?? true
     return adviserApi.updateSections(submissionId.value, {
       section_profile: form.value.sectionA,
       section_gaps: form.value.sectionC.map(g => g.text).filter(Boolean).join('\n'),
@@ -479,111 +359,49 @@ export function useAdviserDetailController() {
         type: r.type,
         relational: r.text,
         rationale: r.text,
-        programme_entry_id: useRecommendationEntryIds ? linkedEntryId(r.linked) : null,
+        programme_entry_id: useIds ? linkedEntryId(r.linked) : null,
       })),
     })
   }
 
   return {
-    assigneeId,
-    coordinators,
-    currentStatus,
-    delivering,
-    exportingPdf,
-    fetchingOverlaps,
-    form,
-    generatingAiDraft,
-    isDelivered,
-    isDraftEntry,
-    isSectionsComplete,
-    incompleteSectionBCount,
-    loading,
-    scopeDisplay,
-    submission,
-    submissionId,
-    toasts,
-    showDraftModal,
-    draftGenerating,
-    draftOrganisations,
-    selectedOrgId,
-    programmeName,
-    startYear,
-    addGap,
-    addRecommendation,
-    assignCoordinator,
-    exportAdvisoryNotePdf,
-    isProfileEmpty,
-    overlapNoResults,
-    fetchMapOverlaps,
-    generateAiAdvisoryDraft,
-    generateAndDraft,
-    goBack,
-    handleViewDocument,
-    markDelivered,
-    openDraftModal,
+    assigneeId, coordinators, currentStatus, delivering, exportingPdf, fetchingOverlaps,
+    form, generatingAiDraft, isDelivered, isDraftEntry, isSectionsComplete,
+    incompleteSectionBCount, loading, scopeDisplay, submission, submissionId, toasts,
+    showDraftModal, draftGenerating, draftOrganisations, selectedOrgId, programmeName, startYear,
+    addGap, addRecommendation, assignCoordinator, exportAdvisoryNotePdf, isProfileEmpty,
+    overlapNoResults, fetchMapOverlaps, generateAiAdvisoryDraft, generateAndDraft, goBack,
+    handleViewDocument, markDelivered, openDraftModal,
     openFinalNoteFile: () => adviserApi.openFinalNoteFile(submissionId.value),
-    removeGap,
-    removeRecommendation,
-    saveDraft,
+    removeGap, removeRecommendation, saveDraft,
   }
 }
 
 function buildPdfHtml(form: { sectionA: string; sectionB: RecommendationForm[]; sectionC: GapForm[] }, submission: Submission | null, scope: string) {
-    const title = submission?.document_name || 'Advisory Note'
-    const party = submission?.submitting_party || 'Member Organisation'
-    let sectionsHtml = ''
-
-    if (form.sectionA?.trim()) {
-      sectionsHtml += `<div style="margin-bottom:20px">
-        <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">A - Programme profile as interpreted</div>
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;white-space:pre-wrap">${escapeHtml(form.sectionA.trim())}</div>
-      </div>`
-    }
-
-    if (form.sectionB?.length) {
-      const recHtml = form.sectionB.map((r, i) => `
-        <div style="border:1px solid #cbd5e1;border-radius:6px;padding:10px;margin-bottom:8px">
-          <strong>${i + 1}. ${escapeHtml(r.org)}</strong> <span style="background:#e2e8f0;padding:1px 6px;border-radius:4px;font-size:11px">${escapeHtml(r.type)}</span><br/>
-          <em style="color:#64748b;font-size:11px">Linked: ${escapeHtml(r.linked)}</em>
-          <p style="margin:6px 0 0;font-size:12px">${escapeHtml(r.text)}</p>
-        </div>`).join('')
-      sectionsHtml += `<div style="margin-bottom:20px">
-        <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">B - Coordination recommendations</div>
-        ${recHtml}
-      </div>`
-    }
-
-    const validGaps = form.sectionC?.filter(g => g?.text?.trim())
-    if (validGaps?.length) {
-      sectionsHtml += `<div style="margin-bottom:20px">
-        <div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">C - Gaps in the map</div>
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px">${validGaps.map(g => `<p style="margin:2px 0">- ${escapeHtml(g.text.trim())}</p>`).join('')}</div>
-      </div>`
-    }
-
-    return `
-      <h1 style="color:#0F5A4D;font-size:20px;margin:0 0 4px">Advisory Note</h1>
-      <div style="color:#64748b;font-size:12px;border-bottom:2px solid #0F5A4D;padding-bottom:8px;margin-bottom:20px">
-        <strong>Source:</strong> ${escapeHtml(title)} &nbsp;|&nbsp; <strong>Submitted by:</strong> ${escapeHtml(party)} &nbsp;|&nbsp; <strong>Scope:</strong> ${escapeHtml(scope)}
-      </div>
-      ${sectionsHtml || '<p style="color:#94a3b8;font-style:italic">No sections recorded.</p>'}
-    `
+  const title = submission?.document_name || 'Advisory Note'
+  const party = submission?.submitting_party || 'Member Organisation'
+  let html = ''
+  if (form.sectionA?.trim()) {
+    html += `<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">A - Programme profile as interpreted</div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;white-space:pre-wrap">${escapeHtml(form.sectionA.trim())}</div></div>`
+  }
+  if (form.sectionB?.length) {
+    const recs = form.sectionB.map((r, i) => `<div style="border:1px solid #cbd5e1;border-radius:6px;padding:10px;margin-bottom:8px"><strong>${i + 1}. ${escapeHtml(r.org)}</strong> <span style="background:#e2e8f0;padding:1px 6px;border-radius:4px;font-size:11px">${escapeHtml(r.type)}</span><br/><em style="color:#64748b;font-size:11px">Linked: ${escapeHtml(r.linked)}</em><p style="margin:6px 0 0;font-size:12px">${escapeHtml(r.text)}</p></div>`).join('')
+    html += `<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">B - Coordination recommendations</div>${recs}</div>`
+  }
+  const gaps = form.sectionC?.filter(g => g?.text?.trim())
+  if (gaps?.length) {
+    html += `<div style="margin-bottom:20px"><div style="font-size:13px;font-weight:bold;color:#0F5A4D;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:8px">C - Gaps in the map</div><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px">${gaps.map(g => `<p style="margin:2px 0">- ${escapeHtml(g.text.trim())}</p>`).join('')}</div></div>`
+  }
+  return `<h1 style="color:#0F5A4D;font-size:20px;margin:0 0 4px">Advisory Note</h1><div style="color:#64748b;font-size:12px;border-bottom:2px solid #0F5A4D;padding-bottom:8px;margin-bottom:20px"><strong>Source:</strong> ${escapeHtml(title)} &nbsp;|&nbsp; <strong>Submitted by:</strong> ${escapeHtml(party)} &nbsp;|&nbsp; <strong>Scope:</strong> ${escapeHtml(scope)}</div>${html || '<p style="color:#94a3b8;font-style:italic">No sections recorded.</p>'}`
 }
 
 function uniqueNumbers(values: unknown[]): number[] {
   return [...new Set(values.map(Number).filter(Number.isFinite))]
 }
-
 function linkedEntryId(linked: string) {
   if (!linked || linked === '-') return null
   return Number(linked.replace(/\D/g, '')) || null
 }
-
 function escapeHtml(value: string) {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;')
+  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;')
 }

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { useNotificationStore } from "@/stores/notification";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -159,6 +160,7 @@ router.beforeEach(async (to) => {
   if (isAuthenticated && !authStore.currentUser) {
     try {
       await authStore.fetchCurrentUser();
+      useNotificationStore().init()
     } catch {
       authStore.clearAuthState(false);
       return { name: "login" };

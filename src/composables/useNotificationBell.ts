@@ -65,16 +65,13 @@ export function useNotificationBell() {
   watch(() => store.items[0]?.id, checkForNew)
 
   watch(open, (isOpen) => {
-    if (isOpen) void store.fetchNotifications()
+    if (isOpen && !store.hasLoaded) void store.fetchNotifications()
   })
 
-  onMounted(async () => {
+  onMounted(() => {
     document.addEventListener('click', onOutsideClick)
-    // Seed seenIds from already-read notifications only — unread ones should ring
     store.items.filter(n => n.read_at).forEach(n => seenIds.add(n.id))
-    // Fetch on mount so unread count badge is accurate immediately
-    await store.fetchNotifications()
-    // After fetch, seed seenIds for everything currently loaded so only future arrivals ring
+    // Seed seenIds for already-loaded items so only future arrivals ring
     store.items.forEach(n => seenIds.add(n.id))
   })
 

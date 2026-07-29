@@ -112,6 +112,17 @@ export const useAdviserStore = defineStore('adviser', () => {
         }
     }
 
+    // ── Parsed document text cache (non-member submissions) ──────────────────
+    const parsedDocumentTexts = ref<Record<number, string>>({})
+
+    function storeParsedText(submissionId: number, text: string) {
+        parsedDocumentTexts.value[submissionId] = text
+    }
+
+    function getParsedText(submissionId: number): string | undefined {
+        return parsedDocumentTexts.value[submissionId]
+    }
+
     return {
         submissions,
         loading,
@@ -130,5 +141,8 @@ export const useAdviserStore = defineStore('adviser', () => {
         fetchSubmissions,
         goToPage,
         submitDocument,
+        parsedDocumentTexts,
+        storeParsedText,
+        getParsedText,
     }
 })

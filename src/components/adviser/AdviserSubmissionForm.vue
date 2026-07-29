@@ -6,6 +6,7 @@ import { useAdviserStore } from '@/stores/adviser'
 import { memberApi } from '@/api/member.api'
 import { getMapEntries } from '@/api/map.api'
 import { taxonomyApi } from '@/api/taxonomy.api'
+import { adviserApi } from '@/api/adviser.api'
 import FormFileUpload from '@/components/adviser/FormFileUpload.vue'
 import FormScopeSelect from '@/components/adviser/FormScopeSelect.vue'
 import FormCoordinatorSelect from '@/components/adviser/FormCoordinatorSelect.vue'
@@ -221,7 +222,19 @@ async function handleSubmit() {
       payload.coordinator_id = Number(assignedTo.value)
     }
 
-    await adviserStore.submitDocument(payload, selectedFile.value || undefined)
+    const created = await adviserStore.submitDocument(payload, selectedFile.value || undefined)
+
+    // Non-member path: parse the document immediately and cache the text for AI analysis
+    if (mode.value === 'adviser' && selectedFile.value && created?.id) {
+      try {
+        const parseRes = await adviserApi.parsePdf(created.id, selectedFile.value)
+        const text = (parseRes.data as any)?.text
+        if (text) adviserStore.storeParsedText(created.id, text)
+      } catch {
+        // non-fatal — AI analysis will still run but without document text
+      }
+    }
+
     router.push('/adviser')
   } catch (err: any) {
     submitError.value = err?.response?.data?.message ?? 'Submission failed. Please try again.'

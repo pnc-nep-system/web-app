@@ -38,15 +38,6 @@ const emit = defineEmits<{
       </div>
       <div v-if="!readonly" class="flex items-center gap-2.5">
         <button
-          @click="emit('findOverlaps')"
-          :disabled="fetching"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0F5A4D] bg-[#0F5A4D]/10 hover:bg-[#0F5A4D]/20 rounded-lg transition disabled:opacity-50 cursor-pointer shadow-2xs"
-        >
-          <BaseIcon v-if="fetching" name="refresh" size="13" class="animate-spin" />
-          <BaseIcon v-else name="search" size="13" />
-          {{ fetching ? 'Matching map entries…' : 'Query Overlaps on Map' }}
-        </button>
-        <button
           @click="$emit('add')"
           class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg transition cursor-pointer shadow-2xs"
         >
@@ -77,7 +68,7 @@ const emit = defineEmits<{
         <!-- Searched, nothing found -->
         <template v-else-if="noResults">
           <h3 class="text-sm font-bold text-slate-800">No overlapping programmes found</h3>
-          <p class="text-xs text-slate-500 max-w-sm mx-auto mt-2">
+          <p class="text-xs text-slate-500 mt-2">
             No programmes in the map share the same geography or activities for this scope. You can add a manual recommendation if needed.
           </p>
         </template>
@@ -85,8 +76,8 @@ const emit = defineEmits<{
         <!-- Not searched yet -->
         <template v-else>
           <h3 class="text-sm font-bold text-slate-800">No recommendations yet</h3>
-          <p class="text-xs text-slate-500 max-w-sm mx-auto mt-2">
-            Run "Query Overlaps on Map" to automatically find programmes with matching geography or activities.
+          <p class="text-xs text-slate-500 mt-2">
+            Run the overlap query to automatically find programmes with matching geography or activities.
           </p>
         </template>
       </div>

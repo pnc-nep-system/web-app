@@ -7,6 +7,7 @@ import DetailPageHeader from '@/components/adviser/DetailPageHeader.vue'
 import DocumentViewerPanel from '@/components/adviser/DocumentViewerPanel.vue'
 import WorkflowCard from '@/components/adviser/WorkflowCard.vue'
 import SectionEditor from '@/components/adviser/SectionEditor.vue'
+import BaseBadge from '@/components/common/BaseBadge.vue'
 import RecommendationsList from '@/components/adviser/RecommendationsList.vue'
 import GapsList from '@/components/adviser/GapsList.vue'
 import { useAdviserDetailController } from '@/composables/useAdviserDetailController'
@@ -92,15 +93,42 @@ const {
         <!-- RIGHT PANE: Advisory note sections A–D -->
         <div class="space-y-6">
 
-          <SectionEditor
-            title="A · Programme profile as interpreted"
-            :model-value="form.sectionA"
-            @update:model-value="form.sectionA = $event"
-            :badge="generatingAiDraft ? 'ANALYSING…' : (form.sectionA ? 'AI + MANUAL' : 'MANUAL ENTRY')"
-            :badge-tone="generatingAiDraft ? 'amber' : (form.sectionA ? 'teal' : 'gray')"
-            placeholder="Type or paste the interpreted programme profile here..."
-            :readonly="isDelivered || isDraftEntry || generatingAiDraft"
-          />
+          <div class="rounded-xl shadow-sm overflow-hidden flex flex-col bg-white border border-gray-200">
+            <div class="px-6 py-4 border-b border-b-gray-100 bg-gray-50/50 flex items-center justify-between">
+              <h2 class="text-[14px] font-bold text-gray-900">A · Programme profile as interpreted</h2>
+              <div class="flex items-center gap-2">
+                <BaseBadge :tone="generatingAiDraft ? 'amber' : (form.sectionA ? 'teal' : 'gray')" dot>
+                  {{ generatingAiDraft ? 'ANALYSING…' : (form.sectionA ? 'AI + MANUAL' : 'AI ANALYSIS') }}
+                </BaseBadge>
+                <button
+                  v-if="!isDelivered && !isDraftEntry"
+                  @click="generateAiAdvisoryDraft"
+                  :disabled="generatingAiDraft || fetchingOverlaps"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition disabled:opacity-60"
+                  :class="(generatingAiDraft || fetchingOverlaps) ? 'bg-[#0F5A4D]/60 text-white cursor-not-allowed' : 'bg-[#0F5A4D] hover:bg-[#0c483d] text-white shadow-sm'"
+                >
+                  <svg v-if="generatingAiDraft || fetchingOverlaps" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                  </svg>
+                  {{ (generatingAiDraft || fetchingOverlaps) ? 'Analysing…' : 'AI Analysis' }}
+                </button>
+              </div>
+            </div>
+            <div class="p-6 transition-all rounded-b-xl focus-within:ring-2 focus-within:ring-[#0F5A4D]/20">
+              <textarea
+                :value="form.sectionA"
+                @input="form.sectionA = ($event.target as HTMLTextAreaElement).value"
+                placeholder="Type or paste the interpreted programme profile here..."
+                :readonly="isDelivered || isDraftEntry || generatingAiDraft"
+                class="w-full text-sm leading-relaxed resize-y min-h-[220px] border-none focus:ring-0 p-0 outline-none font-medium text-slate-800"
+                :class="isDelivered || isDraftEntry || generatingAiDraft ? 'cursor-default select-text' : ''"
+              ></textarea>
+            </div>
+          </div>
 
           <RecommendationsList
             :items="form.sectionB"
@@ -133,24 +161,6 @@ const {
                   <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                   Internal — not released
                 </span>
-                <button
-                  v-if="!isDelivered && !isDraftEntry"
-                  @click="generateAiAdvisoryDraft"
-                  :disabled="generatingAiDraft || fetchingOverlaps"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition disabled:opacity-60"
-                  :class="(generatingAiDraft || fetchingOverlaps)
-                    ? 'bg-[#0F5A4D]/60 text-white cursor-not-allowed'
-                    : 'bg-[#0F5A4D] hover:bg-[#0c483d] text-white shadow-sm'"
-                >
-                  <svg v-if="generatingAiDraft || fetchingOverlaps" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
-                  </svg>
-                  {{ (generatingAiDraft || fetchingOverlaps) ? 'Analysing…' : 'AI Analysis' }}
-                </button>
               </div>
             </div>
 

@@ -82,11 +82,31 @@ export const adviserApi = {
     },
 
     /**
+     * Parse a PDF file and extract its text content.
+     */
+    parsePdf(id: number, file: File) {
+        const form = new FormData()
+        form.append('file', file)
+        return api.post<{ text: string }>(`/adviser/submissions/${id}/parse-pdf`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 30000,
+        })
+    },
+
+    /**
+     * Extract a structured programme profile from raw document text (non-member path).
+     */
+    extractProfile(id: number, text?: string) {
+        return api.post<{ programme_profile: object }>(`/adviser/submissions/${id}/extract-profile`, text ? { text } : {}, { timeout: 60000 })
+    },
+
+    /**
      * Generate an AI advisory note for a submission.
      */
-    generateAdvisoryNote(id: number, programmeProfile: object) {
+    generateAdvisoryNote(id: number, programmeProfile: object, documentText?: string) {
         return api.post(`/adviser/submissions/${id}/generate-advisory-note`, {
             programme_profile: programmeProfile,
+            ...(documentText ? { document_text: documentText } : {}),
         }, { timeout: 60000 })
     },
 
