@@ -210,11 +210,19 @@ const taxonomy = store.taxonomy
                         </button>
                         <button
                           v-if="item.status === 'active'"
-                          @click="store.askDeprecate(item)"
-                          class="px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 text-[10px] font-bold text-rose-700 transition-colors cursor-pointer border border-rose-100 shadow-xs"
+                          @click="store.askDeprecate(item, 'item')"
+                          class="px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 text-[10px] font-bold text-rose-700 transition-colors cursor-pointer border border-rose-100 shadow-xs w-[74px] text-center"
                           :disabled="taxonomy.loading"
                         >
                           Deprecate
+                        </button>
+                        <button
+                          v-else
+                          @click="store.askRestore(item, 'item')"
+                          class="px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-[10px] font-bold text-emerald-700 transition-colors cursor-pointer border border-emerald-100 shadow-xs w-[74px] text-center"
+                          :disabled="taxonomy.loading"
+                        >
+                          Reactive
                         </button>
                       </div>
                     </td>

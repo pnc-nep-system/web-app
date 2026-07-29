@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { organisationService } from '@/api/organisation.service'
+import { organisationService } from '@/services/organisation.service'
 import { memberApi } from '@/api/member.api'
 import type { OrganisationForm } from '@/types/organisations'
 

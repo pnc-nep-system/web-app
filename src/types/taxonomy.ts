@@ -57,6 +57,7 @@ export type TaxonomyItemStatus = 'active' | 'deprecated'
 
 export interface TaxonomyCreatePayload {
   name: string
+  label?: string
   code?: string
   category_id?: number
   sub_category_id?: number

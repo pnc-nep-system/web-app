@@ -7,17 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-.DS_Store
-dist
-dist-ssr
-coverage
-*.local
-
 # Environment files — never commit secrets
 .env
 .env.*
 !.env.example
+
+node_modules
+.DS_Store
+Thumbs.db
+dist
+dist-ssr
+coverage
+*.local
 
 # Editor directories and files
 .vscode/*
@@ -30,7 +31,6 @@ coverage
 *.sw?
 
 *.tsbuildinfo
-
 .eslintcache
 
 # Cypress
@@ -42,3 +42,6 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# Type generation
+*.d.ts.map

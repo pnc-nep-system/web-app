@@ -1,8 +1,42 @@
 <script setup lang="ts">
+import { computed, watch } from 'vue'
 import { useTaxonomyAdminStore } from '@/stores/taxonomyAdmin'
 
 const store = useTaxonomyAdminStore()
 const taxonomy = store.taxonomy
+
+const currentCategory = computed(() => {
+  return taxonomy.categories.find(c => c.code === store.promoteForm.categoryCode)
+})
+
+const availableSubcategories = computed(() => {
+  return currentCategory.value?.subcategories ?? []
+})
+
+watch(() => store.promoteForm.subcategoryCode, (newCode) => {
+  if (!newCode) return
+  const clean = newCode.trim().toLowerCase()
+  const existing = availableSubcategories.value.find(s => s.code.toLowerCase() === clean)
+  if (existing) {
+    store.promoteForm.subcategoryLabel = existing.label
+  }
+})
+
+function onSubCategorySelect(e: Event) {
+  const val = (e.target as HTMLSelectElement).value
+  if (val === '__new__') {
+    const catCode = store.promoteForm.categoryCode
+    const nextSubNum = (availableSubcategories.value.length + 1)
+    store.promoteForm.subcategoryCode = `${catCode}.${nextSubNum}`
+    store.promoteForm.subcategoryLabel = ''
+  } else if (val) {
+    const selected = availableSubcategories.value.find(s => s.code === val)
+    if (selected) {
+      store.promoteForm.subcategoryCode = selected.code
+      store.promoteForm.subcategoryLabel = selected.label
+    }
+  }
+}
 </script>
 
 <template>
@@ -26,13 +60,24 @@ const taxonomy = store.taxonomy
             </select>
           </div>
 
+          <div v-if="availableSubcategories.length > 0" class="flex flex-col gap-1">
+            <label class="text-xs font-bold text-slate-700">Select Existing Sub-category</label>
+            <select :value="store.promoteForm.subcategoryCode" @change="onSubCategorySelect" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-700 bg-white">
+              <option value="">-- Choose Sub-category --</option>
+              <option v-for="sub in availableSubcategories" :key="sub.code" :value="sub.code">
+                {{ sub.code }} · {{ sub.label }} ({{ sub.items.length }} items)
+              </option>
+              <option value="__new__">+ Create new sub-category</option>
+            </select>
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div class="flex flex-col gap-1">
               <label class="text-xs font-bold text-slate-700">Sub-category code</label>
               <input type="text" v-model="store.promoteForm.subcategoryCode" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-700 bg-white" />
             </div>
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-bold text-slate-700">Sub-category label (if new)</label>
+              <label class="text-xs font-bold text-slate-700">Sub-category label</label>
               <input type="text" v-model="store.promoteForm.subcategoryLabel" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 text-slate-700 bg-white" />
             </div>
           </div>

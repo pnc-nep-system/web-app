@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { taxonomyApi, type TaxonomyItemStatus, type TaxonomyNodeType } from '@/api/taxonomy.api'
+import { taxonomyApi } from '@/api/taxonomy.api'
+import type { TaxonomyItemStatus, TaxonomyNodeType } from '@/types/taxonomy'
 import { mockTaxonomies } from '@/constants/taxonomy'
 import type { Category, SubCategory, TaxonomyItem } from '@/types/taxonomy'
 
@@ -214,6 +215,20 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
     }
   }
 
+  async function restoreEntry(kind: TaxonomyAdminNodeKind, id: number) {
+    const node = findNodeById(kind, id)
+    if (!node) return
+
+    loading.value = true
+    try {
+      await taxonomyApi.reactivate(toApiNodeType(kind), id)
+      node.status = 'active'
+      writeCache(categories.value)
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function promoteOtherEntry(id: number, payload: PromoteOtherEntryPayload) {
     const entry = otherQueue.value.find((item) => item.id === id)
     if (!entry) return
@@ -252,12 +267,13 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
     const category = categories.value.find((entry) => entry.code === payload.categoryCode)
     if (!category) return
 
-    let subcategory = category.subcategories.find((entry) => entry.code === payload.subcategoryCode)
+    const targetSubCodeClean = payload.subcategoryCode.trim().toLowerCase()
+    let subcategory = category.subcategories.find((entry) => entry.code.trim().toLowerCase() === targetSubCodeClean)
 
     if (!subcategory) {
       subcategory = {
         id: Date.now(),
-        code: payload.subcategoryCode,
+        code: payload.subcategoryCode.trim().toUpperCase(),
         label: payload.subcategoryLabel || payload.subcategoryCode,
         status: 'active',
         items: [],
@@ -265,34 +281,47 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
 
       try {
         const createdSubcategory = await taxonomyApi.createSubCategory({
+          label: subcategory.label,
           name: subcategory.label,
           code: subcategory.code,
           category_id: category.id,
         })
-        subcategory = normaliseSubcategory(
-          createdSubcategory,
-          category.code,
-          category.subcategories.length,
-        )
-      } catch {
-        // Keep local cache useful if BE-021 is not available yet.
+        if (createdSubcategory && (createdSubcategory as any).id) {
+          subcategory = normaliseSubcategory(
+            createdSubcategory,
+            category.code,
+            category.subcategories.length,
+          )
+        }
+      } catch (err) {
+        console.warn('Backend subcategory creation fallback to local state:', err)
       }
 
       category.subcategories.push(subcategory)
     }
 
     let item: TaxonomyAdminItem
+    const nextIndex = subcategory.items.length + 1
+    const itemCode = `${subcategory.code}.${String(nextIndex).padStart(2, '0')}`
+
     try {
       const createdItem = await taxonomyApi.createItem({
+        label: payload.label.trim(),
         name: payload.label.trim(),
+        code: itemCode,
         sub_category_id: subcategory.id,
         subcategory_id: subcategory.id,
       })
-      item = normaliseItem(createdItem, subcategory.code, subcategory.items.length)
-    } catch {
+      if (createdItem && (createdItem as any).id) {
+        item = normaliseItem(createdItem, subcategory.code, subcategory.items.length)
+      } else {
+        throw new Error('Invalid item response')
+      }
+    } catch (err) {
+      console.warn('Backend item creation fallback to local state:', err)
       item = {
         id: Date.now() + 1,
-        code: `${subcategory.code}.${String(subcategory.items.length + 1).padStart(2, '0')}`,
+        code: itemCode,
         label: payload.label.trim(),
         status: 'active',
         version: '1.0',
@@ -336,9 +365,11 @@ export const useTaxonomyStore = defineStore('taxonomy', () => {
     fetchOtherQueue,
     upsertOtherQueueEntry,
     addItem,
+    createStandardItem,
     setItemStatus,
     renameEntry,
     deprecateEntry,
+    restoreEntry,
     promoteOtherEntry,
     dismissOtherEntry,
     itemByCode: findItemByCode,

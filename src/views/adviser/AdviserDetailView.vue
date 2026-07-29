@@ -1,209 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import AppShell from '@/components/AppShell.vue'
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
-import BaseIcon from '@/components/common/BaseIcon.vue'
 import ToastStack from '@/components/common/ToastStack.vue'
-import { useToast } from '@/composables/useToast'
-import { useAdviserStore } from '@/stores/adviser'
-import { adviserApi } from '@/api/adviser.api'
-import { organisationService } from '@/api/organisation.service'
-import type { Submission } from '@/types/adviser'
-
-// Adviser-specific sub-components
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import DetailPageHeader from '@/components/adviser/DetailPageHeader.vue'
 import DocumentViewerPanel from '@/components/adviser/DocumentViewerPanel.vue'
 import WorkflowCard from '@/components/adviser/WorkflowCard.vue'
 import SectionEditor from '@/components/adviser/SectionEditor.vue'
 import RecommendationsList from '@/components/adviser/RecommendationsList.vue'
 import GapsList from '@/components/adviser/GapsList.vue'
+import { useAdviserDetailController } from '@/composables/useAdviserDetailController'
 
-const route = useRoute()
-const router = useRouter()
-const adviserStore = useAdviserStore()
-const { toasts, push: pushToast } = useToast()
-
-// ── State ─────────────────────────────────────────────────────────────────────
-const loading = ref(true)
-const delivering = ref(false)
-const submissionId = Number(route.params.id)
-const currentStatus = ref('submitted_for_review')
-const submission = ref<Submission | null>(null)
-const assigneeId = ref<number | null>(null)
-
-const form = ref({
-  sectionA: '',
-  sectionB: [] as { org: string; type: string; linked: string; text: string }[],
-  sectionC: [] as { text: string }[],
-  sectionD: '',
-})
-
-// ── AI Draft Programme Modal State ────────────────────────────────────────────
-const showDraftModal = ref(false)
-const draftGenerating = ref(false)
-const organisations = ref<{ id: number; name: string }[]>([])
-const selectedOrgId = ref<number | null>(null)
-const programmeName = ref('')
-const startYear = ref<number>(new Date().getFullYear())
-const programmeProfile = ref({
-  activities: { category_ids: [] as number[], education_level_ids: [] as number[], inclusion_groups: [] as string[] },
-  geography: { province_ids: [] as number[] },
-  audiences: { inclusion_types: [] as string[] },
-})
-
-async function openDraftModal() {
-  showDraftModal.value = true
-  if (!organisations.value.length) {
-    try {
-      const res = await organisationService.getOrganisations(1, '', { per_page: 200 })
-      const data = (res.data as any)?.data ?? res.data
-      organisations.value = Array.isArray(data) ? data : data?.data ?? []
-    } catch {
-      pushToast('Failed to load organisations')
-    }
-  }
-}
-
-async function generateAndDraft() {
-  if (!selectedOrgId.value) {
-    pushToast('Please select an organisation')
-    return
-  }
-  if (!programmeName.value.trim()) {
-    pushToast('Please enter a programme name')
-    return
-  }
-  draftGenerating.value = true
-  try {
-    // Step 1: generate advisory note to get AI analysis
-    const aiRes = await adviserApi.generateAdvisoryNote(submissionId, programmeProfile.value)
-    const aiData = (aiRes.data as any)?.data ?? {}
-
-    // Step 2: create the programme entry draft
-    const payload = {
-      organisation_id: selectedOrgId.value,
-      programme_name: programmeName.value.trim(),
-      start_year: startYear.value,
-      activities: [],
-      geography: programmeProfile.value.geography,
-      keywords: aiData.executive_summary
-        ? aiData.executive_summary.split(' ').slice(0, 3).map((w: string) => w.replace(/[^a-zA-Z]/g, '').toLowerCase()).filter(Boolean)
-        : [],
-    }
-
-    const entryRes = await adviserApi.createProgrammeEntry(submissionId, payload)
-    const newId = entryRes.data?.data?.id
-
-    showDraftModal.value = false
-    pushToast('AI programme draft created — redirecting to form')
-    router.push(`/entries/new?id=${newId}`)
-  } catch (err: any) {
-    const msg = err?.response?.data?.message ?? 'Failed to generate programme draft'
-    pushToast(msg)
-  } finally {
-    draftGenerating.value = false
-  }
-}
-
-// Coordinators are loaded into the store (shared, cached, role-filtered)
-const coordinators = computed(() =>
-  Object.entries(adviserStore.coordinatorMap).map(([id, name]) => ({
-    id: Number(id),
-    name,
-  }))
-)
-
-// ── Bootstrap ─────────────────────────────────────────────────────────────────
-onMounted(async () => {
-  adviserStore.loadCoordinators()
-
-  const cached = adviserStore.submissions.find(s => s.id === submissionId)
-  if (cached) {
-    applySubmission(cached)
-    loading.value = false
-    return
-  }
-
-  try {
-    const res = await adviserApi.getById(submissionId)
-    const data = (res.data as any)?.data ?? res.data
-    if (data) applySubmission(data)
-  } catch {
-    // silently fall back to defaults
-  } finally {
-    loading.value = false
-  }
-})
-
-function applySubmission(data: Submission) {
-  submission.value = data
-  currentStatus.value = data.status
-  assigneeId.value = data.assign_to_staff_user_id
-  if (data.section_profile) form.value.sectionA = data.section_profile
-  if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
-  if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes
-}
-
-// ── Computed ──────────────────────────────────────────────────────────────────
-const scopeDisplay = computed(() => {
-  if (!submission.value) return 'full map'
-  const s = submission.value
-  if (!s.analysis_scope_detail) return s.analysis_scope ?? 'full map'
-  return `${s.analysis_scope}: ${s.analysis_scope_detail}`
-})
-
-// ── Actions ───────────────────────────────────────────────────────────────────
-function goBack() {
-  router.push('/adviser')
-}
-
-function saveDraft() {
-  pushToast('Draft saved')
-}
-
-async function markDelivered() {
-  if (delivering.value) return
-  delivering.value = true
-  try {
-    const res = await adviserApi.markDelivered(submissionId)
-    const data = (res.data as any)?.data ?? res.data
-    const newStatus = data?.status ?? 'advice_delivered'
-    currentStatus.value = newStatus
-    const existing = adviserStore.submissions.find(s => s.id === submissionId)
-    if (existing) existing.status = newStatus
-    pushToast('Advisory note marked as delivered')
-  } catch {
-    pushToast('Failed to update status — please try again')
-  } finally {
-    delivering.value = false
-  }
-}
-
-async function assignCoordinator(userId: number | null) {
-  assigneeId.value = userId
-  try {
-    await adviserApi.updateAssignee(submissionId, userId)
-    const existing = adviserStore.submissions.find(s => s.id === submissionId)
-    if (existing) existing.assign_to_staff_user_id = userId
-  } catch {
-    // silently ignore — local state already updated optimistically
-  }
-}
-
-// ── Section B / C helpers ─────────────────────────────────────────────────────
-function addRecommendation() {
-  form.value.sectionB.push({ org: '', type: 'Geographic overlap', linked: '—', text: '' })
-}
-function removeRecommendation(idx: number) {
-  form.value.sectionB.splice(idx, 1)
-}
-function addGap() {
-  form.value.sectionC.push({ text: '' })
-}
-function removeGap(idx: number) {
-  form.value.sectionC.splice(idx, 1)
-}
+const {
+  assigneeId, coordinators, currentStatus, delivering, exportingPdf,
+  fetchingOverlaps, form, generatingAiDraft, isDelivered, isDraftEntry, incompleteSectionBCount, isSectionsComplete,
+  loading, overlapNoResults, scopeDisplay, submission, submissionId, toasts,
+  showDraftModal, draftGenerating, draftOrganisations, selectedOrgId, programmeName, startYear,
+  addGap, addRecommendation, assignCoordinator, exportAdvisoryNotePdf,
+  fetchMapOverlaps, generateAiAdvisoryDraft, generateAndDraft, goBack,
+  handleViewDocument, markDelivered, openDraftModal, openFinalNoteFile,
+  removeGap, removeRecommendation, saveDraft,
+} = useAdviserDetailController()
 </script>
 
 <template>
@@ -213,8 +30,8 @@ function removeGap(idx: number) {
     </template>
 
     <!-- Loading -->
-    <div v-if="loading" class="py-20 flex justify-center text-gray-400">
-      <BaseIcon name="refresh" size="24" class="animate-spin" />
+    <div v-if="loading" class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-16 flex items-center justify-center max-w-[1400px] mx-auto my-6">
+      <LoadingSpinner message="Loading draft advisory note..." />
     </div>
 
     <div v-else class="max-w-[1400px] mx-auto pb-12">
@@ -226,11 +43,27 @@ function removeGap(idx: number) {
         :submitting-party="submission?.submitting_party ?? '—'"
         :scope-display="scopeDisplay"
         :delivering="delivering"
+        :is-complete="isSectionsComplete"
+        :incomplete-section-b-count="incompleteSectionBCount"
         @back="goBack"
         @save-draft="saveDraft"
         @mark-delivered="markDelivered"
+        @view-document="handleViewDocument"
       />
 
+      <!-- Draft entry warning banner -->
+      <div
+        v-if="isDraftEntry"
+        class="mb-6 flex items-start gap-3 px-5 py-4 rounded-xl bg-amber-50 border border-amber-200"
+      >
+        <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+        </svg>
+        <div>
+          <p class="text-[13px] font-semibold text-amber-800">Programme not yet submitted by member organisation</p>
+          <p class="text-[12px] text-amber-700 mt-0.5">This programme entry is still a draft. Advisory notes can be prepared, but advice cannot be marked as delivered until the member org submits the programme.</p>
+        </div>
+      </div>
 
       <!-- Dual-pane workspace -->
       <div class="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-8 items-start">
@@ -238,18 +71,21 @@ function removeGap(idx: number) {
         <!-- LEFT PANE: Document viewer + Workflow sidebar -->
         <div class="space-y-6">
           <DocumentViewerPanel
-            :document-name="submission?.document_name ?? '—'"
-            document-size=""
-            :submitting-party="submission?.submitting_party ?? '—'"
-            :analysis-scope="submission?.analysis_scope ?? '—'"
-            :submitted-date="submission?.submitted_at ?? ''"
+            :document-name="submission?.document_name"
+            :submitting-party="submission?.submitting_party"
+            :analysis-scope="submission?.analysis_scope"
+            :analysis-scope-detail="submission?.analysis_scope_detail ?? undefined"
+            :exporting-pdf="exportingPdf"
+            @export-pdf="exportAdvisoryNotePdf"
           />
           <WorkflowCard
             :current-status="currentStatus"
             :assignee-id="assigneeId"
             :coordinators="coordinators"
             :delivered-at="submission?.delivered_at ?? null"
+            :final-note-file-url="(submission as any)?.final_note_file_url ?? null"
             @update:assigneeId="assignCoordinator"
+            @open-file="openFinalNoteFile"
           />
         </div>
 
@@ -260,14 +96,21 @@ function removeGap(idx: number) {
             title="A · Programme profile as interpreted"
             :model-value="form.sectionA"
             @update:model-value="form.sectionA = $event"
-            badge="AI-GENERATED"
-            badge-tone="indigo"
+            :badge="generatingAiDraft ? 'ANALYSING…' : (form.sectionA ? 'AI + MANUAL' : 'MANUAL ENTRY')"
+            :badge-tone="generatingAiDraft ? 'amber' : (form.sectionA ? 'teal' : 'gray')"
+            placeholder="Type or paste the interpreted programme profile here..."
+            :readonly="isDelivered || isDraftEntry || generatingAiDraft"
           />
 
           <RecommendationsList
             :items="form.sectionB"
+            :fetching="fetchingOverlaps || generatingAiDraft"
+            :no-results="overlapNoResults"
+            :profile-empty="isProfileEmpty"
+            :readonly="isDelivered || isDraftEntry || generatingAiDraft"
             @add="addRecommendation"
             @remove="removeRecommendation"
+            @find-overlaps="fetchMapOverlaps"
             @update:org="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].org = val }"
             @update:type="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].type = val }"
             @update:text="(idx, val) => { if (form.sectionB[idx]) form.sectionB[idx].text = val }"
@@ -275,20 +118,67 @@ function removeGap(idx: number) {
 
           <GapsList
             :items="form.sectionC"
+            :readonly="isDelivered || isDraftEntry || generatingAiDraft"
             @add="addGap"
             @remove="removeGap"
             @update:text="(idx, val) => { if (form.sectionC[idx]) form.sectionC[idx].text = val }"
           />
 
-          <SectionEditor
-            title="D · Notes for the coordinator"
-            :model-value="form.sectionD"
-            @update:model-value="form.sectionD = $event"
-            badge="Internal — not released"
-            badge-tone="amber"
-            :is-internal="true"
-            placeholder="Private notes for coordinations. This will not be exported in the final PDF..."
-          />
+          <!-- D: Coordinator notes -->
+          <div class="rounded-xl shadow-sm overflow-hidden flex flex-col bg-rose-50/30 border border-rose-200/60">
+            <div class="px-6 py-4 border-b border-rose-200/60 bg-rose-50/50 flex items-center justify-between">
+              <h2 class="text-[14px] font-bold text-rose-900">D · Notes for the coordinator</h2>
+              <div class="flex items-center gap-3">
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  Internal — not released
+                </span>
+                <button
+                  v-if="!isDelivered && !isDraftEntry"
+                  @click="generateAiAdvisoryDraft"
+                  :disabled="generatingAiDraft || fetchingOverlaps"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition disabled:opacity-60"
+                  :class="(generatingAiDraft || fetchingOverlaps)
+                    ? 'bg-[#0F5A4D]/60 text-white cursor-not-allowed'
+                    : 'bg-[#0F5A4D] hover:bg-[#0c483d] text-white shadow-sm'"
+                >
+                  <svg v-if="generatingAiDraft || fetchingOverlaps" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <svg v-else class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+                  </svg>
+                  {{ (generatingAiDraft || fetchingOverlaps) ? 'Analysing…' : 'AI Analysis' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Generating skeleton — shown across all 4 sections while AI runs -->
+            <div v-if="generatingAiDraft" class="p-6 space-y-3">
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-4 h-4 rounded-full bg-[#0F5A4D]/40 animate-pulse"></div>
+                <span class="text-[12px] text-[#0F5A4D] font-medium animate-pulse">AI is analysing the programme and populating all four sections…</span>
+              </div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-full"></div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-5/6"></div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-4/6"></div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-full mt-2"></div>
+              <div class="h-3 bg-rose-200/60 rounded animate-pulse w-3/4"></div>
+            </div>
+
+            <!-- Editable textarea -->
+            <div v-else class="p-6 focus-within:ring-2 focus-within:ring-rose-500/20 transition-all rounded-b-xl">
+              <textarea
+                :value="form.sectionD"
+                @input="form.sectionD = ($event.target as HTMLTextAreaElement).value"
+                :placeholder="isDelivered || isDraftEntry ? '' : 'Internal notes for the coordinator. Not included in the version released to the requesting party…'"
+                :readonly="isDelivered || isDraftEntry"
+                class="w-full text-sm leading-relaxed resize-y min-h-[160px] border-none focus:ring-0 p-0 outline-none font-medium text-rose-900 bg-transparent placeholder-rose-300"
+                :class="isDelivered || isDraftEntry ? 'cursor-default select-text' : ''"
+              ></textarea>
+            </div>
+          </div>
 
         </div>
       </div>
@@ -322,7 +212,7 @@ function removeGap(idx: number) {
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-[13px] text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
               <option :value="null" disabled>Select organisation…</option>
-              <option v-for="org in organisations" :key="org.id" :value="org.id">{{ org.name }}</option>
+              <option v-for="org in draftOrganisations" :key="org.id" :value="org.id">{{ org.name }}</option>
             </select>
           </div>
 

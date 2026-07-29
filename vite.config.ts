@@ -7,6 +7,10 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const apiBaseUrl = env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+  const apiProxyTarget =
+    env.VITE_API_PROXY_TARGET ||
+    (apiBaseUrl.startsWith('http') ? apiBaseUrl.replace(/\/api\/?$/, '') : 'http://localhost:8000')
 
   return {
     plugins: [
@@ -33,7 +37,15 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: env.VITE_API_BASE_URL,
+          target: apiProxyTarget,
+          changeOrigin: true,
+        },
+        '/broadcasting': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+        },
+        '/sanctum': {
+          target: apiProxyTarget,
           changeOrigin: true,
         },
       },

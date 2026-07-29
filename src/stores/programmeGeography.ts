@@ -79,81 +79,93 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     return map
   })
 
-  let _provincesLoaded = false
-  let _provincesLoading = false
+  let _provincesPromise: Promise<void> | null = null
 
   async function loadProvinces() {
-    if (_provincesLoaded || _provincesLoading) return
-    _provincesLoading = true
+    if (provinces.value.length > 0) return
+    if (_provincesPromise) return _provincesPromise
     loadingProvinces.value = true
     provincesError.value = null
-    try {
-      const res = await memberApi.getProvinces()
-      provinces.value = res.data.data
-      _provincesLoaded = true
-    } catch {
-      provincesError.value = 'Failed to load provinces. Please try again.'
-      _provincesLoaded = false
-      _provincesLoading = false
-    } finally {
-      loadingProvinces.value = false
-    }
+    _provincesPromise = (async () => {
+      try {
+        const res = await memberApi.getProvinces()
+        provinces.value = res.data.data
+      } catch {
+        provincesError.value = 'Failed to load provinces. Please try again.'
+      } finally {
+        loadingProvinces.value = false
+        _provincesPromise = null
+      }
+    })()
+    return _provincesPromise
   }
 
-  // Plain Sets track in-flight + completed fetches — checked synchronously before any async work
-  const _fetchingDistricts = new Set<number>()
-  const _fetchingCommunes = new Set<number>()
-  const _fetchingVillages = new Set<number>()
+  // Promise-based in-flight guards — survive reset() since they're keyed by ID
+  const _districtPromises = new Map<number, Promise<void>>()
+  const _communePromises = new Map<number, Promise<void>>()
+  const _villagePromises = new Map<number, Promise<void>>()
 
-  async function fetchDistricts(provinceId: number) {
-    if (_districtsRaw[provinceId] || _fetchingDistricts.has(provinceId)) return
-    _fetchingDistricts.add(provinceId)
-    loadingDistricts.value = new Set([...loadingDistricts.value, provinceId])
-    try {
-      const res = await memberApi.getDistricts(provinceId)
-      _districtsRaw[provinceId] = res.data.data
-      districtsCache.value = { ...districtsCache.value, [provinceId]: res.data.data }
-    } catch {
-      _fetchingDistricts.delete(provinceId)
-    } finally {
-      const next = new Set(loadingDistricts.value)
-      next.delete(provinceId)
-      loadingDistricts.value = next
-    }
+  async function fetchDistricts(provinceId: number | string) {
+    const id = Number(provinceId)
+    if (_districtsRaw[id]) return
+    if (_districtPromises.has(id)) return _districtPromises.get(id)
+    loadingDistricts.value = new Set([...loadingDistricts.value, id])
+    const promise = (async () => {
+      try {
+        const res = await memberApi.getDistricts(id)
+        _districtsRaw[id] = res.data.data
+        districtsCache.value = { ...districtsCache.value, [id]: res.data.data }
+      } finally {
+        _districtPromises.delete(id)
+        const next = new Set(loadingDistricts.value)
+        next.delete(id)
+        loadingDistricts.value = next
+      }
+    })()
+    _districtPromises.set(id, promise)
+    return promise
   }
 
-  async function fetchCommunes(districtId: number) {
-    if (_communesRaw[districtId] || _fetchingCommunes.has(districtId)) return
-    _fetchingCommunes.add(districtId)
-    loadingCommunes.value = new Set([...loadingCommunes.value, districtId])
-    try {
-      const res = await memberApi.getCommunes(districtId)
-      _communesRaw[districtId] = res.data.data
-      communesCache.value = { ...communesCache.value, [districtId]: res.data.data }
-    } catch {
-      _fetchingCommunes.delete(districtId)
-    } finally {
-      const next = new Set(loadingCommunes.value)
-      next.delete(districtId)
-      loadingCommunes.value = next
-    }
+  async function fetchCommunes(districtId: number | string) {
+    const id = Number(districtId)
+    if (_communesRaw[id]) return
+    if (_communePromises.has(id)) return _communePromises.get(id)
+    loadingCommunes.value = new Set([...loadingCommunes.value, id])
+    const promise = (async () => {
+      try {
+        const res = await memberApi.getCommunes(id)
+        _communesRaw[id] = res.data.data
+        communesCache.value = { ...communesCache.value, [id]: res.data.data }
+      } finally {
+        _communePromises.delete(id)
+        const next = new Set(loadingCommunes.value)
+        next.delete(id)
+        loadingCommunes.value = next
+      }
+    })()
+    _communePromises.set(id, promise)
+    return promise
   }
 
-  async function fetchVillages(communeId: number) {
-    if (_villagesRaw[communeId] || _fetchingVillages.has(communeId)) return
-    _fetchingVillages.add(communeId)
-    loadingVillages.value = new Set([...loadingVillages.value, communeId])
-    try {
-      const res = await memberApi.getVillages(communeId)
-      _villagesRaw[communeId] = res.data.data
-      villagesCache.value = { ...villagesCache.value, [communeId]: res.data.data }
-    } catch {
-      _fetchingVillages.delete(communeId)
-    } finally {
-      const next = new Set(loadingVillages.value)
-      next.delete(communeId)
-      loadingVillages.value = next
-    }
+  async function fetchVillages(communeId: number | string) {
+    const id = Number(communeId)
+    if (_villagesRaw[id]) return
+    if (_villagePromises.has(id)) return _villagePromises.get(id)
+    loadingVillages.value = new Set([...loadingVillages.value, id])
+    const promise = (async () => {
+      try {
+        const res = await memberApi.getVillages(id)
+        _villagesRaw[id] = res.data.data
+        villagesCache.value = { ...villagesCache.value, [id]: res.data.data }
+      } finally {
+        _villagePromises.delete(id)
+        const next = new Set(loadingVillages.value)
+        next.delete(id)
+        loadingVillages.value = next
+      }
+    })()
+    _villagePromises.set(id, promise)
+    return promise
   }
 
   function toggleProvince(provinceId: number) {
@@ -278,11 +290,6 @@ export const useProgrammeGeographyStore = defineStore('programmeGeography', () =
     Object.keys(_districtsRaw).forEach(k => delete _districtsRaw[+k])
     Object.keys(_communesRaw).forEach(k => delete _communesRaw[+k])
     Object.keys(_villagesRaw).forEach(k => delete _villagesRaw[+k])
-    _fetchingDistricts.clear()
-    _fetchingCommunes.clear()
-    _fetchingVillages.clear()
-    _provincesLoaded = false
-    _provincesLoading = false
     loadingProvinces.value = false
     provincesError.value = null
     loadingDistricts.value = new Set()

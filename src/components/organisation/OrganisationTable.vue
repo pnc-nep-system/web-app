@@ -131,7 +131,7 @@ function logoSrc(url: string | null): string | null {
                   title="Deactivate organisation"
                   @click="emit('deactivate', org)"
                 >
-                  <BaseIcon name="lock" :size="14" />
+                  <BaseIcon name="ban" :size="14" />
                 </button>
                 <button
                   v-else
@@ -177,7 +177,7 @@ function logoSrc(url: string | null): string | null {
               <BaseIcon name="edit" :size="13" /> Edit
             </button>
             <button v-if="org.status === 'active'" class="btn btn-danger-ghost btn-sm" @click="emit('deactivate', org)">
-              <BaseIcon name="lock" :size="13" /> Deactivate
+              <BaseIcon name="ban" :size="13" /> Deactivate
             </button>
             <button v-else class="btn btn-secondary btn-sm" @click="emit('activate', org)">
               <BaseIcon name="refresh" :size="13" /> Reactivate

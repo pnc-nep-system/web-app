@@ -6,7 +6,16 @@ import BaseCard from '@/components/common/BaseCard.vue'
 import cambodiaMap from '@svg-maps/cambodia'
 
 const PROVINCE_NAME_MAP: Record<string, string> = {
+  // DB name → SVG map name
   'Takéo': 'Ta Keo',
+  'Mondul Kiri': 'Mondulkiri',
+  'Mondol Kiri': 'Mondulkiri',
+  'Ratanak Kiri': 'Rattanakkiri',
+  'Ratanakiri': 'Rattanakkiri',
+  'Preah Sihanuk': 'Preah Sihanouk',
+  'Sihanoukville': 'Preah Sihanouk',
+  'Tbong Khmum': 'Tboung Khmum',
+  'Tboung Khmum': 'Tboung Khmum',
 }
 
 function toMapName(name: string): string {

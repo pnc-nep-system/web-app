@@ -10,16 +10,7 @@ export function useNotificationBell() {
   const open = ref(false)
   const bellRef = ref<HTMLElement | null>(null)
   const isRinging = ref(false)
-  const incomingAlert = ref<{
-    id: string
-    title: string
-    message: string
-    notification: AppNotification
-  } | null>(null)
 
-  let alertTimer: ReturnType<typeof setTimeout> | null = null
-  let pollTimer: ReturnType<typeof setInterval> | null = null
-  let loaded = false
   const seenIds = new Set<string>()
 
   function onOutsideClick(e: MouseEvent) {
@@ -34,31 +25,14 @@ export function useNotificationBell() {
     setTimeout(() => { isRinging.value = false }, 1000)
   }
 
-  function showAlert(id: string, title: string, message: string, notification: AppNotification) {
-    if (alertTimer) clearTimeout(alertTimer)
-    incomingAlert.value = { id, title, message, notification }
-    alertTimer = setTimeout(dismissAlert, 6000)
-  }
-
-  function dismissAlert() {
-    if (alertTimer) clearTimeout(alertTimer)
-    incomingAlert.value = null
-  }
-
   function navigateTo(n: AppNotification) {
     if (n.type === 'adviser_submission_assigned' && n.advisory_note_id) {
       router.push(`/adviser/${n.advisory_note_id}`)
+    } else if (n.type === 'advice_delivered' && n.programme_entry_id) {
+      router.push({ name: 'adviser-entry-detail', params: { entryId: String(n.programme_entry_id) } })
     } else if (n.programme_entry_id) {
       router.push({ path: '/entries/new', query: { id: n.programme_entry_id } })
     }
-  }
-
-  async function openFromAlert() {
-    if (!incomingAlert.value) return
-    const { id, notification } = incomingAlert.value
-    dismissAlert()
-    await store.markRead(id)
-    navigateTo(notification)
   }
 
   async function handleNotificationClick(n: AppNotification) {
@@ -77,47 +51,35 @@ export function useNotificationBell() {
   }
 
   function checkForNew() {
-    if (!loaded) return
     for (const item of store.items) {
       if (item.read_at) continue
       if (seenIds.has(item.id)) continue
       seenIds.add(item.id)
       triggerRing()
-      showAlert(item.id, item.title, item.message, item)
       break
     }
   }
 
-  // Watch items length — fires whenever an item is added
+  // Watch items — fires immediately whenever a new notification is pushed (real-time or fetched)
   watch(() => store.items.length, checkForNew)
-
-  // Also watch the first item id in case length stays same but item changes
   watch(() => store.items[0]?.id, checkForNew)
+
+  watch(open, (isOpen) => {
+    if (isOpen) void store.fetchNotifications()
+  })
 
   onMounted(async () => {
     document.addEventListener('click', onOutsideClick)
+    // Seed seenIds from already-read notifications only — unread ones should ring
+    store.items.filter(n => n.read_at).forEach(n => seenIds.add(n.id))
+    // Fetch on mount so unread count badge is accurate immediately
     await store.fetchNotifications()
-    // Alert the first unread notification on load (e.g. assigned while logged out)
-    const firstUnread = store.items.find(n => !n.read_at)
-    if (firstUnread) {
-      loaded = true
-      store.items.forEach(n => seenIds.add(n.id))
-      triggerRing()
-      showAlert(firstUnread.id, firstUnread.title, firstUnread.message, firstUnread)
-    } else {
-      store.items.forEach(n => seenIds.add(n.id))
-      loaded = true
-    }
-    pollTimer = setInterval(async () => {
-      await store.fetchNotifications()
-      checkForNew()
-    }, 15_000)
+    // After fetch, seed seenIds for everything currently loaded so only future arrivals ring
+    store.items.forEach(n => seenIds.add(n.id))
   })
 
   onUnmounted(() => {
     document.removeEventListener('click', onOutsideClick)
-    if (alertTimer) clearTimeout(alertTimer)
-    if (pollTimer) clearInterval(pollTimer)
   })
 
   return {
@@ -125,9 +87,6 @@ export function useNotificationBell() {
     open,
     bellRef,
     isRinging,
-    incomingAlert,
-    dismissAlert,
-    openFromAlert,
     handleNotificationClick,
     formatTime,
   }

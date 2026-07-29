@@ -10,7 +10,6 @@ export const useCategoriesStore = defineStore('categories', () => {
   const openSubcategories = ref<Set<string>>(new Set())
 
   async function loadCategories() {
-    if (categories.value.length > 0) return
     isLoading.value = true
     try {
       const response = await memberApi.getTaxonomyCategories()

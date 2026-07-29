@@ -159,52 +159,51 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
       return
     }
 
-    // Check if the sub-category already exists if the user specified a sub-category label
-    if (addForm.subcategoryLabel.trim()) {
-      const cleanSubCode = addForm.subcategoryCode.trim().toLowerCase()
-      let existingSub: { code: string; label: string } | null = null
-      for (const cat of taxonomy.categories) {
-        for (const sub of cat.subcategories) {
-          if (sub.code.trim().toLowerCase() === cleanSubCode) {
-            existingSub = sub
-            break
-          }
-        }
-        if (existingSub) break
-      }
+    const cleanSubCode = enteredSubCode.toLowerCase()
+    const cleanAddLabel = addForm.label.trim().toLowerCase()
 
-      if (existingSub) {
-        toast.error(`You can't create it because in programme already have ${existingSub.code}`)
+    // Find if subcategory already exists
+    let targetSubcategory: { code: string; label: string; items: any[] } | null = null
+    for (const cat of taxonomy.categories) {
+      for (const sub of cat.subcategories) {
+        if (sub.code.trim().toLowerCase() === cleanSubCode) {
+          targetSubcategory = sub
+          break
+        }
+      }
+      if (targetSubcategory) break
+    }
+
+    // If subcategory exists, check if exact item already exists under it
+    if (targetSubcategory) {
+      const duplicateItem = targetSubcategory.items.find(
+        (item: any) => item.label.trim().toLowerCase() === cleanAddLabel
+      )
+      if (duplicateItem) {
+        toast.error(`Item "${duplicateItem.label}" already exists under ${targetSubcategory.code}`)
         return
       }
     }
 
-    // Check if the item already exists by label similarity (case-insensitively)
-    const cleanAdd = addForm.label.trim().toLowerCase()
-    let existingItem: { code: string; label: string } | null = null
-    for (const cat of taxonomy.categories) {
-      for (const sub of cat.subcategories) {
-        for (const item of sub.items) {
-          const cleanExist = item.label.trim().toLowerCase()
-          if (cleanExist === cleanAdd || cleanExist.includes(cleanAdd) || cleanAdd.includes(cleanExist)) {
-            existingItem = item
-            break
-          }
-        }
-        if (existingItem) break
-      }
-      if (existingItem) break
-    }
+    try {
+      await taxonomy.createStandardItem({
+        categoryCode: addForm.categoryCode,
+        subcategoryCode: enteredSubCode,
+        subcategoryLabel: addForm.subcategoryLabel || (targetSubcategory ? targetSubcategory.label : enteredSubCode),
+        label: addForm.label.trim(),
+      })
+      toast.success('Custom activity item created and saved to database!')
 
-    if (existingItem) {
-      toast.error(`You can't create it because in programme already have ${existingItem.code}`)
-      return
-    }
+      // Auto-expand category and subcategory to highlight the new item
+      expandedCategories.value.add(addForm.categoryCode)
+      expandedSubcategories.value.add(enteredSubCode)
 
-    await taxonomy.addItem({ ...addForm })
-    toast.success('Submitted to the Other review queue')
-    showAdd.value = false
-    tab.value = 'other'
+      showAdd.value = false
+      tab.value = 'items'
+    } catch (err: any) {
+      console.error('Failed to create taxonomy item:', err)
+      toast.error(err?.response?.data?.message || 'Failed to save activity item')
+    }
   }
 
   const confirmTarget = ref<TaxonomyRow | any | null>(null)
@@ -239,10 +238,10 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
     }
   }
 
-  function askDeprecate(row: any) {
+  function askDeprecate(row: any, kind?: string) {
     confirmTarget.value = {
       ...row,
-      kind: row.kind || (row.items ? 'subcategory' : 'category')
+      kind: kind || row.kind || (row.items ? 'subcategory' : 'category')
     }
   }
 
@@ -252,6 +251,22 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
 
     await taxonomy.deprecateEntry(row.kind, row.id)
     toast.success('Taxonomy entry deprecated')
+    confirmTarget.value = null
+  }
+
+  function askRestore(row: any, kind?: string) {
+    confirmTarget.value = {
+      ...row,
+      kind: kind || row.kind || (row.items ? 'subcategory' : 'category')
+    }
+  }
+
+  async function confirmRestore() {
+    const row = confirmTarget.value
+    if (!row) return
+
+    await taxonomy.restoreEntry(row.kind, row.id)
+    toast.success('Taxonomy entry restored')
     confirmTarget.value = null
   }
 
@@ -273,10 +288,20 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
   async function confirmPromote() {
     if (!promoteTarget.value) return
 
-    await taxonomy.promoteOtherEntry(promoteTarget.value.id, { ...promoteForm })
-    toast.success('Promoted to standard taxonomy')
-    promoteTarget.value = null
-    tab.value = 'items'
+    try {
+      await taxonomy.promoteOtherEntry(promoteTarget.value.id, { ...promoteForm })
+      toast.success('Promoted to standard taxonomy and saved to database!')
+
+      // Auto-expand category and subcategory to show promoted item
+      expandedCategories.value.add(promoteForm.categoryCode)
+      expandedSubcategories.value.add(promoteForm.subcategoryCode)
+
+      promoteTarget.value = null
+      tab.value = 'items'
+    } catch (err: any) {
+      console.error('Failed to promote taxonomy entry:', err)
+      toast.error(err?.response?.data?.message || 'Failed to promote entry')
+    }
   }
 
   async function dismiss(entry: OtherQueueEntry) {
@@ -313,6 +338,8 @@ export const useTaxonomyAdminStore = defineStore('taxonomyAdmin', () => {
     saveRename,
     askDeprecate,
     confirmDeprecate,
+    askRestore,
+    confirmRestore,
     openPromote,
     confirmPromote,
     dismiss,

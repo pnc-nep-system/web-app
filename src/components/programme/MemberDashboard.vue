@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import KpiCard from '@/components/KpiCard.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -8,7 +8,6 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
 import DashboardGuidance from '@/components/programme/DashboardGuidance.vue'
 import { useEntriesStore } from '@/stores/entries.store'
-import { useProgrammeFormStore } from '@/stores/programmeForm'
 import { useAuthStore } from '@/stores/auth'
 import NewEntryButton from '@/components/programme/NewEntryButton.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -16,26 +15,31 @@ import PageHeader from '@/components/common/PageHeader.vue'
 const router = useRouter()
 const route = useRoute()
 const entries = useEntriesStore()
-const formStore = useProgrammeFormStore()
 const auth = useAuthStore()
 
 const canSeeDraft = computed(() => !['nep_admin', 'nep_coordinator'].includes(auth.userRole))
 
-function clearDraft() {
-  sessionStorage.removeItem('new_programme_entry_draft')
-  formStore.resetAll()
-}
-
-onMounted(() => {
+watch(() => route.query.tab, () => {
   const requestedTab = route.query.tab as 'all' | 'draft' | 'submitted' || 'all'
   const validTabs = ['all', 'draft', 'submitted']
   const parsedTab = validTabs.includes(requestedTab) ? requestedTab : 'all'
   const tab = !canSeeDraft.value && parsedTab !== 'submitted' ? 'submitted' : parsedTab
-  entries.switchTab(tab as 'all' | 'draft' | 'submitted')
-})
+  entries.switchTab(tab as 'all' | 'draft' | 'submitted', true)
+}, { immediate: true })
 </script>
 
 <template>
+  <!-- Page Heading + CTA under header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 mt-2">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
+      <p class="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
+        Overview of registered programme entries and status tracking.
+      </p>
+    </div>
+    <NewEntryButton />
+  </div>
+
   <!-- KPI Cards -->
   <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
     <KpiCard label="Total Entries" :value="entries.currentItems.length" icon="list" icon-tone="indigo" />

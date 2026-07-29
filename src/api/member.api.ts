@@ -2,6 +2,27 @@ import api from './axios';
 import { taxonomyApi } from './taxonomy.api';
 import type { ProgrammeIdentity, Province, District, Commune, Village } from '@/types/programme'
 
+const provinceRequestCache = new Map<string, ReturnType<typeof api.get<{ data: Province[] }>>>()
+const districtRequestCache = new Map<string, ReturnType<typeof api.get<{ data: District[] }>>>()
+const communeRequestCache = new Map<string, ReturnType<typeof api.get<{ data: Commune[] }>>>()
+const villageRequestCache = new Map<string, ReturnType<typeof api.get<{ data: Village[] }>>>()
+
+function rememberRequest<K, T>(
+  cache: Map<K, ReturnType<typeof api.get<T>>>,
+  key: K,
+  request: () => ReturnType<typeof api.get<T>>
+) {
+  const cached = cache.get(key)
+  if (cached) return cached
+
+  const pending = request().catch(error => {
+    cache.delete(key)
+    throw error
+  })
+  cache.set(key, pending)
+  return pending
+}
+
 export const memberApi = {
   listProgrammeEntries(organisationId: number | string) {
     return api.get(`/organisations/${organisationId}/programme-entries`);
@@ -16,16 +37,19 @@ export const memberApi = {
     return api.get(`/programme-entries/${id}`);
   },
   getProvinces() {
-    return api.get<{ data: Province[] }>('/provinces');
+    return rememberRequest(provinceRequestCache, 'all', () => api.get<{ data: Province[] }>('/provinces'));
   },
-  getDistricts(provinceId: number) {
-    return api.get<{ data: District[] }>(`/provinces/${provinceId}/districts`);
+  getDistricts(provinceId: number | string) {
+    const id = String(provinceId)
+    return rememberRequest(districtRequestCache, id, () => api.get<{ data: District[] }>(`/provinces/${id}/districts`));
   },
-  getCommunes(districtId: number) {
-    return api.get<{ data: Commune[] }>(`/districts/${districtId}/communes`);
+  getCommunes(districtId: number | string) {
+    const id = String(districtId)
+    return rememberRequest(communeRequestCache, id, () => api.get<{ data: Commune[] }>(`/districts/${id}/communes`));
   },
-  getVillages(communeId: number) {
-    return api.get<{ data: Village[] }>(`/communes/${communeId}/villages`);
+  getVillages(communeId: number | string) {
+    const id = String(communeId)
+    return rememberRequest(villageRequestCache, id, () => api.get<{ data: Village[] }>(`/communes/${id}/villages`));
   },
   getMapEntries() {
     return api.get('/map/entries');
@@ -85,35 +109,19 @@ export const memberApi = {
   markVerified(id: number | string) {
     return api.patch(`/programme-entries/${id}/verify`);
   },
-  suggestActivities(text: string) {
-    return api.post<{ data: string[]; suggestions: Record<string, any> }>('/programme-entries/suggest-activities', { text }, { timeout: 60000 })
-  },
-  suggestActivitiesWithFile(formData: FormData) {
-    return api.post<{ data: string[]; suggestions: Record<string, any> }>('/programme-entries/suggest-activities', formData, {
-      timeout: 60000,
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-  },
-  fetchUrlContent(url: string) {
-    return api.post<{ text: string }>('/programme-entries/fetch-url', { url }, { timeout: 20000 })
-  },
-  aiAutofill(payload: FormData | { text: string }) {
-    const isFormData = payload instanceof FormData
-    return api.post<{
-      activities: { codes: string[]; suggestions: Record<string, any> }
-      geography: { province_ids: number[] }
-      agreements: { counterpart_agency: string; nature: string; status: string; institution_name: string }[]
-      keywords: string[]
-    }>('/programme-entries/ai-autofill', payload, {
-      timeout: 60000,
-      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
-    })
-  },
   listOrganisations() {
     return api.get('/organisations');
   },
   listAllOrganisations() {
     return api.get('/organisations', { params: { per_page: 200 } });
   },
+  fetchUrlContent(url: string) {
+    return api.post<{ text: string }>('/programme-entries/fetch-url', { url });
+  },
+  aiAutofill(payload: FormData | { text: string }) {
+    return api.post('/programme-entries/ai-autofill', payload, {
+      headers: payload instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : {},
+      timeout: 60000,
+    });
+  },
 };
-
