@@ -82,6 +82,13 @@ export const adviserApi = {
     },
 
     /**
+     * Parse the already-stored document file on the backend (no re-upload needed).
+     */
+    parseDocument(id: number) {
+        return api.get<{ text: string }>(`/adviser/submissions/${id}/parse-document`)
+    },
+
+    /**
      * Parse a PDF file and extract its text content.
      */
     parsePdf(id: number, file: File) {

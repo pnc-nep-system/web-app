@@ -22,6 +22,7 @@ export function useAdviserDetailController() {
   const exportingPdf = ref(false)
   const generatingAiDraft = ref(false)
   const fetchingOverlaps = ref(false)
+  const parsingFile = ref(false)
 
   const submissionId = ref<number>(Number(route.params.id) || 0)
   const currentStatus = ref('submitted_for_review')
@@ -124,7 +125,7 @@ export function useAdviserDetailController() {
     try {
       const res = await adviserApi.getById(submissionId.value)
       const data = (res.data as any)?.data ?? res.data
-      if (data) applySubmission(data)
+      if (data) { applySubmission(data); await autoParseDocumentIfNeeded() }
     } finally { loading.value = false }
   })
 
@@ -319,6 +320,11 @@ export function useAdviserDetailController() {
         form.value.sectionB = []
       }
 
+      if (aiData.ai_failed) {
+        pushToast('Map overlaps found but AI generation failed — please retry')
+        return
+      }
+
       if (aiData.section_a) form.value.sectionA = aiData.section_a
       if (aiData.section_c) form.value.sectionC = [{ text: aiData.section_c }]
       if (aiData.section_d) form.value.sectionD = aiData.section_d
@@ -339,6 +345,49 @@ export function useAdviserDetailController() {
       activities: { category_ids: [], subcategory_ids: [], item_ids: [], education_level_ids: [], inclusion_groups: [] },
       geography: { province_ids: [], district_ids: [], commune_ids: [] },
       audiences: { inclusion_types: [] },
+    }
+  }
+
+  const showReupload = computed(() =>
+    !submission.value?.programme_entry_id &&
+    !adviserStore.getParsedText(submissionId.value)
+  )
+
+  async function handleReupload(file: File) {
+    if (parsingFile.value) return
+    parsingFile.value = true
+    try {
+      const res = await adviserApi.parsePdf(submissionId.value, file)
+      const text = (res.data as any)?.text
+      if (text) {
+        adviserStore.storeParsedText(submissionId.value, text)
+        pushToast('Document parsed — click AI Analysis to generate')
+      } else {
+        pushToast('Could not extract text from this file')
+      }
+    } catch (err: any) {
+      pushToast(err?.response?.data?.message ?? 'Failed to parse document')
+    } finally {
+      parsingFile.value = false
+    }
+  }
+
+  async function autoParseDocumentIfNeeded() {
+    if (submission.value?.programme_entry_id) return
+    if (adviserStore.getParsedText(submissionId.value)) return
+    // Check if document_text already on the submission (returned from backend)
+    const existingText = (submission.value as any)?.document_text
+    if (existingText) {
+      adviserStore.storeParsedText(submissionId.value, existingText)
+      return
+    }
+    // Auto-parse from stored file — no user action needed
+    try {
+      const res = await adviserApi.parseDocument(submissionId.value)
+      const text = (res.data as any)?.text
+      if (text) adviserStore.storeParsedText(submissionId.value, text)
+    } catch {
+      // no stored file — showReupload will appear as fallback
     }
   }
 
@@ -373,6 +422,7 @@ export function useAdviserDetailController() {
     overlapNoResults, fetchMapOverlaps, generateAiAdvisoryDraft, generateAndDraft, goBack,
     handleViewDocument, markDelivered, openDraftModal,
     openFinalNoteFile: () => adviserApi.openFinalNoteFile(submissionId.value),
+    parsingFile, showReupload, handleReupload,
     removeGap, removeRecommendation, saveDraft,
   }
 }

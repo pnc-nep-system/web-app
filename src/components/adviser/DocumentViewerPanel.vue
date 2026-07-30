@@ -11,7 +11,6 @@ defineProps<{
 
 const emit = defineEmits<{
   exportPdf: []
-  exportCsv: []
 }>()
 </script>
 

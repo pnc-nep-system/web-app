@@ -58,9 +58,10 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
     subscribedChannels.push('private-nep-admin')
   }
 
-  if (role === 'member_org' && userId) {
-    const entriesStore = useEntriesStore()
+  // Personal channel for all authenticated users (member_org, coordinator, admin)
+  if (userId) {
     const channelName = `App.Models.User.${userId}`
+    const entriesStore = role === 'member_org' ? useEntriesStore() : null
     echo.private(channelName)
       .listen('.programme.draft.created', (payload: ProgrammeDraftCreatedPayload) => {
         notificationStore.pushNotification({
@@ -73,9 +74,10 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
           read_at: null,
           created_at: new Date().toISOString(),
         })
-        // Refetch entries so dashboard updates without manual refresh
-        entriesStore.fetchAllEntries(1)
-        entriesStore.fetchDraftEntries(1)
+        if (entriesStore) {
+          entriesStore.fetchAllEntries(1)
+          entriesStore.fetchDraftEntries(1)
+        }
       })
       .listen('.advice.delivered', (payload: any) => {
         notificationStore.pushNotification({
@@ -84,6 +86,18 @@ export async function connectRealtimeForRole(role?: string, userId?: string | nu
           title: payload.title ?? 'Coordination advice delivered',
           message: payload.message,
           programme_entry_id: payload.programme_entry_id ?? null,
+          advisory_note_id: payload.advisory_note_id ?? null,
+          read_at: null,
+          created_at: new Date().toISOString(),
+        })
+      })
+      .listen('.adviser.assigned', (payload: any) => {
+        notificationStore.pushNotification({
+          id: payload.notification_id ?? String(Date.now()),
+          type: 'adviser_submission_assigned',
+          title: payload.title ?? 'Adviser submission assigned',
+          message: payload.message,
+          programme_entry_id: null,
           advisory_note_id: payload.advisory_note_id ?? null,
           read_at: null,
           created_at: new Date().toISOString(),
