@@ -445,7 +445,7 @@ function preventNegativeKey(e: KeyboardEvent) {
             </svg>
             {{ store.fieldError('directBeneficiaries', props.errors) }}
           </p>
-          <p v-else class="mt-1.5 text-xs text-amber-600">
+          <p v-else class="mt-1.5 text-xs text-gray-400">
             Individuals who <em>directly</em> receive services from this programme.
           </p>
         </div>
