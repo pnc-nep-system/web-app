@@ -71,11 +71,15 @@ export function buildActivitiesPayload(activitiesData: any, activitiesStore: any
     const rawLevels = (activitiesStore.educationLevels?.[code] || activitiesData?.educationLevels?.[code] || section2Data?.educationLevels?.[code] || []) as any[]
     const cleanLevels = Array.from(new Set(rawLevels.map((v: any) => parseInt(String(v), 10)).filter((n: number) => !isNaN(n) && n >= 1 && n <= 5)))
     const inc = activitiesData?.inclusions?.[code] || activitiesStore.inclusions?.[code] || section2Data?.inclusions?.[code]
+    const otherVal = activitiesStore.otherText?.[code] || activitiesData?.otherText?.[code] || section2Data?.otherText?.[code]
     const act: any = {
       activity_item_id: dbId,
       is_primary: primaryArray.includes(code),
       education_level_ids: cleanLevels,
       source: 'human_entered',
+    }
+    if (otherVal && typeof otherVal === 'string' && otherVal.trim()) {
+      act.other_text = otherVal.trim()
     }
     if (inc?.hasInclusion && inc.dimensions?.[0]) {
       act.inclusion_group = inc.dimensions[0].group

@@ -223,6 +223,7 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
     ))
     const inclusionsMap: Record<string, any> = {}
     const educationLevelsMap: Record<string, number[]> = {}
+    const otherTextMap: Record<string, string> = {}
     entry.activities?.forEach((a: any) => {
       const code = getCode(a)
       if (!code) return
@@ -233,8 +234,11 @@ export const useProgrammeFormStore = defineStore('programmeForm', () => {
       educationLevelsMap[code] = Array.from(new Set(
         (a.activity_levels?.map((l: any) => Number(l.education_level_id)) || []).filter((n: number) => !isNaN(n) && n > 0)
       ))
+      if (a.other_text || a.otherText) {
+        otherTextMap[code] = a.other_text || a.otherText
+      }
     })
-    const s2 = { selected: selectedCodes, primary: primaryCodes, aiText: '', inclusions: inclusionsMap, educationLevels: educationLevelsMap }
+    const s2 = { selected: selectedCodes, primary: primaryCodes, aiText: '', inclusions: inclusionsMap, educationLevels: educationLevelsMap, otherText: otherTextMap }
     section2Data.value = s2
     activitiesStore.initFromPayload(s2)
 

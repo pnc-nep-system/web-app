@@ -15,7 +15,9 @@ export function mapEntry(e: any): ProgrammeIdentity {
     method: e.method || '',
     verifiedDate: e.verified_date || '',
     isUnverified: !!e.is_unverified,
-    provinces: (e.locations || []).map((loc: any) => loc.province?.province_name ?? loc.province_name).filter(Boolean),
+    provinces: Array.from(new Set((e.locations || []).map((loc: any) => {
+      return loc.province?.province_name ?? loc.province_name ?? ''
+    }).filter(Boolean))),
     activities: (e.activities || []).map((a: any) => {
       const code = a.activity_item?.code || a.code || (typeof a === 'string' ? a : '')
       const isPrimary = !!(a.is_primary ?? a.primary)
@@ -42,14 +44,21 @@ export function mapDetailEntry(e: any): any {
     method: e.method || '',
     verifiedDate: e.verified_date || '',
     isUnverified: !!e.is_unverified,
-    locations: (e.locations || []).filter((loc: any) => loc.province).map((loc: any) => ({
-      label: loc.village?.name ?? loc.commune?.name ?? loc.district?.name ?? loc.province?.province_name,
-      provinceName: loc.province?.province_name ?? loc.province_name,
-    })).filter((loc: any) => loc.label),
+    locations: (e.locations || []).filter((loc: any) => loc.province || loc.province_name).map((loc: any) => {
+      const pName = loc.province?.province_name ?? loc.province_name ?? ''
+      const dName = loc.district?.name ?? loc.district_name ?? ''
+      const cName = loc.commune?.name ?? loc.commune_name ?? ''
+      const vName = loc.village?.name ?? loc.village_name ?? ''
+      const subName = vName || cName || dName
+      const label = (!subName || subName === pName) ? pName : `${subName}, ${pName}`
+      return { label, provinceName: pName }
+    }).filter((loc: any) => loc.label),
     activities: (e.activities || []).map((a: any) => ({
       code: a.activity_item?.code || a.code || '',
       is_primary: !!(a.is_primary ?? a.primary),
       primary: !!(a.is_primary ?? a.primary),
+      other_text: a.other_text || a.otherText || null,
+      otherText: a.other_text || a.otherText || null,
       inclusion: a.inclusion_group ? { group: a.inclusion_group, type: a.inclusion_type } : null,
       levels: a.activity_levels?.map((l: any) => l.education_level_id ?? l) ?? [],
       source: a.source || null,

@@ -139,11 +139,15 @@ function buildActivitiesPayload(activitiesData: any, activitiesStore: any, secti
       rawLevels.map((v: any) => parseInt(String(v), 10)).filter((n: number) => !isNaN(n) && n >= 1 && n <= 5)
     ))
     const inc = activitiesData?.inclusions?.[code] || activitiesStore.inclusions?.[code] || section2Data?.inclusions?.[code]
+    const otherVal = activitiesStore.otherText?.[code] || activitiesData?.otherText?.[code] || section2Data?.otherText?.[code]
     const act: any = {
       activity_item_id: dbId,
       is_primary: primaryArray.includes(code),
       education_level_ids: cleanLevels,
       source: 'human_entered',
+    }
+    if (otherVal && typeof otherVal === 'string' && otherVal.trim()) {
+      act.other_text = otherVal.trim()
     }
     if (inc?.hasInclusion && inc.dimensions?.[0]) {
       act.inclusion_group = inc.dimensions[0].group
@@ -183,6 +187,7 @@ function mapLocationsResponse(locations: any[]) {
 function mapActivitiesResponse(resActivities: any[]) {
   const inclusions: Record<string, any> = {}
   const levels: Record<string, number[]> = {}
+  const otherText: Record<string, string> = {}
   for (const a of resActivities) {
     const code = a.code || a.activity_item?.code || a.activityItem?.code
       || dbIdToCodeMap.value[a.activity_item_id] || dbIdToCodeMap.value[a.activityItemId]
@@ -195,8 +200,11 @@ function mapActivitiesResponse(resActivities: any[]) {
       (a.activity_levels?.map((l: any) => Number(l.education_level_id)) || [])
         .filter((n: number) => typeof n === 'number' && !isNaN(n) && n > 0)
     ))
+    if (a.other_text || a.otherText) {
+      otherText[code] = a.other_text || a.otherText
+    }
   }
-  return { inclusions, levels }
+  return { inclusions, levels, otherText }
 }
 
 export const useProgrammeSaveStore = defineStore('programmeSave', () => {
@@ -297,8 +305,8 @@ export const useProgrammeSaveStore = defineStore('programmeSave', () => {
       geographyStore.initFromPayload(mapLocationsResponse(geographyResponse.data.data || []))
 
       if (activitiesResponse && section2Data.value) {
-        const { inclusions, levels } = mapActivitiesResponse(activitiesResponse.data.data || [])
-        const updated = { ...section2Data.value, inclusions, educationLevels: levels }
+        const { inclusions, levels, otherText } = mapActivitiesResponse(activitiesResponse.data.data || [])
+        const updated = { ...section2Data.value, inclusions, educationLevels: levels, otherText }
         section2Data.value = updated
         activitiesStore.initFromPayload(updated)
       }

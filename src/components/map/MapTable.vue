@@ -26,11 +26,8 @@ function getProvinces(entry: any): string[] {
   if (!entry.locations || !entry.locations.length) return []
   const unique = new Set<string>()
   entry.locations.forEach((l: any) => {
-    if (l.province?.province_name) {
-      unique.add(l.province.province_name)
-    } else if (l.province_name) {
-      unique.add(l.province_name)
-    }
+    const pName = l.province?.province_name ?? l.province_name ?? ''
+    if (pName) unique.add(pName)
   })
   return Array.from(unique).sort()
 }

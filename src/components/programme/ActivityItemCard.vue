@@ -16,6 +16,10 @@ const store = useProgrammeActivitiesStore()
 const isChecked = computed(() => store.selected.includes(props.item.code))
 const isPrimary = computed(() => store.primary.includes(props.item.code))
 const isCollapsed = computed(() => store.collapsedItems.includes(props.item.code))
+const isOtherItem = computed(() => {
+  const lbl = props.item.label.toLowerCase()
+  return (props.item as any).is_other || lbl.includes('other') || lbl.includes('specify')
+})
 
 function handleCardClick() {
   store.toggleItem(props.item.code)
@@ -114,10 +118,26 @@ function handleToggleCollapse() {
 
     <!-- Inclusion & Education Levels Sub-form (Only visible if the item is selected and not collapsed) -->
     <div 
-      v-if="isChecked && store.inclusions[item.code] && !isCollapsed" 
-      class="mt-4 p-5 rounded-xl border border-slate-200 bg-white space-y-5 animate-fade-in"
+      v-if="isChecked && !isCollapsed" 
+      class="mt-4 p-5 rounded-xl border border-slate-200 bg-white space-y-5 animate-fade-in cursor-default"
       @click.stop
     >
+      <!-- Other (please specify) Text Field -->
+      <div v-if="isOtherItem" class="border-b border-slate-100 pb-4" @click.stop>
+        <label class="text-xs font-bold text-slate-800 block mb-1.5 pointer-events-none select-none">
+          Please specify details <span class="text-rose-500">*</span>
+        </label>
+        <input
+          type="text"
+          :value="store.otherText[item.code] || ''"
+          @input="(e) => store.setOtherText(item.code, (e.target as HTMLInputElement).value)"
+          @click.stop
+          @keydown.stop
+          placeholder="Type specific activity details here…"
+          class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-xs text-slate-900 bg-white focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-100 placeholder:text-slate-400 select-text cursor-text"
+        />
+      </div>
+
       <!-- Education Levels -->
       <div>
         <span class="text-xs font-bold text-slate-800 block mb-2">Education Levels</span>

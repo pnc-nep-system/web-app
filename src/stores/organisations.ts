@@ -25,8 +25,8 @@ export const useOrganisationsStore = defineStore('organisations', () => {
       currentPage.value = res.data.current_page
       lastPage.value = res.data.last_page
       total.value = res.data.total
-    } catch {
-      error.value = 'Failed to load organisations'
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || 'Failed to load organisations'
     } finally {
       loading.value = false
     }

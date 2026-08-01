@@ -13,6 +13,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   const primary = ref<string[]>([])
   const inclusions = ref<Record<string, ActivityInclusion>>({})
   const educationLevels = ref<Record<string, number[]>>({})
+  const otherText = ref<Record<string, string>>({})
   const collapsedItems = ref<string[]>([])
   const showError = ref(false)
   const errorMessage = ref('')
@@ -22,7 +23,8 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     primary: [],
     aiText: '',
     inclusions: {},
-    educationLevels: {}
+    educationLevels: {},
+    otherText: {}
   })
 
   let autoHideTimer: ReturnType<typeof setTimeout> | null = null
@@ -43,13 +45,14 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     autoHideTimer = setTimeout(() => { clearError() }, 4000)
   }
 
-  watch([selected, primary, aiText, inclusions, educationLevels], () => {
+  watch([selected, primary, aiText, inclusions, educationLevels, otherText], () => {
     section2Data.value = {
       selected: [...selected.value],
       primary: [...primary.value],
       aiText: aiText.value,
       inclusions: inclusions.value,
-      educationLevels: educationLevels.value
+      educationLevels: educationLevels.value,
+      otherText: otherText.value
     }
   }, { deep: true })
 
@@ -63,9 +66,13 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
 
     let nextInclusions: Record<string, any> = {}
     let nextEdLevels: Record<string, any> = {}
+    let nextOtherText: Record<string, string> = {}
 
     if (val.inclusions && typeof val.inclusions === 'object') {
       nextInclusions = { ...val.inclusions }
+    }
+    if (val.otherText && typeof val.otherText === 'object') {
+      nextOtherText = { ...val.otherText }
     }
     if (val.educationLevels && typeof val.educationLevels === 'object') {
       const cleaned: Record<string, number[]> = {}
@@ -85,6 +92,12 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     })
     inclusions.value = nextInclusions
     educationLevels.value = nextEdLevels
+    otherText.value = nextOtherText
+  }
+
+  function setOtherText(code: string, text: string) {
+    clearError()
+    otherText.value = { ...otherText.value, [code]: text }
   }
 
   const isGroupSelected = (itemCode: string, groupName: InclusionGroup): boolean =>
@@ -265,7 +278,8 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
       primary: [...primary.value],
       aiText: aiText.value,
       inclusions: inclusions.value,
-      educationLevels: educationLevels.value
+      educationLevels: educationLevels.value,
+      otherText: otherText.value
     }
   }
 
@@ -276,6 +290,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     pendingFile.value = null
     inclusions.value = {}
     educationLevels.value = {}
+    otherText.value = {}
     collapsedItems.value = []
     showError.value = false
   }
@@ -292,6 +307,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     primary,
     inclusions,
     educationLevels,
+    otherText,
     collapsedItems,
     showError,
     errorMessage,
@@ -304,6 +320,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     toggleGroupSelection,
     setGroupType,
     setGroupOtherText,
+    setOtherText,
     updateInclusionToggle,
     toggleItem,
     toggleItemCollapse,
