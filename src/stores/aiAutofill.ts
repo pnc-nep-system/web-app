@@ -102,8 +102,8 @@ export const useAiAutofillStore = defineStore('aiAutofill', () => {
         if (!activitiesStore.inclusions[code]) {
           activitiesStore.inclusions = { ...activitiesStore.inclusions, [code]: { hasInclusion: false, dimensions: [] } }
         }
-        if (!activitiesStore.educationLevels[code]?.length) {
-          activitiesStore.educationLevels = { ...activitiesStore.educationLevels, [code]: [1] }
+        if (!activitiesStore.educationLevels[code]) {
+          activitiesStore.educationLevels = { ...activitiesStore.educationLevels, [code]: [] }
         }
         const s = suggestions[code]
         if (s?.education_levels?.length) {

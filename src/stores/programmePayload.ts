@@ -74,7 +74,7 @@ export function buildActivitiesPayload(activitiesData: any, activitiesStore: any
     const act: any = {
       activity_item_id: dbId,
       is_primary: primaryArray.includes(code),
-      education_level_ids: cleanLevels.length > 0 ? cleanLevels : [1],
+      education_level_ids: cleanLevels,
       source: 'human_entered',
     }
     if (inc?.hasInclusion && inc.dimensions?.[0]) {

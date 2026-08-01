@@ -81,7 +81,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
 
     selected.value.forEach(code => {
       if (!nextInclusions[code]) nextInclusions[code] = { hasInclusion: false, dimensions: [] }
-      if (!nextEdLevels[code] || nextEdLevels[code].length === 0) nextEdLevels[code] = [1]
+      if (!nextEdLevels[code]) nextEdLevels[code] = []
     })
     inclusions.value = nextInclusions
     educationLevels.value = nextEdLevels
@@ -133,8 +133,8 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
       selected.value = [...selected.value, code]
       if (!primary.value.includes(code)) primary.value = [...primary.value, code]
       if (!inclusions.value[code]) inclusions.value = { ...inclusions.value, [code]: { hasInclusion: false, dimensions: [] } }
-      if (!educationLevels.value[code] || educationLevels.value[code].length === 0) {
-        educationLevels.value = { ...educationLevels.value, [code]: [1] }
+      if (!educationLevels.value[code]) {
+        educationLevels.value = { ...educationLevels.value, [code]: [] }
       }
       collapsedItems.value = collapsedItems.value.filter(c => c !== code)
     }
@@ -194,7 +194,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
         }
         // Always initialise defaults first if missing
         if (!inclusions.value[code]) inclusions.value = { ...inclusions.value, [code]: { hasInclusion: false, dimensions: [] } }
-        if (!educationLevels.value[code]?.length) educationLevels.value = { ...educationLevels.value, [code]: [1] }
+        if (!educationLevels.value[code]) educationLevels.value = { ...educationLevels.value, [code]: [] }
 
         // Always apply AI suggestions (overwrite defaults)
         const suggestion = suggestions[code]
@@ -229,7 +229,8 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     for (const code of selected.value) {
       const levels = educationLevels.value[code] || []
       if (levels.length === 0) {
-        educationLevels.value = { ...educationLevels.value, [code]: [1] }
+        triggerError(`Please select at least one education level for activity ${code}.`)
+        return false
       }
     }
 
