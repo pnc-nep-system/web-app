@@ -181,7 +181,7 @@ function logout() {
         </template>
       </nav>
 
-      <div class="p-4 border-t border-white/10 flex items-center gap-3 shrink-0 select-none">
+      <div class="h-16 px-4 border-t border-white/10 flex items-center gap-3 shrink-0 select-none">
         <div
           class="w-8 h-8 rounded-full bg-teal-600 flex items-center justify-center text-xs font-bold text-white shrink-0">
           {{ displayName.slice(0, 2).toUpperCase() }}
@@ -207,9 +207,18 @@ function logout() {
         <NotificationBell v-if="auth.isAuthenticated" />
       </header>
 
+      <!-- Page Content -->
       <div class="p-4 sm:p-6 md:p-8 max-w-[1400px] w-full mx-auto flex-1">
         <slot />
       </div>
+
+      <!-- PN Footer -->
+      <footer class="flex h-16 border-t border-gray-200 bg-white px-6 items-center">
+        <div class="max-w-[1400px] w-full mx-auto flex items-center justify-center gap-3">
+          <img src="@/assets/images/logoes/PN-logo.png" alt="Passerelles Numériques Cambodia" class="w-8 h-8 object-contain"/>
+          <span class="text-xs text-gray-500">Developed by Passerelles Numériques Cambodia</span>
+        </div>
+      </footer>
     </main>
   </div>
 </template>
