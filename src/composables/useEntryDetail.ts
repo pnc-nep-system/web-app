@@ -29,6 +29,9 @@ export function useEntryDetail(id: Ref<string | undefined>) {
     activeId = newId
     loading.value = true
     try {
+      if (taxonomy.categories.length === 0) {
+        await taxonomy.fetchTaxonomy()
+      }
       entry.value = await entries.fetchById(newId)
       if (auth.userRole === 'member_org' && activeId === newId) {
         try {

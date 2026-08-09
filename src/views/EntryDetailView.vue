@@ -19,9 +19,14 @@ const router = useRouter()
 
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
+import ProgrammeReportModal from '@/components/programme/ProgrammeReportModal.vue'
+import { ref } from 'vue'
 
 const { entry, loading, marking, analysing, status, activityRows, relatedEntries, markVerified, analyseInAdviser, organisations, auth, advisoryNoteStatus }
   = useEntryDetail(toRef(props, 'id'))
+
+const showReportModal = ref(false)
+
 function handleBack() {
   if (auth.isAdmin || (auth as any).userRole === 'nep_coordinator') {
     router.push({ name: 'map' })
@@ -54,6 +59,7 @@ function handleBack() {
         :marking
         :is-admin="auth.isAdmin"
         @mark-verified="markVerified"
+        @open-report="showReportModal = true"
         @back="handleBack"
       />
 
@@ -84,6 +90,12 @@ function handleBack() {
         :org-name-of="organisations.nameOf"
         :org-by-id="organisations.byId"
         @navigate="(id: string) => router.push({ name: 'entry-detail', params: { id } })"
+      />
+
+      <ProgrammeReportModal
+        :show="showReportModal"
+        :entry="entry"
+        @close="showReportModal = false"
       />
     </template>
   </AppShell>

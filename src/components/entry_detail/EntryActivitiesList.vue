@@ -70,7 +70,7 @@ const filteredRows = computed(() => {
             </div>
 
             <b class="text-sm font-semibold text-slate-800 group-hover:text-teal-800 transition-colors block leading-snug mb-2">
-              {{ row.item?.label || 'Retired taxonomy item' }}
+              {{ row.item?.label || (row as any).label || (row as any).name || (row as any).subCategory?.name || (row as any).category?.name || row.code }}
             </b>
           </div>
 
