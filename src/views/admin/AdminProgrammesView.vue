@@ -80,7 +80,7 @@ const programmes = useAdminProgrammes()
                 <tr class="border-b border-[var(--line)] text-xs font-semibold text-[var(--ink-400)] uppercase tracking-wider">
                   <th class="text-left px-5 py-3">Programme</th>
                   <th class="text-left px-5 py-3 hidden sm:table-cell">Organisation</th>
-                  <th class="text-left px-5 py-3 hidden lg:table-cell">Primary activities</th>
+                  <th class="text-left px-5 py-3 hidden lg:table-cell">Core activities</th>
                   <th class="text-left px-5 py-3 hidden md:table-cell">Status</th>
                   <th class="text-left px-5 py-3 hidden sm:table-cell">Updated</th>
                   <th class="text-left px-5 py-3">Action</th>
@@ -163,7 +163,7 @@ const programmes = useAdminProgrammes()
                 <tr class="border-b border-[var(--line)] text-xs font-semibold text-[var(--ink-400)] uppercase tracking-wider">
                   <th class="text-left px-5 py-3">Programme</th>
                   <th class="text-left px-5 py-3 hidden sm:table-cell">Organisation</th>
-                  <th class="text-left px-5 py-3 hidden lg:table-cell">Primary activities</th>
+                  <th class="text-left px-5 py-3 hidden lg:table-cell">Core activities</th>
                   <th class="text-left px-5 py-3 hidden sm:table-cell">Updated</th>
                   <th class="text-left px-5 py-3">Action</th>
                 </tr>

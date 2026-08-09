@@ -50,7 +50,7 @@ function formatBudgetBand(b: any): string {
             Programme {{ mapStore.sortKey === 'name' ? (mapStore.sortDir === 'asc' ? '↑' : '↓') : '' }}
           </th>
           <th class="w-[7%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Status</th>
-          <th class="w-[20%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Primary activities</th>
+          <th class="w-[20%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Core activities</th>
           <th class="w-[20%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Audiences</th>
           <th class="w-[18%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] text-left whitespace-nowrap bg-[var(--bg)]">Provinces</th>
           <th class="w-[10%] px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)] whitespace-nowrap bg-[var(--bg)] text-right">Action</th>

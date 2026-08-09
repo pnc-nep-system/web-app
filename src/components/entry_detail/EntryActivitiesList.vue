@@ -64,7 +64,7 @@ const filteredRows = computed(() => {
                   {{ row.code }}
                 </span>
                 <BaseBadge :tone="row.primary ? 'teal' : 'gray'" class="shadow-2xs border border-slate-200 text-[10px] px-1.5 py-0.5">
-                  {{ row.primary ? 'Primary' : 'Secondary' }}
+                  {{ row.primary ? 'Core' : 'Supporting' }}
                 </BaseBadge>
               </div>
             </div>
