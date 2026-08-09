@@ -12,20 +12,45 @@ import { useAuthStore } from '@/stores/auth'
 import NewEntryButton from '@/components/programme/NewEntryButton.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ProgrammeReportModal from '@/components/programme/ProgrammeReportModal.vue'
+import OrganisationAllProgrammesReportModal from '@/components/programme/OrganisationAllProgrammesReportModal.vue'
+
+import { downloadOrganisationProgrammesPdf } from '@/api/programmeReport.api'
+import { useToast } from '@/utils/toast'
 
 const router = useRouter()
 const route = useRoute()
 const entries = useEntriesStore()
 const auth = useAuthStore()
+const toast = useToast()
 
 const canSeeDraft = computed(() => !['nep_admin', 'nep_coordinator'].includes(auth.userRole))
 
 const selectedReportEntry = ref<any>(null)
 const showReportModal = ref(false)
+const showExportAllModal = ref(false)
+const exportingAll = ref(false)
 
 function openReportModal(entry: any) {
   selectedReportEntry.value = entry
   showReportModal.value = true
+}
+
+async function handleExportAllProgrammes() {
+  const orgId = (auth.currentUser as any)?.organisation_id ?? (auth.currentUser as any)?.organisation?.id
+  if (!orgId) {
+    toast.error('Organisation context not found.')
+    return
+  }
+  exportingAll.value = true
+  try {
+    const orgName = ((auth.currentUser as any)?.organisation?.name || 'Organisation').replace(/[^a-zA-Z0-9]/g, '_')
+    await downloadOrganisationProgrammesPdf(orgId, `${orgName}_All_Programmes.pdf`)
+    toast.success('All programmes report exported successfully!')
+  } catch (err: any) {
+    toast.error(err?.response?.data?.message || 'Failed to export organisation programmes PDF.')
+  } finally {
+    exportingAll.value = false
+  }
 }
 
 watch(() => route.query.tab, () => {
@@ -38,6 +63,25 @@ watch(() => route.query.tab, () => {
 </script>
 
 <template>
+
+  <!-- Verification Alert Box -->
+  <div v-if="entries.unverifiedCount > 0"
+    class="mb-6 p-4 rounded-xl bg-amber-50/80 border border-amber-200/60 flex items-start justify-between gap-4">
+    <div class="flex gap-3">
+      <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0 text-amber-700 font-bold">
+        !
+      </div>
+      <div>
+        <h4 class="text-sm font-semibold text-amber-900">
+          {{ entries.unverifiedCount }} {{ entries.unverifiedCount === 1 ? 'entry' : 'entries' }} require attention
+        </h4>
+        <p class="text-xs text-amber-700/90 mt-0.5">
+          Please review your unverified entries to ensure all information is up to date and accurate.
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- Page Heading + CTA under header -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4 mt-2">
     <div>
@@ -82,9 +126,11 @@ watch(() => route.query.tab, () => {
   </PageHeader>
 
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between flex-wrap gap-3">
       <h2 class="text-sm font-semibold text-gray-800 capitalize">{{ entries.activeTab }} entries</h2>
-      <span class="text-xs text-gray-400">{{ entries.currentPagination.total }} total</span>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-gray-400">{{ entries.currentPagination.total }} total</span>
+      </div>
     </div>
 
     <!-- Loading state -->
@@ -284,5 +330,12 @@ watch(() => route.query.tab, () => {
     :show="showReportModal"
     :entry="selectedReportEntry"
     @close="showReportModal = false"
+  />
+
+  <OrganisationAllProgrammesReportModal
+    :show="showExportAllModal"
+    :organisation-id="(auth.currentUser as any)?.organisation_id ?? (auth.currentUser as any)?.organisation?.id"
+    :organisation-name="(auth.currentUser as any)?.organisation?.name || 'Organisation'"
+    @close="showExportAllModal = false"
   />
 </template>
