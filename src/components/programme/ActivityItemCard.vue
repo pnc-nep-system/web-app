@@ -84,17 +84,17 @@ function handleToggleCollapse() {
               ? 'bg-teal-800 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-600'"
           >
-            Primary
+            Core
           </button>
           <button
             type="button"
             @click.stop.prevent="handleImportance('secondary')"
             class="px-3.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer"
             :class="!isPrimary
-              ? 'bg-white text-slate-800 shadow-sm'
+              ? 'bg-teal-800 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-600'"
           >
-            Secondary
+            Supporting
           </button>
         </div>
 
