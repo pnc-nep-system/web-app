@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, computed } from 'vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
+import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { downloadProgrammeReportPdf } from '@/api/programmeReport.api'
+import { useEntriesStore } from '@/stores/entries.store'
+import { useTaxonomyStore } from '@/stores/taxonomy'
 import { useToast } from '@/utils/toast'
+import { EDUCATION_LEVELS } from '@/utils/format'
 
 const props = defineProps<{
   show: boolean
@@ -15,16 +19,46 @@ const emit = defineEmits<{
 }>()
 
 const downloading = ref(false)
+const loadingDetail = ref(false)
+const fullEntry = ref<any>(null)
+
+const entriesStore = useEntriesStore()
+const taxonomyStore = useTaxonomyStore()
 const toast = useToast()
 
+const displayEntry = computed(() => fullEntry.value || props.entry)
+
+watch(
+  () => [props.show, props.entry],
+  async () => {
+    if (props.show && props.entry?.id) {
+      loadingDetail.value = true
+      try {
+        if (taxonomyStore.categories.length === 0) {
+          await taxonomyStore.fetchTaxonomy()
+        }
+        const cleanId = String(props.entry.id).replace('entry-', '')
+        fullEntry.value = await entriesStore.fetchById(cleanId)
+      } catch (err) {
+        fullEntry.value = props.entry
+      } finally {
+        loadingDetail.value = false
+      }
+    } else {
+      fullEntry.value = null
+    }
+  },
+  { immediate: true }
+)
+
 async function handleDownloadPdf() {
-  if (!props.entry) return
+  if (!displayEntry.value) return
   downloading.value = true
   try {
-    const nameSlug = (props.entry.name || props.entry.programme_name || 'Report')
+    const nameSlug = (displayEntry.value.name || displayEntry.value.programme_name || 'Report')
       .replace(/[^a-zA-Z0-9]/g, '_')
       .substring(0, 30)
-    await downloadProgrammeReportPdf(props.entry.id, `Programme_Report_${nameSlug}.pdf`)
+    await downloadProgrammeReportPdf(displayEntry.value.id, `Programme_Report_${nameSlug}.pdf`)
     toast.success('PDF report downloaded successfully!')
   } catch (err: any) {
     if (err?.response?.status === 403) {
@@ -94,7 +128,11 @@ function formatDate(d?: string) {
 
           <!-- Document Preview Canvas (Simulated A4 PDF Page) -->
           <div class="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-200/70">
-            <div class="bg-white rounded-xl shadow-md border border-slate-200 p-8 max-w-[720px] mx-auto text-slate-800 text-xs leading-relaxed space-y-6">
+            <div v-if="loadingDetail" class="bg-white rounded-xl shadow-md border border-slate-200 p-16 flex items-center justify-center max-w-[720px] mx-auto">
+              <LoadingSpinner message="Loading full report details..." />
+            </div>
+
+            <div v-else-if="displayEntry" class="bg-white rounded-xl shadow-md border border-slate-200 p-8 max-w-[720px] mx-auto text-slate-800 text-xs leading-relaxed space-y-6">
               
               <!-- Report Document Header -->
               <div class="border-b-2 border-[#0F5A4D] pb-4 flex items-start justify-between gap-4">
@@ -102,15 +140,15 @@ function formatDate(d?: string) {
                   <div class="text-lg font-extrabold text-[#0F5A4D] tracking-wide uppercase">NEP CAMBODIA</div>
                   <div class="text-[11px] text-slate-500 font-medium">NGO Education Partnership — Self-Service Programme Report</div>
                   <h1 class="text-xl font-bold text-slate-900 mt-3 leading-snug">
-                    {{ entry.name || entry.programme_name || 'Untitled Programme' }}
+                    {{ displayEntry.name || displayEntry.programme_name || 'Untitled Programme' }}
                   </h1>
                   <p class="text-xs text-slate-600 font-semibold mt-1">
-                    Organisation: <span class="text-slate-900">{{ entry.organisationName || entry.organisation?.name || 'N/A' }}</span>
+                    Organisation: <span class="text-slate-900">{{ displayEntry.organisationName || displayEntry.organisation?.name || 'N/A' }}</span>
                   </p>
                 </div>
                 <div class="text-right shrink-0">
-                  <BaseBadge :tone="entry.is_verified || entry.status === 'Verified' ? 'green' : 'amber'" dot>
-                    {{ entry.is_verified || entry.status === 'Verified' ? 'Verified' : 'Unverified' }}
+                  <BaseBadge :tone="!displayEntry.isUnverified && !displayEntry.is_unverified ? 'green' : 'amber'" dot>
+                    {{ !displayEntry.isUnverified && !displayEntry.is_unverified ? 'Verified' : 'Unverified' }}
                   </BaseBadge>
                   <div class="text-[10px] text-slate-400 mt-2 font-medium">
                     Report Date: {{ formatDate() }}
@@ -127,20 +165,32 @@ function formatDate(d?: string) {
                   <div>
                     <span class="text-slate-400 font-medium block text-[11px]">Implementation Period</span>
                     <span class="font-semibold text-slate-900">
-                      {{ entry.startYear || entry.start_year || 'N/A' }} – {{ entry.endYear || entry.end_year || 'Ongoing' }}
+                      {{ displayEntry.startYear || displayEntry.start_year || 'N/A' }} – {{ displayEntry.endYear || displayEntry.end_year || 'Ongoing' }}
                     </span>
                   </div>
                   <div>
                     <span class="text-slate-400 font-medium block text-[11px]">Total Annual Budget</span>
                     <span class="font-semibold text-slate-900">
-                      <template v-if="entry.annual_budget_usd">${{ Number(entry.annual_budget_usd).toLocaleString() }} USD</template>
-                      <template v-else-if="entry.budgetBand">{{ entry.budgetBand }}</template>
+                      <template v-if="displayEntry.annual_budget_usd">${{ Number(displayEntry.annual_budget_usd).toLocaleString() }} USD</template>
+                      <template v-else-if="displayEntry.budgetBand">{{ displayEntry.budgetBand }}</template>
                       <template v-else>Not specified</template>
+                    </span>
+                  </div>
+                  <div v-if="displayEntry.staffFte || displayEntry.fte_staff">
+                    <span class="text-slate-400 font-medium block text-[11px]">Staffing (FTE)</span>
+                    <span class="font-semibold text-slate-900">
+                      {{ displayEntry.staffFte || displayEntry.fte_staff }} FTE
+                    </span>
+                  </div>
+                  <div v-if="displayEntry.directBeneficiaries || displayEntry.indirectBeneficiaries">
+                    <span class="text-slate-400 font-medium block text-[11px]">Beneficiaries</span>
+                    <span class="font-semibold text-slate-900">
+                      Direct: {{ displayEntry.directBeneficiaries || 0 }} · Indirect: {{ displayEntry.indirectBeneficiaries || 0 }}
                     </span>
                   </div>
                   <div class="col-span-2 pt-1">
                     <span class="text-slate-400 font-medium block text-[11px] mb-0.5">Description / Summary</span>
-                    <p class="text-slate-700 leading-normal">{{ entry.description || 'No description provided.' }}</p>
+                    <p class="text-slate-700 leading-normal">{{ displayEntry.description || displayEntry.method || 'No description provided.' }}</p>
                   </div>
                 </div>
               </div>
@@ -150,27 +200,37 @@ function formatDate(d?: string) {
                 <h4 class="text-xs font-bold text-[#0F5A4D] uppercase tracking-wider border-b border-slate-200 pb-1">
                   2. Programme Activities & Taxonomy
                 </h4>
-                <div v-if="entry.activities && entry.activities.length" class="overflow-x-auto">
+                <div v-if="displayEntry.activities && displayEntry.activities.length" class="overflow-x-auto">
                   <table class="w-full text-left border-collapse border border-slate-200 rounded-lg overflow-hidden">
                     <thead class="bg-slate-100 text-[11px] font-bold text-slate-600 uppercase">
                       <tr>
                         <th class="p-2 border border-slate-200">Role</th>
-                        <th class="p-2 border border-slate-200">Category & Sub-Category</th>
+                        <th class="p-2 border border-slate-200">Activity Code & Title</th>
                         <th class="p-2 border border-slate-200">Education Levels</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 text-xs">
-                      <tr v-for="(act, idx) in entry.activities" :key="idx" class="hover:bg-slate-50">
-                        <td class="p-2 border border-slate-200 font-bold" :class="act.importance === 'primary' || act.importance === 'core' ? 'text-teal-700' : 'text-slate-600'">
-                          {{ act.importance === 'primary' || act.importance === 'core' ? 'Core' : 'Supporting' }}
+                      <tr v-for="(act, idx) in displayEntry.activities" :key="idx" class="hover:bg-slate-50">
+                        <td class="p-2 border border-slate-200 font-bold" :class="act.primary || act.is_primary || act.importance === 'primary' || act.importance === 'core' ? 'text-teal-700' : 'text-slate-600'">
+                          {{ act.primary || act.is_primary || act.importance === 'primary' || act.importance === 'core' ? 'Core' : 'Supporting' }}
                         </td>
                         <td class="p-2 border border-slate-200">
-                          <div class="font-semibold text-slate-900">{{ act.category?.name || act.activity_code }}</div>
-                          <div class="text-[11px] text-slate-500">{{ act.subCategory?.name || act.activity_code }}</div>
-                          <div v-if="act.other_text" class="text-[10px] text-slate-400 italic">Note: {{ act.other_text }}</div>
+                          <div class="font-bold text-slate-900">
+                            <span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono text-[10.5px] mr-1">{{ act.code }}</span>
+                            {{ taxonomyStore.itemByCode(act.code)?.label || act.label || act.name || act.code }}
+                          </div>
+                          <div v-if="act.other_text || act.otherText" class="text-[10px] text-slate-400 italic mt-0.5">Note: {{ act.other_text || act.otherText }}</div>
                         </td>
                         <td class="p-2 border border-slate-200">
-                          {{ Array.isArray(act.education_levels) ? act.education_levels.join(', ') : (act.education_levels || '—') }}
+                          <template v-if="Array.isArray(act.levels) && act.levels.length">
+                            {{ act.levels.map((l: any) => EDUCATION_LEVELS[l] || l).join(', ') }}
+                          </template>
+                          <template v-else-if="Array.isArray(act.education_levels)">
+                            {{ act.education_levels.join(', ') }}
+                          </template>
+                          <template v-else>
+                            {{ act.education_levels || '—' }}
+                          </template>
                         </td>
                       </tr>
                     </tbody>
@@ -187,9 +247,9 @@ function formatDate(d?: string) {
                   3. Geographic Coverage
                 </h4>
                 <div class="bg-slate-50 rounded-lg p-3.5 border border-slate-200/80">
-                  <span class="text-slate-400 font-medium block text-[11px] mb-1">Covered Provinces</span>
+                  <span class="text-slate-400 font-medium block text-[11px] mb-1">Covered Locations</span>
                   <span class="font-semibold text-slate-900">
-                    {{ entry.provincesDisplay || (entry.locations && entry.locations.length ? entry.locations.map((l: any) => l.province?.name || l.name).filter(Boolean).join(', ') : 'Geographic coverage not specified.') }}
+                    {{ displayEntry.provincesDisplay || (displayEntry.locations && displayEntry.locations.length ? displayEntry.locations.map((l: any) => l.label || l.provinceName || l.province?.name || l.name).filter(Boolean).join(', ') : 'Geographic coverage not specified.') }}
                   </span>
                 </div>
               </div>
@@ -199,7 +259,7 @@ function formatDate(d?: string) {
                 <h4 class="text-xs font-bold text-[#0F5A4D] uppercase tracking-wider border-b border-slate-200 pb-1">
                   4. Government Agreements & Counterparts
                 </h4>
-                <div v-if="entry.governmentAgreements && entry.governmentAgreements.length" class="overflow-x-auto">
+                <div v-if="displayEntry.governmentAgreements && displayEntry.governmentAgreements.length" class="overflow-x-auto">
                   <table class="w-full text-left border-collapse border border-slate-200 rounded-lg overflow-hidden">
                     <thead class="bg-slate-100 text-[11px] font-bold text-slate-600 uppercase">
                       <tr>
@@ -209,10 +269,10 @@ function formatDate(d?: string) {
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 text-xs">
-                      <tr v-for="(agr, idx) in entry.governmentAgreements" :key="idx">
-                        <td class="p-2 border border-slate-200 font-medium text-slate-900">{{ agr.name || agr.agreement_name || '—' }}</td>
-                        <td class="p-2 border border-slate-200">{{ agr.counterpartStatus?.name || agr.counterpart_level || '—' }}</td>
-                        <td class="p-2 border border-slate-200">{{ agr.signatory_entity || '—' }}</td>
+                      <tr v-for="(agr, idx) in displayEntry.governmentAgreements" :key="idx">
+                        <td class="p-2 border border-slate-200 font-medium text-slate-900">{{ agr.counterpart || agr.name || agr.agreement_name || '—' }}</td>
+                        <td class="p-2 border border-slate-200">{{ agr.nature || agr.counterpartStatus?.name || agr.counterpart_level || '—' }}</td>
+                        <td class="p-2 border border-slate-200">{{ agr.institution || agr.signatory_entity || '—' }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -223,13 +283,13 @@ function formatDate(d?: string) {
               </div>
 
               <!-- Section 5: Keywords -->
-              <div v-if="entry.keywords && entry.keywords.length" class="space-y-2">
+              <div v-if="displayEntry.keywords && displayEntry.keywords.length" class="space-y-2">
                 <h4 class="text-xs font-bold text-[#0F5A4D] uppercase tracking-wider border-b border-slate-200 pb-1">
                   5. Keywords & Focus Areas
                 </h4>
                 <div class="flex flex-wrap gap-1.5 pt-1">
                   <span
-                    v-for="(kw, idx) in entry.keywords"
+                    v-for="(kw, idx) in displayEntry.keywords"
                     :key="idx"
                     class="px-2.5 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-md text-[11px] font-medium"
                   >
