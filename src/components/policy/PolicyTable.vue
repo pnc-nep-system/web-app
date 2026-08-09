@@ -4,12 +4,13 @@ import type { PolicyDocument } from '@/types/policy'
 
 defineProps<{
   items: PolicyDocument[]
-  isAdmin?: boolean
+  canEdit?: boolean
+  canDelete?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'edit', doc: PolicyDocument): void
-  (e: 'delete', id: number): void
+  (e: 'delete', doc: PolicyDocument): void
   (e: 'view', doc: PolicyDocument): void
 }>()
 
@@ -79,14 +80,14 @@ function formatDate(dateStr: string) {
                 title="View document" @click.stop="emit('view', d)">
                 <BaseIcon name="eye" :size="14" />
               </button>
-              <button v-if="isAdmin"
+              <button v-if="canEdit"
                 class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] hover:bg-[var(--teal-50)] hover:shadow-[0_1px_4px_rgba(20,107,99,0.1)]"
                 title="Edit document" @click.stop="emit('edit', d)">
                 <BaseIcon name="edit" :size="14" />
               </button>
-              <button v-if="isAdmin"
+              <button v-if="canDelete"
                 class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-red-600 hover:text-red-600 hover:bg-red-50 hover:shadow-[0_1px_4px_rgba(220,38,38,0.1)]"
-                title="Delete document" @click.stop="emit('delete', d.id)">
+                title="Delete document" @click.stop.prevent="emit('delete', d)">
                 <BaseIcon name="trash" :size="14" />
               </button>
             </div>
@@ -125,14 +126,14 @@ function formatDate(dateStr: string) {
           title="View document" @click.stop="emit('view', d)">
           <BaseIcon name="eye" :size="14" />
         </button>
-        <button v-if="isAdmin"
+        <button v-if="canEdit"
           class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] hover:bg-[var(--teal-50)] hover:shadow-[0_1px_4px_rgba(20,107,99,0.1)]"
           title="Edit document" @click.stop="emit('edit', d)">
           <BaseIcon name="edit" :size="14" />
         </button>
-        <button v-if="isAdmin"
+        <button v-if="canDelete"
           class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-red-600 hover:text-red-600 hover:bg-red-50 hover:shadow-[0_1px_4px_rgba(220,38,38,0.1)]"
-          title="Delete document" @click.stop="emit('delete', d.id)">
+          title="Delete document" @click.stop.prevent="emit('delete', d)">
           <BaseIcon name="trash" :size="14" />
         </button>
       </div>

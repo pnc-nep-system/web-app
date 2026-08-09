@@ -8,6 +8,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PolicyFormModal from '@/components/policy/PolicyFormModal.vue'
 import PolicyDocumentPreviewModal from '@/components/policy/PolicyDocumentPreviewModal.vue'
+import PolicyDeleteConfirmModal from '@/components/policy/PolicyDeleteConfirmModal.vue'
 import PolicyTable from '@/components/policy/PolicyTable.vue'
 import AppShell from '@/components/AppShell.vue'
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
@@ -15,7 +16,8 @@ import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 const auth = useAuthStore()
 const policy = usePolicyStore()
 
-const isAdmin = computed(() => auth.userRole === 'nep_admin')
+const canEdit = computed(() => auth.userRole === 'nep_admin' || auth.userRole === 'nep_coordinator')
+const canDelete = computed(() => auth.userRole === 'nep_admin')
 
 onMounted(() => policy.fetchPolicies())
 </script>
@@ -31,14 +33,13 @@ onMounted(() => policy.fetchPolicies())
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
           Policy document library
-          <Badge tone="indigo" class="align-middle">Phase 7 — future</Badge>
         </h1>
         <p class="mt-1 text-xs sm:text-sm text-slate-500 font-medium">
-          Curated MoEYS and government policy documents that will power the Policy Alignment Module (C3), built after C1 and C2 are stable.
+          Curated MoEYS and government policy documents powering policy alignment and reference.
         </p>
       </div>
       <button
-        v-if="isAdmin"
+        v-if="canEdit"
         @click="policy.openAddModal()"
         class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] !text-white text-xs font-bold rounded-xl hover:bg-[#0c483d] transition-all shadow-2xs cursor-pointer self-start sm:self-auto"
       >
@@ -62,10 +63,11 @@ onMounted(() => policy.fetchPolicies())
       <PolicyTable
         v-else
         :items="policy.items"
-        :is-admin="isAdmin"
+        :can-edit="canEdit"
+        :can-delete="canDelete"
         @view="policy.handleView"
         @edit="policy.handleEdit"
-        @delete="policy.handleDelete"
+        @delete="policy.promptDelete"
       />
     </div>
 
@@ -81,6 +83,14 @@ onMounted(() => policy.fetchPolicies())
       :show="!!policy.viewingPolicy"
       :document="policy.viewingPolicy"
       @close="policy.viewingPolicy = null"
+    />
+
+    <PolicyDeleteConfirmModal
+      :show="policy.showDeleteConfirm"
+      :document="policy.deletingPolicy"
+      :submitting="policy.deleting"
+      @close="policy.closeDeleteModal()"
+      @confirm="policy.confirmDelete"
     />
   </AppShell>
 </template>

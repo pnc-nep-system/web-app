@@ -123,7 +123,12 @@ function submit() {
         </div>
 
         <div class="mb-4 mt-4">
-          <FormFileUpload v-model="form.file" :error="errors.file" :compact="true" />
+          <FormFileUpload
+            v-model="form.file"
+            :existing-file-name="initialData?.file_name || (initialData?.file_url ? initialData.file_url.split('/').pop() : undefined)"
+            :error="errors.file"
+            :compact="true"
+          />
         </div>
 
         <div v-if="!initialData" class="text-[11.5px] text-[var(--ink-500)] mt-4 mb-[18px] leading-normal">

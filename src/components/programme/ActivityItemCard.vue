@@ -25,7 +25,7 @@ function handleCardClick() {
   store.toggleItem(props.item.code)
 }
 
-function handleImportance(importance: 'primary' | 'secondary') {
+function handleImportance(importance: 'core' | 'supporting' | 'primary' | 'secondary') {
   store.setActivityImportance(props.item.code, importance)
 }
 
