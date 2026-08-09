@@ -355,7 +355,10 @@ function preventNegativeKey(e: KeyboardEvent) {
         <!-- FTE Staff -->
         <div>
           <label for="fteStaff" class="block text-sm font-medium text-gray-700 mb-1.5">
-            Number of staff (FTE) <span class="text-red-500">*</span>
+            Number of Staff in this Program (<abbr
+              title="Full-Time Equivalent Staff Assigned to this Program"
+              class="cursor-help no-underline"
+            >FTE</abbr>) <span class="text-red-500">*</span>
           </label>
           <input
             id="fteStaff"
