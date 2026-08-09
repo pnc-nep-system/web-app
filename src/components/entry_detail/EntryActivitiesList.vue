@@ -63,9 +63,9 @@ const filteredRows = computed(() => {
                 <span class="mono text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded shadow-2xs border border-amber-300/60">
                   {{ row.code }}
                 </span>
-                <BaseBadge :tone="row.primary ? 'teal' : 'gray'" class="shadow-2xs border border-slate-200 text-[10px] px-1.5 py-0.5">
+                <span class="mono text-xs font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded shadow-2xs border border-teal-300/60">
                   {{ row.primary ? 'Core' : 'Supporting' }}
-                </BaseBadge>
+                </span>
               </div>
             </div>
 
