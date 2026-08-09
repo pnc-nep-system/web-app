@@ -41,12 +41,14 @@ defineProps<{
           
           <div class="flex items-center gap-4">
             <!-- Core / Supporting Toggle -->
-            <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100">
+            <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100/90">
               <button
                 type="button"
                 @click="store.handleUpdateIsPrimary(item.id, true)"
                 class="px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer"
-                :class="item.is_primary ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
+                :class="item.is_primary
+                  ? 'bg-[#0F5A4D] text-white font-bold shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 bg-transparent'"
               >
                 Core
               </button>
@@ -54,7 +56,9 @@ defineProps<{
                 type="button"
                 @click="store.handleUpdateIsPrimary(item.id, false)"
                 class="px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer"
-                :class="!item.is_primary ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
+                :class="!item.is_primary
+                  ? 'bg-[#0F5A4D] text-white font-bold shadow-xs'
+                  : 'text-slate-500 hover:text-slate-900 bg-transparent'"
               >
                 Supporting
               </button>
