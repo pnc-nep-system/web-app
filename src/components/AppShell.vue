@@ -3,12 +3,13 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import NotificationBell from '@/components/common/NotificationBell.vue'
-
+import OrganisationAllProgrammesReportModal from '@/components/programme/OrganisationAllProgrammesReportModal.vue'
 
 import nepLogo from '@/assets/images/logoes/NEP-logoo.webp'
 
 const auth = useAuthStore()
 const isSidebarOpen = ref(false)
+const showExportAllModal = ref(false)
 
 interface NavItem {
   to: string
@@ -179,6 +180,15 @@ function logout() {
             <BaseIcon :name="item.icon" />
             {{ item.label }}
           </RouterLink>
+
+          <button
+            type="button"
+            @click="showExportAllModal = true; isSidebarOpen = false"
+            class="w-full flex items-center gap-2.5 p-2 rounded-lg text-white/78 text-sm font-medium hover:bg-white/7 hover:text-white transition-colors cursor-pointer text-left"
+          >
+            <BaseIcon name="download" />
+            <span>Export All Programmes</span>
+          </button>
         </template>
       </nav>
 
@@ -212,5 +222,12 @@ function logout() {
         <slot />
       </div>
     </main>
+
+    <OrganisationAllProgrammesReportModal
+      :show="showExportAllModal"
+      :organisation-id="(auth.currentUser as any)?.organisation_id ?? (auth.currentUser as any)?.organisation?.id"
+      :organisation-name="(auth.currentUser as any)?.organisation?.name || 'Organisation'"
+      @close="showExportAllModal = false"
+    />
   </div>
 </template>

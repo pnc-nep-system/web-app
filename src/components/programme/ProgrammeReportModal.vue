@@ -75,6 +75,23 @@ function formatDate(d?: string) {
   if (!d) return new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
   return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
+
+function formatLocations(entry: any) {
+  if (!entry) return 'Geographic coverage not specified.'
+  if (entry.locations && entry.locations.length) {
+    const formatted = entry.locations.map((loc: any) => {
+      const prov = loc.provinceName || loc.province?.province_name || loc.province?.name || loc.name || loc.label || loc.country || ''
+      const dist = loc.districtName || loc.district?.name || loc.district?.district_name || (typeof loc.district === 'string' ? loc.district : '')
+      if (prov && dist) {
+        return `${prov} (${dist})`
+      }
+      return prov
+    }).filter(Boolean)
+    const unique = Array.from(new Set(formatted))
+    if (unique.length) return unique.join(', ')
+  }
+  return entry.provincesDisplay || 'Geographic coverage not specified.'
+}
 </script>
 
 <template>
@@ -249,7 +266,7 @@ function formatDate(d?: string) {
                 <div class="bg-slate-50 rounded-lg p-3.5 border border-slate-200/80">
                   <span class="text-slate-400 font-medium block text-[11px] mb-1">Covered Locations</span>
                   <span class="font-semibold text-slate-900">
-                    {{ displayEntry.provincesDisplay || (displayEntry.locations && displayEntry.locations.length ? displayEntry.locations.map((l: any) => l.label || l.provinceName || l.province?.name || l.name).filter(Boolean).join(', ') : 'Geographic coverage not specified.') }}
+                    {{ formatLocations(displayEntry) }}
                   </span>
                 </div>
               </div>

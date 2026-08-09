@@ -16,7 +16,9 @@ export function mapEntry(e: any): ProgrammeIdentity {
     verifiedDate: e.verified_date || '',
     isUnverified: !!e.is_unverified,
     provinces: Array.from(new Set((e.locations || []).map((loc: any) => {
-      return loc.province?.province_name ?? loc.province_name ?? ''
+      const p = loc.province?.province_name ?? loc.province?.name ?? loc.province_name ?? ''
+      const d = loc.district?.district_name ?? loc.district?.name ?? loc.district_name ?? ''
+      return p && d ? `${p} (${d})` : p
     }).filter(Boolean))),
     activities: (e.activities || []).map((a: any) => {
       const code = a.activity_item?.code || a.code || (typeof a === 'string' ? a : '')
@@ -44,14 +46,22 @@ export function mapDetailEntry(e: any): any {
     method: e.method || '',
     verifiedDate: e.verified_date || '',
     isUnverified: !!e.is_unverified,
-    locations: (e.locations || []).filter((loc: any) => loc.province || loc.province_name).map((loc: any) => {
-      const pName = loc.province?.province_name ?? loc.province_name ?? ''
-      const dName = loc.district?.name ?? loc.district_name ?? ''
-      const cName = loc.commune?.name ?? loc.commune_name ?? ''
-      const vName = loc.village?.name ?? loc.village_name ?? ''
+    locations: (e.locations || []).filter((loc: any) => loc.province || loc.province_name || loc.province_id).map((loc: any) => {
+      const pName = loc.province?.province_name ?? loc.province?.name ?? loc.province_name ?? ''
+      const dName = loc.district?.district_name ?? loc.district?.name ?? loc.district_name ?? ''
+      const cName = loc.commune?.commune_name ?? loc.commune?.name ?? loc.commune_name ?? ''
+      const vName = loc.village?.village_name ?? loc.village?.name ?? loc.village_name ?? ''
       const subName = vName || cName || dName
-      const label = (!subName || subName === pName) ? pName : `${subName}, ${pName}`
-      return { label, provinceName: pName }
+      const label = (!subName || subName === pName) ? pName : `${pName} (${subName})`
+      return {
+        label,
+        provinceName: pName,
+        districtName: dName,
+        communeName: cName,
+        villageName: vName,
+        province: loc.province,
+        district: loc.district,
+      }
     }).filter((loc: any) => loc.label),
     activities: (e.activities || []).map((a: any) => ({
       code: a.activity_item?.code || a.code || '',
