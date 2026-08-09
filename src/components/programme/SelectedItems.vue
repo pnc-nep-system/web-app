@@ -40,7 +40,7 @@ defineProps<{
           </div>
           
           <div class="flex items-center gap-4">
-            <!-- Primary / Secondary Toggle -->
+            <!-- Core / Supporting Toggle -->
             <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100">
               <button
                 type="button"
@@ -48,7 +48,7 @@ defineProps<{
                 class="px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer"
                 :class="item.is_primary ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
               >
-                Primary
+                Core
               </button>
               <button
                 type="button"
@@ -56,7 +56,7 @@ defineProps<{
                 class="px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer"
                 :class="!item.is_primary ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'"
               >
-                Secondary
+                Supporting
               </button>
             </div>
 

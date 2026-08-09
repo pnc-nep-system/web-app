@@ -14,6 +14,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   const inclusions = ref<Record<string, ActivityInclusion>>({})
   const educationLevels = ref<Record<string, number[]>>({})
   const otherText = ref<Record<string, string>>({})
+  const activityRoles = ref<Record<string, 'core' | 'supporting'>>({})
   const collapsedItems = ref<string[]>([])
   const showError = ref(false)
   const errorMessage = ref('')
@@ -21,6 +22,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   const section2Data = ref<any>({
     selected: [],
     primary: [],
+    activityRoles: {},
     aiText: '',
     inclusions: {},
     educationLevels: {},
@@ -45,10 +47,11 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     autoHideTimer = setTimeout(() => { clearError() }, 4000)
   }
 
-  watch([selected, primary, aiText, inclusions, educationLevels, otherText], () => {
+  watch([selected, primary, activityRoles, aiText, inclusions, educationLevels, otherText], () => {
     section2Data.value = {
       selected: [...selected.value],
       primary: [...primary.value],
+      activityRoles: activityRoles.value,
       aiText: aiText.value,
       inclusions: inclusions.value,
       educationLevels: educationLevels.value,
@@ -67,6 +70,20 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     let nextInclusions: Record<string, any> = {}
     let nextEdLevels: Record<string, any> = {}
     let nextOtherText: Record<string, string> = {}
+    let nextRoles: Record<string, 'core' | 'supporting'> = {}
+
+    if (val.activityRoles && typeof val.activityRoles === 'object') {
+      nextRoles = { ...val.activityRoles }
+    } else {
+      // Restore roles from primary array or explicit roles for saved entries
+      selected.value.forEach(code => {
+        if (primary.value.includes(code)) {
+          nextRoles[code] = 'core'
+        } else if (val.hasExplicitRoles || (val.primary && val.primary.length > 0)) {
+          nextRoles[code] = 'supporting'
+        }
+      })
+    }
 
     if (val.inclusions && typeof val.inclusions === 'object') {
       nextInclusions = { ...val.inclusions }
@@ -93,6 +110,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     inclusions.value = nextInclusions
     educationLevels.value = nextEdLevels
     otherText.value = nextOtherText
+    activityRoles.value = nextRoles
   }
 
   function setOtherText(code: string, text: string) {
@@ -136,6 +154,9 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
       selected.value = selected.value.filter(c => c !== code)
       primary.value = primary.value.filter(c => c !== code)
       collapsedItems.value = collapsedItems.value.filter(c => c !== code)
+      const nextRoles = { ...activityRoles.value }
+      delete nextRoles[code]
+      activityRoles.value = nextRoles
       const nextInclusions = { ...inclusions.value }
       delete nextInclusions[code]
       inclusions.value = nextInclusions
@@ -144,7 +165,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
       educationLevels.value = nextEdLevels
     } else {
       selected.value = [...selected.value, code]
-      if (!primary.value.includes(code)) primary.value = [...primary.value, code]
+      // DO NOT default to primary - user must explicitly select Core or Supporting!
       if (!inclusions.value[code]) inclusions.value = { ...inclusions.value, [code]: { hasInclusion: false, dimensions: [] } }
       if (!educationLevels.value[code]) {
         educationLevels.value = { ...educationLevels.value, [code]: [] }
@@ -162,10 +183,12 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     }
   }
 
-  function setActivityImportance(code: string, importance: 'primary' | 'secondary') {
+  function setActivityImportance(code: string, importance: 'core' | 'supporting' | 'primary' | 'secondary') {
     clearError()
     if (!selected.value.includes(code)) return
-    if (importance === 'primary') {
+    const role: 'core' | 'supporting' = (importance === 'primary' || importance === 'core') ? 'core' : 'supporting'
+    activityRoles.value = { ...activityRoles.value, [code]: role }
+    if (role === 'core') {
       if (!primary.value.includes(code)) primary.value = [...primary.value, code]
     } else {
       primary.value = primary.value.filter(c => c !== code)
@@ -240,6 +263,13 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     }
 
     for (const code of selected.value) {
+      if (!activityRoles.value[code]) {
+        triggerError(`Please select whether activity ${code} is Core or Supporting.`)
+        return false
+      }
+    }
+
+    for (const code of selected.value) {
       const levels = educationLevels.value[code] || []
       if (levels.length === 0) {
         triggerError(`Please select at least one education level for activity ${code}.`)
@@ -276,6 +306,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     return {
       selected: [...selected.value],
       primary: [...primary.value],
+      activityRoles: activityRoles.value,
       aiText: aiText.value,
       inclusions: inclusions.value,
       educationLevels: educationLevels.value,
@@ -286,6 +317,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
   function reset() {
     selected.value = []
     primary.value = []
+    activityRoles.value = {}
     aiText.value = ''
     pendingFile.value = null
     inclusions.value = {}
@@ -305,6 +337,7 @@ export const useProgrammeActivitiesStore = defineStore('programmeActivities', ()
     pendingFile,
     selected,
     primary,
+    activityRoles,
     inclusions,
     educationLevels,
     otherText,

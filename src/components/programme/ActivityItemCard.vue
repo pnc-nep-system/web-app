@@ -72,27 +72,34 @@ function handleToggleCollapse() {
         </span>
       </div>
       
-      <!-- Primary/secondary importance toggle + collapse arrow — only visible when checked -->
-      <div v-if="isChecked" class="flex items-center gap-2 animate-fade-in shrink-0 select-none">
-        <!-- Primary/secondary importance toggle -->
-        <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100" @click.stop>
+      <!-- Core/Supporting toggle + collapse arrow — only visible when checked -->
+      <div v-if="isChecked" class="flex items-center gap-1.5 animate-fade-in shrink-0 select-none">
+        <!-- Required red asterisk indicator when unselected -->
+        <span
+          v-if="!store.activityRoles[item.code]"
+          class="text-rose-500 font-bold text-sm leading-none shrink-0"
+          title="Required: Select Core or Supporting"
+        >*</span>
+
+        <!-- Minimalist Core/Supporting toggle -->
+        <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-100/90" @click.stop>
           <button
             type="button"
-            @click.stop.prevent="handleImportance('primary')"
-            class="px-3.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer"
-            :class="isPrimary
-              ? 'bg-teal-800 text-white shadow-sm'
-              : 'text-slate-400 hover:text-slate-600'"
+            @click.stop.prevent="handleImportance('core')"
+            class="px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer"
+            :class="store.activityRoles[item.code] === 'core'
+              ? 'bg-[#0F5A4D] text-white font-bold shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 bg-transparent'"
           >
             Core
           </button>
           <button
             type="button"
-            @click.stop.prevent="handleImportance('secondary')"
-            class="px-3.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer"
-            :class="!isPrimary
-              ? 'bg-teal-800 text-white shadow-sm'
-              : 'text-slate-400 hover:text-slate-600'"
+            @click.stop.prevent="handleImportance('supporting')"
+            class="px-3 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer"
+            :class="store.activityRoles[item.code] === 'supporting'
+              ? 'bg-[#0F5A4D] text-white font-bold shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 bg-transparent'"
           >
             Supporting
           </button>
