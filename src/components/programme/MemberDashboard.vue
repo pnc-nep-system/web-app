@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import KpiCard from '@/components/KpiCard.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -11,6 +11,7 @@ import { useEntriesStore } from '@/stores/entries.store'
 import { useAuthStore } from '@/stores/auth'
 import NewEntryButton from '@/components/programme/NewEntryButton.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import ProgrammeReportModal from '@/components/programme/ProgrammeReportModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -18,6 +19,14 @@ const entries = useEntriesStore()
 const auth = useAuthStore()
 
 const canSeeDraft = computed(() => !['nep_admin', 'nep_coordinator'].includes(auth.userRole))
+
+const selectedReportEntry = ref<any>(null)
+const showReportModal = ref(false)
+
+function openReportModal(entry: any) {
+  selectedReportEntry.value = entry
+  showReportModal.value = true
+}
 
 watch(() => route.query.tab, () => {
   const requestedTab = route.query.tab as 'all' | 'draft' | 'submitted' || 'all'
@@ -173,6 +182,11 @@ watch(() => route.query.tab, () => {
                     Still current
                   </button>
                   <button
+                    class="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors whitespace-nowrap inline-flex items-center gap-1 cursor-pointer"
+                    @click="openReportModal(entry)">
+                    <BaseIcon name="file" :size="13" /> Report
+                  </button>
+                  <button
                     class="px-2.5 py-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 transition-colors whitespace-nowrap"
                     @click="router.push(`/entries/new?id=${entry.id}`)">
                     Edit
@@ -213,10 +227,15 @@ watch(() => route.query.tab, () => {
 
           <div class="flex items-center justify-between gap-4 text-xs text-gray-400">
             <div>Updated {{ entry.relativeLastUpdated }}</div>
-            <div class="flex items-center gap-1.5" @click.stop>
+            <div class="flex items-center gap-1.5 flex-wrap justify-end" @click.stop>
               <button v-if="entry.status === 'Unverified'"
                 class="px-2.5 py-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-md hover:bg-amber-100 transition-colors whitespace-nowrap cursor-pointer">
                 Still current
+              </button>
+              <button
+                class="px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md hover:bg-emerald-100 transition-colors whitespace-nowrap inline-flex items-center gap-1 cursor-pointer"
+                @click="openReportModal(entry)">
+                <BaseIcon name="file" :size="13" /> Report
               </button>
               <button
                 class="px-2.5 py-1 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 transition-colors whitespace-nowrap cursor-pointer"
@@ -260,4 +279,10 @@ watch(() => route.query.tab, () => {
   </div>
 
   <DashboardGuidance />
+
+  <ProgrammeReportModal
+    :show="showReportModal"
+    :entry="selectedReportEntry"
+    @close="showReportModal = false"
+  />
 </template>

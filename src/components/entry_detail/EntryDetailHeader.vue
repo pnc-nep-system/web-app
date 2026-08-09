@@ -15,6 +15,7 @@ defineProps<{
 
 defineEmits<{
   'mark-verified': []
+  'open-report': []
   back: []
 }>()
 
@@ -34,6 +35,13 @@ const authStore = useAuthStore()
     </div>
 
     <div class="flex items-center gap-2.5 flex-wrap shrink-0">
+      <button
+        type="button"
+        class="px-4 py-2.5 bg-[#0F5A4D] hover:bg-[#0c483d] text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+        @click.stop.prevent="$emit('open-report')"
+      >
+        <BaseIcon name="file" :size="15" /> Generate Report
+      </button>
       <BaseButton v-if="status === 'unverified' && isAdmin" variant="secondary" class="inline-flex items-center gap-1.5" :disabled="marking" @click="$emit('mark-verified')">
         <BaseIcon name="check" :size="15" /> {{ marking ? 'Marking…' : 'Mark as verified' }}
       </BaseButton>
