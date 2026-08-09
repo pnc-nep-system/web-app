@@ -1,13 +1,14 @@
-<!-- Drag-and-drop / click-to-browse file picker for PDF/Word documents -->
 <script setup lang="ts">
 import { ref } from 'vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 
 const props = defineProps<{
   modelValue: File | null
+  existingFileName?: string
   error?: string
   compact?: boolean
   hideLabel?: boolean
+  showNotice?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -78,7 +79,7 @@ function triggerFileInput() {
           ? 'border-[#0F5A4D] bg-[#0F5A4D]/10 scale-[1.005]'
           : error
             ? 'border-red-400 bg-red-50/40'
-            : modelValue
+            : (modelValue || existingFileName)
               ? 'border-[#0F5A4D]/40 bg-[#F4FBFA]'
               : 'border-slate-200 bg-slate-50/40 hover:border-[#0F5A4D] hover:bg-[#F4FBFA]/60',
       ]"
@@ -87,8 +88,20 @@ function triggerFileInput() {
       @dragleave.prevent="isDragging = false"
       @drop.prevent="onDrop"
     >
-      <!-- No file selected -->
-      <template v-if="!modelValue">
+      <!-- Existing file on server (when no new file selected) -->
+      <template v-if="!modelValue && existingFileName">
+        <div class="w-10 h-10 rounded-xl bg-[#0F5A4D]/15 text-[#0F5A4D] flex items-center justify-center mb-1">
+          <BaseIcon name="file" size="20" />
+        </div>
+        <div class="text-center min-w-0 max-w-sm">
+          <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Current File Attached</p>
+          <p class="text-xs text-slate-900 font-bold truncate mt-0.5" :title="existingFileName">{{ existingFileName }}</p>
+          <p class="text-[11px] text-[#0F5A4D] font-semibold mt-1">Drop a new file or click to replace</p>
+        </div>
+      </template>
+
+      <!-- No file selected and no existing file -->
+      <template v-else-if="!modelValue">
         <div class="w-12 h-12 rounded-xl bg-[#0F5A4D]/10 text-[#0F5A4D] flex items-center justify-center mb-1 group-hover:scale-110 transition-transform">
           <BaseIcon name="upload" size="22" />
         </div>
@@ -99,7 +112,7 @@ function triggerFileInput() {
         <p class="text-[14px] text-gray-400 mt-1">Accepts .pdf, .doc, .docx — max 50 MB</p>
       </template>
 
-      <!-- File selected -->
+      <!-- New File selected -->
       <template v-else>
         <div class="w-12 h-12 rounded-xl bg-[#0F5A4D] text-white flex items-center justify-center mb-1 shadow-sm">
           <BaseIcon name="check" size="24" />
@@ -121,8 +134,8 @@ function triggerFileInput() {
 
     <p v-if="sizeError" class="mt-2 text-xs text-red-500 font-medium">{{ sizeError }}</p>
     <p v-else-if="error" class="mt-2 text-xs text-red-500 font-medium">{{ error }}</p>
-    <p class="mt-2 text-xs text-slate-400">
-      Files are read for their name only in this prototype — content is not actually parsed or uploaded anywhere.
+    <p v-else-if="showNotice" class="mt-2 text-xs text-slate-400">
+      Files are uploaded securely to the database.
     </p>
   </div>
 </template>

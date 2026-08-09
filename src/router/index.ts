@@ -43,7 +43,7 @@ const router = createRouter({
       path: "/policy",
       name: "policy",
       component: () => import("@/views/staff/PolicyView.vue"),
-      meta: { requiresAuth: true, roles: ["nep_admin", "nep_coordinator"] },
+      meta: { requiresAuth: true, roles: ["nep_admin", "nep_coordinator", "member_org"] },
     },
     {
       path: "/manager/dashboard",

@@ -126,7 +126,7 @@ watch(() => route.query.tab, () => {
               <th class="text-left px-5 py-3">Programme</th>
               <th class="text-left px-5 py-3">Status</th>
               <th class="text-left px-5 py-3 hidden sm:table-cell">Coverage</th>
-              <th class="text-left px-5 py-3 hidden md:table-cell">Primary activities</th>
+              <th class="text-left px-5 py-3 hidden md:table-cell">Core activities</th>
               <th class="text-left px-5 py-3 hidden sm:table-cell">Last updated</th>
               <th class="text-left px-5 py-3">Action</th>
             </tr>

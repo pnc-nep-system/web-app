@@ -68,6 +68,7 @@ const navItems = computed<any>(() => {
 
   return [
     { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { to: '/policy', label: 'Policy library', icon: 'book' },
     { to: '/account', label: 'Organisation Profile', icon: 'building' },
   ]
 })

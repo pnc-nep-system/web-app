@@ -45,7 +45,7 @@ async function handleExportPdf() {
  * Client-side CSV generator fallback for currently filtered entries.
  */
 function exportFilteredToCsv(items: any[]) {
-  const headers = ['Programme Name', 'Organisation', 'Status', 'Primary Activities', 'Audiences', 'Provinces', 'Budget Band']
+  const headers = ['Programme Name', 'Organisation', 'Status', 'Core Activities', 'Audiences', 'Provinces', 'Budget Band']
   const rows = items.map(e => {
     const name = e.programme_name || e.name || 'Untitled'
     const org = e.organisation_name || e.organisation?.name || '—'

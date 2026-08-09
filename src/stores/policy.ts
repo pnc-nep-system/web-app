@@ -12,6 +12,9 @@ export const usePolicyStore = defineStore('policy', () => {
   const submitting = ref(false)
   const editingPolicy = ref<PolicyDocument | null>(null)
   const viewingPolicy = ref<PolicyDocument | null>(null)
+  const deletingPolicy = ref<PolicyDocument | null>(null)
+  const showDeleteConfirm = ref(false)
+  const deleting = ref(false)
 
   const toast = useToast()
 
@@ -30,14 +33,28 @@ export const usePolicyStore = defineStore('policy', () => {
     }
   }
 
-  async function handleDelete(id: number) {
-    if (!confirm('Are you sure you want to delete this policy document?')) return
+  function promptDelete(doc: PolicyDocument) {
+    deletingPolicy.value = doc
+    showDeleteConfirm.value = true
+  }
+
+  function closeDeleteModal() {
+    showDeleteConfirm.value = false
+    deletingPolicy.value = null
+  }
+
+  async function confirmDelete() {
+    if (!deletingPolicy.value) return
+    deleting.value = true
     try {
-      await policyApi.deletePolicy(id)
+      await policyApi.deletePolicy(deletingPolicy.value.id)
       toast.success('Policy document deleted')
+      closeDeleteModal()
       await fetchPolicies()
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? 'Failed to delete policy document')
+    } finally {
+      deleting.value = false
     }
   }
 
@@ -76,7 +93,8 @@ export const usePolicyStore = defineStore('policy', () => {
 
   return {
     items, loading, error, showForm, submitting, editingPolicy, viewingPolicy,
-    fetchPolicies, handleDelete, handleSavePolicy, handleView,
+    deletingPolicy, showDeleteConfirm, deleting,
+    fetchPolicies, promptDelete, closeDeleteModal, confirmDelete, handleSavePolicy, handleView,
     openAddModal, handleEdit,
   }
 })
