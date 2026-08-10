@@ -61,14 +61,26 @@ async function handleDownloadPdf() {
     const nameSlug = (displayEntry.value.name || displayEntry.value.programme_name || 'Report')
       .replace(/[^a-zA-Z0-9]/g, '_')
       .substring(0, 30)
+      
     if (reportContainerRef.value) {
-      await exportSheetsToPdf(reportContainerRef.value, `Programme_Report_${nameSlug}.pdf`)
-    } else {
-      await downloadProgrammeReportPdf(displayEntry.value.id, `Programme_Report_${nameSlug}.pdf`)
+      try {
+        await exportSheetsToPdf(reportContainerRef.value, `Programme_Report_${nameSlug}.pdf`)
+        toast.success('PDF report downloaded successfully!')
+        return
+      } catch (clientErr) {
+        console.warn('Client-side PDF generation failed, falling back to backend generator:', clientErr)
+      }
     }
-    toast.success('PDF report generated and downloaded successfully!')
+
+    const cleanId = String(displayEntry.value.id).replace('entry-', '')
+    await downloadProgrammeReportPdf(cleanId, `Programme_Report_${nameSlug}.pdf`)
+    toast.success('PDF report downloaded successfully!')
   } catch (err: any) {
-    toast.error('Failed to generate PDF report. Please try again.')
+    if (err?.response?.status === 403) {
+      toast.error('Forbidden: You can only generate reports for programs assigned to your organisation.')
+    } else {
+      toast.error('Failed to generate PDF report. Please try again.')
+    }
   } finally {
     downloading.value = false
   }

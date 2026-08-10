@@ -74,14 +74,25 @@ async function handleDownloadPdf() {
     const orgSlug = (props.organisationName || 'Organisation')
       .replace(/[^a-zA-Z0-9]/g, '_')
       .substring(0, 30)
+
     if (reportContainerRef.value) {
-      await exportSheetsToPdf(reportContainerRef.value, `${orgSlug}_All_Programmes.pdf`)
-    } else {
-      await downloadOrganisationProgrammesPdf(props.organisationId, `${orgSlug}_All_Programmes.pdf`)
+      try {
+        await exportSheetsToPdf(reportContainerRef.value, `${orgSlug}_All_Programmes.pdf`)
+        toast.success('All programmes PDF report downloaded successfully!')
+        return
+      } catch (clientErr) {
+        console.warn('Client-side PDF generation failed, falling back to backend generator:', clientErr)
+      }
     }
-    toast.success('All programmes PDF report generated and downloaded successfully!')
+
+    await downloadOrganisationProgrammesPdf(props.organisationId, `${orgSlug}_All_Programmes.pdf`)
+    toast.success('All programmes PDF report downloaded successfully!')
   } catch (err: any) {
-    toast.error('Failed to generate organisation programmes PDF. Please try again.')
+    if (err?.response?.status === 403) {
+      toast.error('Forbidden: You can only generate reports for your organisation.')
+    } else {
+      toast.error('Failed to generate organisation programmes PDF. Please try again.')
+    }
   } finally {
     downloading.value = false
   }
@@ -123,15 +134,15 @@ function getProvincesList(entry: any) {
         <div class="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-slate-200">
 
           <!-- Top Modal Action Bar -->
-          <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-2.5">
-              <div class="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-300 flex items-center justify-center">
-                <BaseIcon name="file" :size="18" />
-              </div>
-              <div>
-                <h3 class="text-sm font-bold tracking-wide ">Organisation Programmes Export Preview</h3>
-                <p class="text-[11px] text-slate-400">Preview consolidated multi-programme report for {{ organisationName || 'Organisation' }}</p>
-              </div>
+          <div class="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between gap-4 shrink-0">
+            <div>
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <BaseIcon name="file" :size="18" class="text-[#0F5A4D]" />
+                Organisation Programmes Export Preview
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">
+                Preview consolidated multi-programme report for {{ organisationName || 'Organisation' }}
+              </p>
             </div>
 
             <div class="flex items-center gap-2.5">
@@ -139,7 +150,7 @@ function getProvincesList(entry: any) {
                 type="button"
                 :disabled="downloading || loading || !entries.length"
                 @click="handleDownloadPdf"
-                class="px-4 py-2 text-xs font-bold bg-[#0F5A4D] hover:bg-[#0c483d] text-white rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                class="px-4 py-2 text-xs font-bold bg-[#0F5A4D] hover:bg-[#0c483d] text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <svg v-if="downloading" class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -152,7 +163,7 @@ function getProvincesList(entry: any) {
               <button
                 type="button"
                 @click="emit('close')"
-                class="w-8 h-8 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center transition-colors cursor-pointer"
               >
                 <BaseIcon name="close" :size="18" />
               </button>
@@ -239,7 +250,7 @@ function getProvincesList(entry: any) {
                 </div>
 
                 <!-- Footer -->
-                <div class="border-t border-slate-200 pt-4 text-center text-[10px] text-slate-400">
+                <div class="border-t border-slate-200 pt-3 text-center text-xs font-medium text-slate-500">
                   Confidential — NGO Education Partnership (NEP) System • Organisation Executive Summary
                 </div>
               </div>
@@ -413,7 +424,7 @@ function getProvincesList(entry: any) {
                 </div>
 
                 <!-- Footer -->
-                <div class="border-t border-slate-200 pt-4 text-center text-[10px] text-slate-400">
+                <div class="border-t border-slate-200 pt-3 text-center text-xs font-medium text-slate-500">
                   Confidential — NGO Education Partnership (NEP) System • Self-Service Programme Report Page {{ idx + 2 }}
                 </div>
               </div>

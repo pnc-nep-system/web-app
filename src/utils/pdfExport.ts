@@ -3,7 +3,7 @@ import jsPDF from 'jspdf'
 
 /**
  * Captures rendered HTML element sheets and exports them directly to a crisp A4 PDF.
- * If container contains .report-page-sheet elements, each sheet will be exported as its own A4 page.
+ * Uses PNG rendering with high resolution scale for crisp typography.
  */
 export async function exportSheetsToPdf(containerElement: HTMLElement, filename: string) {
   const sheets = containerElement.querySelectorAll<HTMLElement>('.report-page-sheet')
@@ -21,20 +21,29 @@ export async function exportSheetsToPdf(containerElement: HTMLElement, filename:
   for (let i = 0; i < targetSheets.length; i++) {
     const sheet = targetSheets[i]
     if (!sheet) continue
+
     const canvas = await html2canvas(sheet, {
-      scale: 2,
+      scale: 3, // Ultra-crisp Retina scale
       useCORS: true,
+      allowTaint: true,
       logging: false,
       backgroundColor: '#ffffff',
+      windowWidth: sheet.scrollWidth || 800,
+      onclone: (_clonedDoc, clonedElement) => {
+        clonedElement.style.backgroundColor = '#ffffff'
+        clonedElement.style.boxShadow = 'none'
+        clonedElement.style.borderRadius = '0px'
+        ;(clonedElement.style as any).webkitFontSmoothing = 'antialiased'
+      },
     })
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.95)
+    const imgData = canvas.toDataURL('image/png')
     if (i > 0) {
       pdf.addPage()
     }
 
     const imgHeight = (canvas.height * pdfWidth) / canvas.width
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, Math.min(imgHeight, pdfHeight))
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, Math.min(imgHeight, pdfHeight))
   }
 
   pdf.save(filename)
