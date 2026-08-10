@@ -6,6 +6,24 @@ export type UserRole = 'nep_admin' | 'nep_coordinator' | 'member_org'
 
 export type UserStatus = 'active' | 'inactive'
 
+export interface Permission {
+  id: number
+  name: string
+  display_name: string
+  group: string
+  description?: string | null
+}
+
+export interface Role {
+  id: number
+  name: string
+  display_name: string
+  description?: string | null
+  is_system: boolean
+  permissions?: Permission[]
+  users_count?: number
+}
+
 export interface User {
   id: number
   name: string
@@ -17,6 +35,9 @@ export interface User {
     id: number
     name: string
   } | null
+  roles?: Role[]
+  /** Individually-assigned permissions (authoritative when present). */
+  permissions?: Permission[]
   created_at: string
   updated_at: string
 }
@@ -27,6 +48,8 @@ export interface CreateUserPayload {
   password?: string
   role: UserRole
   organisation_id: number | null
+  /** Permission IDs to assign directly to this user. */
+  permissions?: number[]
 }
 
 export interface UpdateUserPayload {
@@ -36,6 +59,8 @@ export interface UpdateUserPayload {
   organisation_id: number | null
   password?: string
   status?: UserStatus
+  /** Permission IDs; an empty array clears individually assigned permissions. */
+  permissions?: number[]
 }
 
 export interface AdminUserActionResponse {
@@ -52,7 +77,7 @@ export interface UserListResponse {
   from: number | null
   last_page: number
   last_page_url: string
-  links: any[]
+  links: unknown[]
   next_page_url: string | null
   path: string
   per_page: number
@@ -60,4 +85,3 @@ export interface UserListResponse {
   to: number | null
   total: number
 }
-

@@ -20,13 +20,15 @@ const emit = defineEmits<{
   submit: [payload: CreateUserPayload | UpdateUserPayload]
 }>()
 
-// ─── Role options ─────────────────────────────────────────────────────────────
+// ─── Role metadata for the visual role picker ────────────────────────────────
 
-const ROLE_OPTIONS: { value: UserRole; label: string; desc: string }[] = [
-  { value: 'nep_admin', label: 'NEP Admin', desc: 'Full system access' },
-  { value: 'nep_coordinator', label: 'Coordinator', desc: 'Programme oversight' },
-  { value: 'member_org', label: 'Member Organisation', desc: 'Organisation-level access' },
-]
+const ROLE_DETAILS: Record<UserRole, { label: string; desc: string; icon: string; tile: string }> = {
+  nep_admin: { label: 'NEP Admin', desc: 'Full system access', icon: 'shield', tile: 'bg-indigo-100 text-indigo-700' },
+  nep_coordinator: { label: 'Coordinator', desc: 'Programme oversight', icon: 'trend', tile: 'bg-amber-100 text-amber-700' },
+  member_org: { label: 'Member Org', desc: 'Organisation-level access', icon: 'building', tile: 'bg-teal-100 text-teal-700' },
+}
+
+const roleOrder: UserRole[] = ['nep_admin', 'nep_coordinator', 'member_org']
 
 // ─── Form state ───────────────────────────────────────────────────────────────
 
@@ -37,20 +39,18 @@ const status = ref<'active' | 'inactive'>('active')
 const organisationId = ref<number | null>(null)
 const password = ref('')
 const showPassword = ref(false)
-
 const clientErrors = ref<Partial<Record<'name' | 'email' | 'role' | 'status' | 'password' | 'organisation_id', string>>>({})
 
 const isEditMode = computed(() => !!props.editUser)
-const title = computed(() => (isEditMode.value ? 'Edit User' : 'Create User'))
+const title = computed(() => (isEditMode.value ? 'Edit User Account' : 'Create User Account'))
 const subtitle = computed(() =>
-  isEditMode.value ? 'Update the account details below.' : 'Fill in the details to create a new account.',
+  isEditMode.value ? 'Update the account details and role below.' : 'Set up the account and choose their role and organisation access.',
 )
-
 // ─── Combined errors helper ───────────────────────────────────────────────────
 
 const errors = computed(() => {
   const errs: Record<string, string> = {}
-  
+
   // Apply backend errors (422) first
   if (props.backendErrors) {
     Object.entries(props.backendErrors).forEach(([key, val]) => {
@@ -59,18 +59,16 @@ const errors = computed(() => {
       }
     })
   }
-  
+
   // Apply client validation errors which overwrite backend errors
   Object.entries(clientErrors.value).forEach(([key, val]) => {
     if (val) {
       errs[key] = val
     }
   })
-  
+
   return errs
 })
-
-
 watch(
   () => props.open,
   (opened) => {
@@ -85,7 +83,6 @@ watch(
     }
   },
 )
-
 function resetForm() {
   name.value = ''
   email.value = ''
@@ -150,22 +147,21 @@ function handleSubmit() {
 </script>
 
 <template>
-  <BaseModal :open="open" @close="emit('close')">
-    <div class="w-full max-w-[480px]">
+  <BaseModal :open="open" :max-width="600" @close="emit('close')">
+    <div class="w-full">
       <!-- Header -->
-      <div class="flex items-start gap-3 mb-6">
+      <div class="flex items-start gap-3.5 mb-6">
         <div
-          class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          :class="isEditMode ? 'bg-indigo-100 text-indigo-700' : 'bg-teal-100 text-teal-700'"
+          class="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 text-white shadow-[0_6px_16px_rgba(15,90,77,0.28)] bg-gradient-to-br from-[var(--teal-700)] to-[var(--teal-900)]"
         >
           <BaseIcon :name="isEditMode ? 'edit' : 'plus'" :size="18" />
         </div>
-        <div class="flex-1 min-w-0">
-          <h2 class="text-base font-bold text-[var(--ink-900)]">{{ title }}</h2>
-          <p class="text-[12.5px] text-[var(--ink-400)] mt-0.5">{{ subtitle }}</p>
+        <div class="flex-1 min-w-0 pt-0.5">
+          <h2 class="text-[17px] font-bold tracking-tight text-[var(--ink-900)]">{{ title }}</h2>
+          <p class="text-[12.5px] text-[var(--ink-400)] mt-0.5 leading-relaxed">{{ subtitle }}</p>
         </div>
         <button
-          class="w-8 h-8 rounded-lg border border-[var(--line)] bg-[var(--bg)] flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-120 shrink-0 hover:border-[var(--ink-400)] hover:text-[var(--ink-700)]"
+          class="w-8 h-8 rounded-lg border border-[var(--line)] bg-[var(--bg)] flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-120 shrink-0 hover:border-[var(--ink-400)] hover:text-[var(--ink-700)] hover:bg-white active:scale-95"
           type="button"
           aria-label="Close modal"
           @click="emit('close')"
@@ -176,6 +172,13 @@ function handleSubmit() {
 
       <!-- Form -->
       <form @submit.prevent="handleSubmit" novalidate class="flex flex-col gap-4">
+
+        <!-- ── Section: Account details ── -->
+        <div class="flex items-center gap-3">
+          <span class="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[var(--ink-400)]">Account details</span>
+          <span class="flex-1 h-px bg-[var(--line-soft)]" />
+        </div>
+
         <!-- Full Name -->
         <div>
           <label for="um-name" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
@@ -186,8 +189,8 @@ function handleSubmit() {
             v-model="name"
             type="text"
             placeholder="e.g. Jane Smith"
-            class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
-            :class="{ '!border-red-600': errors.name }"
+            class="w-full border border-[var(--line)] rounded-[10px] px-3.5 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
+            :class="{ '!border-red-500 focus:!shadow-[0_0_0_3px_rgba(239,68,68,0.12)]': errors.name }"
             autocomplete="name"
           />
           <p v-if="errors.name" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
@@ -205,83 +208,14 @@ function handleSubmit() {
             v-model="email"
             type="email"
             placeholder="e.g. jane@example.com"
-            class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
-            :class="{ '!border-red-600': errors.email }"
+            class="w-full border border-[var(--line)] rounded-[10px] px-3.5 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
+            :class="{ '!border-red-500 focus:!shadow-[0_0_0_3px_rgba(239,68,68,0.12)]': errors.email }"
             autocomplete="email"
           />
           <p v-if="errors.email" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
             <BaseIcon name="alert" :size="11" />{{ errors.email }}
           </p>
         </div>
-
-        <!-- Role -->
-        <div>
-          <label for="um-role" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
-            Role
-          </label>
-          <select
-            id="um-role"
-            v-model="role"
-            class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)]"
-            :class="{ '!border-red-600': errors.role }"
-          >
-            <option v-for="opt in ROLE_OPTIONS" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
-            </option>
-          </select>
-          <p v-if="errors.role" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
-            <BaseIcon name="alert" :size="11" />{{ errors.role }}
-          </p>
-        </div>
-
-        <!-- Status (edit only) -->
-        <Transition name="slide">
-          <div v-if="isEditMode">
-            <label for="um-status" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
-              Status
-            </label>
-            <select
-              id="um-status"
-              v-model="status"
-              class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)]"
-              :class="{ '!border-red-600': errors.status }"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            <p v-if="errors.status" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
-              <BaseIcon name="alert" :size="11" />{{ errors.status }}
-            </p>
-          </div>
-        </Transition>
-
-        <!-- Organisation (Only visible/relevant for Coordinator and Member Org) -->
-        <Transition name="slide">
-          <div v-if="role === 'member_org' || role === 'nep_coordinator'">
-            <label for="um-organisation" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
-              Organisation
-              <span
-                class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 uppercase tracking-wider"
-              >
-                {{ role === 'member_org' ? 'Required' : 'Optional' }}
-              </span>
-            </label>
-            <select
-              id="um-organisation"
-              v-model="organisationId"
-              class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)]"
-              :class="{ '!border-red-600': errors.organisation_id }"
-            >
-              <option :value="null">Select organisation…</option>
-              <option v-for="org in organisations" :key="org.id" :value="org.id">
-                {{ org.name }}
-              </option>
-            </select>
-            <p v-if="errors.organisation_id" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
-              <BaseIcon name="alert" :size="11" />{{ errors.organisation_id }}
-            </p>
-          </div>
-        </Transition>
 
         <!-- Password (create only) -->
         <Transition name="slide">
@@ -294,9 +228,9 @@ function handleSubmit() {
                 id="um-password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
-                placeholder="Min. 8 characters"
-                class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 pr-10 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
-                :class="{ '!border-red-600': errors.password }"
+                placeholder="Min. 8 characters — leave blank to auto-generate"
+                class="w-full border border-[var(--line)] rounded-[10px] px-3.5 py-2.5 pr-11 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] placeholder:text-[var(--ink-300)]"
+                :class="{ '!border-red-500 focus:!shadow-[0_0_0_3px_rgba(239,68,68,0.12)]': errors.password }"
                 autocomplete="new-password"
               />
               <button
@@ -315,8 +249,116 @@ function handleSubmit() {
           </div>
         </Transition>
 
-        <!-- Divider + Actions -->
-        <div class="flex justify-end gap-2.5 mt-2 pt-4.5 border-t border-[var(--line-soft)]">
+        <!-- ── Section: Access & role ── -->
+        <div class="flex items-center gap-3 mt-1">
+          <span class="text-[10.5px] font-bold uppercase tracking-[0.14em] text-[var(--ink-400)]">Access & role</span>
+          <span class="flex-1 h-px bg-[var(--line-soft)]" />
+        </div>
+
+        <!-- Role picker (visual cards) -->
+        <div>
+          <label class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-2">
+            Role
+          </label>
+          <div class="grid gap-2">
+            <button
+              v-for="r in roleOrder"
+              :key="r"
+              type="button"
+              class="flex items-center gap-3 rounded-xl border px-3.5 py-3 text-left cursor-pointer transition-all duration-150 group active:scale-[0.99]"
+              :class="
+                role === r
+                  ? 'border-[var(--teal-600)] bg-[var(--teal-50)] shadow-[0_0_0_3px_var(--teal-100)]'
+                  : 'border-[var(--line-soft)] bg-white hover:border-[var(--teal-400)] hover:shadow-sm'
+              "
+              :aria-pressed="role === r"
+              @click="role = r"
+            >
+              <span
+                class="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 transition-transform duration-150 group-hover:scale-105"
+                :class="ROLE_DETAILS[r].tile"
+              >
+                <BaseIcon :name="ROLE_DETAILS[r].icon" :size="16" />
+              </span>
+              <span class="flex-1 min-w-0">
+                <span class="block text-[13px] font-bold text-[var(--ink-900)] leading-tight">
+                  {{ ROLE_DETAILS[r].label }}
+                </span>
+                <span class="block text-[11.5px] text-[var(--ink-400)] mt-0.5">{{ ROLE_DETAILS[r].desc }}</span>
+              </span>
+              <span
+                class="w-[19px] h-[19px] rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-150"
+                :class="role === r ? 'border-[var(--teal-600)] bg-[var(--teal-600)]' : 'border-[var(--line)] group-hover:border-[var(--teal-500)]'"
+              >
+                <BaseIcon v-if="role === r" name="check" :size="10" class="text-white" />
+              </span>
+            </button>
+          </div>
+          <p v-if="errors.role" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
+            <BaseIcon name="alert" :size="11" />{{ errors.role }}
+          </p>
+        </div>
+
+
+        <!-- Status (edit only) -->
+        <Transition name="slide">
+          <div v-if="isEditMode">
+            <label for="um-status" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
+              Status
+            </label>
+            <div class="relative">
+              <select
+                id="um-status"
+                v-model="status"
+                class="w-full appearance-none border border-[var(--line)] rounded-[10px] px-3.5 py-2.5 pr-9 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] cursor-pointer"
+                :class="{ '!border-red-500 focus:!shadow-[0_0_0_3px_rgba(239,68,68,0.12)]': errors.status }"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-400)] pointer-events-none">
+                <BaseIcon name="chevronDown" :size="14" />
+              </span>
+            </div>
+            <p v-if="errors.status" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
+              <BaseIcon name="alert" :size="11" />{{ errors.status }}
+            </p>
+          </div>
+        </Transition>
+
+        <!-- Organisation (visible for Coordinator and Member Org) -->
+        <Transition name="slide">
+          <div v-if="role === 'member_org' || role === 'nep_coordinator'">
+            <label for="um-organisation" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
+              Organisation
+              <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 uppercase tracking-wider">
+                {{ role === 'member_org' ? 'Required' : 'Optional' }}
+              </span>
+            </label>
+            <div class="relative">
+              <select
+                id="um-organisation"
+                v-model="organisationId"
+                class="w-full appearance-none border border-[var(--line)] rounded-[10px] px-3.5 py-2.5 pr-9 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)] cursor-pointer"
+                :class="{ '!border-red-500 focus:!shadow-[0_0_0_3px_rgba(239,68,68,0.12)]': errors.organisation_id }"
+              >
+                <option :value="null">Select organisation…</option>
+                <option v-for="org in organisations" :key="org.id" :value="org.id">
+                  {{ org.name }}
+                </option>
+              </select>
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-400)] pointer-events-none">
+                <BaseIcon name="chevronDown" :size="14" />
+              </span>
+            </div>
+            <p v-if="errors.organisation_id" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
+              <BaseIcon name="alert" :size="11" />{{ errors.organisation_id }}
+            </p>
+          </div>
+        </Transition>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-2.5 mt-5 pt-4.5 border-t border-[var(--line-soft)]">
           <button
             type="button"
             class="btn btn-secondary"
@@ -325,7 +367,11 @@ function handleSubmit() {
           >
             Cancel
           </button>
-          <button type="submit" class="btn btn-primary" :disabled="isSaving">
+          <button
+            type="submit"
+            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] text-[12.5px] font-bold text-white cursor-pointer transition-all duration-150 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_6px_16px_rgba(15,90,77,0.28)] bg-gradient-to-br from-[var(--teal-700)] to-[var(--teal-900)] hover:from-[var(--teal-600)] hover:to-[var(--teal-800)]"
+            :disabled="isSaving"
+          >
             <svg
               v-if="isSaving"
               class="w-3.5 h-3.5 animate-spin shrink-0"

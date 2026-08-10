@@ -1,15 +1,26 @@
 <script setup lang="ts">
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   open: { type: Boolean, default: false },
+  /** Override the default card width (number = px, or a CSS width string). */
+  maxWidth: { type: [Number, String], default: 460 },
 })
 const emit = defineEmits(['close'])
+
+const cardStyle = computed(() => ({
+  maxWidth: typeof props.maxWidth === 'number' ? props.maxWidth + 'px' : props.maxWidth,
+}))
 </script>
 
 <template>
   <Teleport to="body">
     <Transition name="modal">
       <div v-if="open" class="fixed inset-0 bg-[rgba(10,25,22,0.5)] backdrop-blur-[3px] flex items-center justify-center z-[150] p-5" @click.self="emit('close')">
-        <div class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(10,45,41,0.18),0_2px_8px_rgba(10,45,41,0.08)] w-full max-w-[460px] max-h-[90vh] overflow-y-auto p-4 sm:p-[26px]">
+        <div
+          class="bg-white rounded-2xl shadow-[0_20px_60px_rgba(10,45,41,0.18),0_2px_8px_rgba(10,45,41,0.08)] w-full max-h-[90vh] overflow-y-auto p-4 sm:p-[26px]"
+          :style="cardStyle"
+        >
           <slot />
         </div>
       </div>

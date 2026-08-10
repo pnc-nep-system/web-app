@@ -1,5 +1,5 @@
 import api from '../api/axios'
-import type { User, UserListResponse, CreateUserPayload, UpdateUserPayload, AdminUserActionResponse } from '@/types/user'
+import type { Permission, Role, User, UserListResponse, CreateUserPayload, UpdateUserPayload, AdminUserActionResponse } from '@/types/user'
 import { organisationService } from './organisation.service'
 
 const BASE = '/admin/users'
@@ -31,6 +31,20 @@ export const userService = {
 
   resetCredentials(id: number) {
     return api.post<AdminUserActionResponse>(`${BASE}/${id}/reset-credentials`)
+  },
+
+  getRoles() {
+    return api.get<Role[]>('/admin/roles')
+  },
+
+  /** All permissions, grouped by group. Flatten in the store for a flat list. */
+  getPermissions() {
+    return api.get<Record<string, Permission[]>>('/admin/permissions')
+  },
+
+  /** Sync a role's permission set (allowed for system roles too). */
+  updateRolePermissions(roleId: number, permissionIds: number[]) {
+    return api.patch<Role>(`/admin/roles/${roleId}`, { permissions: permissionIds })
   },
 
   /** Fetch active organisations for dropdowns — delegates to organisationService. */

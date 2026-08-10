@@ -36,8 +36,14 @@ export const useUsersAdminStore = defineStore('usersAdmin', () => {
     showFormModal.value = true
   }
 
-  function openEditModal(user: User) {
-    editTarget.value = user
+  async function openEditModal(user: User) {
+    try {
+      const res = await userService.getUser(user.id)
+      editTarget.value = res.data
+    } catch (err) {
+      console.error('Failed to load fresh user details:', err)
+      editTarget.value = user
+    }
     showFormModal.value = true
   }
 
