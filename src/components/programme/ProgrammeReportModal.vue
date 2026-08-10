@@ -4,6 +4,7 @@ import BaseIcon from '@/components/common/BaseIcon.vue'
 import BaseBadge from '@/components/common/BaseBadge.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { downloadProgrammeReportPdf } from '@/api/programmeReport.api'
+import { exportSheetsToPdf } from '@/utils/pdfExport'
 import { useEntriesStore } from '@/stores/entries.store'
 import { useTaxonomyStore } from '@/stores/taxonomy'
 import { useToast } from '@/utils/toast'
@@ -18,18 +19,19 @@ const emit = defineEmits<{
   (e: 'close'): void
 }>()
 
-const downloading = ref(false)
 const loadingDetail = ref(false)
-const fullEntry = ref<any>(null)
+const downloading = ref(false)
+const detailedEntry = ref<any>(null)
+const reportContainerRef = ref<HTMLElement | null>(null)
 
 const entriesStore = useEntriesStore()
 const taxonomyStore = useTaxonomyStore()
 const toast = useToast()
 
-const displayEntry = computed(() => fullEntry.value || props.entry)
+const displayEntry = computed(() => detailedEntry.value || props.entry)
 
 watch(
-  () => [props.show, props.entry],
+  () => [props.show, props.entry?.id],
   async () => {
     if (props.show && props.entry?.id) {
       loadingDetail.value = true
@@ -38,14 +40,15 @@ watch(
           await taxonomyStore.fetchTaxonomy()
         }
         const cleanId = String(props.entry.id).replace('entry-', '')
-        fullEntry.value = await entriesStore.fetchById(cleanId)
+        const full = await entriesStore.fetchById(cleanId)
+        detailedEntry.value = full
       } catch (err) {
-        fullEntry.value = props.entry
+        detailedEntry.value = props.entry
       } finally {
         loadingDetail.value = false
       }
     } else {
-      fullEntry.value = null
+      detailedEntry.value = null
     }
   },
   { immediate: true }
@@ -58,14 +61,14 @@ async function handleDownloadPdf() {
     const nameSlug = (displayEntry.value.name || displayEntry.value.programme_name || 'Report')
       .replace(/[^a-zA-Z0-9]/g, '_')
       .substring(0, 30)
-    await downloadProgrammeReportPdf(displayEntry.value.id, `Programme_Report_${nameSlug}.pdf`)
-    toast.success('PDF report downloaded successfully!')
-  } catch (err: any) {
-    if (err?.response?.status === 403) {
-      toast.error('Forbidden: You can only generate reports for programs assigned to your organisation.')
+    if (reportContainerRef.value) {
+      await exportSheetsToPdf(reportContainerRef.value, `Programme_Report_${nameSlug}.pdf`)
     } else {
-      toast.error('Failed to download PDF report. Please try again.')
+      await downloadProgrammeReportPdf(displayEntry.value.id, `Programme_Report_${nameSlug}.pdf`)
     }
+    toast.success('PDF report generated and downloaded successfully!')
+  } catch (err: any) {
+    toast.error('Failed to generate PDF report. Please try again.')
   } finally {
     downloading.value = false
   }
@@ -144,12 +147,12 @@ function formatLocations(entry: any) {
           </div>
 
           <!-- Document Preview Canvas (Simulated A4 PDF Page) -->
-          <div class="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-200/70">
+          <div ref="reportContainerRef" class="flex-1 overflow-y-auto p-6 sm:p-8 bg-slate-200/70">
             <div v-if="loadingDetail" class="bg-white rounded-xl shadow-md border border-slate-200 p-16 flex items-center justify-center max-w-[720px] mx-auto">
               <LoadingSpinner message="Loading full report details..." />
             </div>
 
-            <div v-else-if="displayEntry" class="bg-white rounded-xl shadow-md border border-slate-200 p-8 max-w-[720px] mx-auto text-slate-800 text-xs leading-relaxed space-y-6">
+            <div v-else-if="displayEntry" class="report-page-sheet bg-white rounded-xl shadow-md border border-slate-200 p-8 max-w-[720px] mx-auto text-slate-800 text-xs leading-relaxed space-y-6">
               
               <!-- Report Document Header -->
               <div class="border-b-2 border-[#0F5A4D] pb-4 flex items-start justify-between gap-4">
