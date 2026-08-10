@@ -5,6 +5,7 @@ import AppShell from '@/components/AppShell.vue'
 import HeaderBreadcrumb from '@/components/common/HeaderBreadcrumb.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import { adviserApi } from '@/api/adviser.api'
+import { unwrapData } from '@/utils/apiHelpers'
 import { useAuthStore } from '@/stores/auth'
 import type { Submission } from '@/types/adviser'
 
@@ -27,7 +28,7 @@ onMounted(async () => {
   }
   try {
     const res = await adviserApi.getByProgrammeEntry(Number(props.entryId))
-    note.value = (res.data as any)?.data ?? res.data
+note.value = unwrapData(res.data)
   } catch (err: any) {
     notFound.value = true
   } finally {

@@ -4,6 +4,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAdviserStore } from '@/stores/adviser'
 import { memberApi } from '@/api/member.api'
+import { unwrapData } from '@/utils/apiHelpers'
 import { getMapEntries } from '@/api/map.api'
 import { taxonomyApi } from '@/api/taxonomy.api'
 import { adviserApi } from '@/api/adviser.api'
@@ -116,7 +117,7 @@ async function loadProvinces() {
   loadingProvinces.value = true
   try {
     const res = await memberApi.getProvinces()
-    provinces.value = res.data?.data ?? (res.data as any) ?? []
+    provinces.value = unwrapData(res.data) || []
   } catch {
     provinces.value = []
   } finally {

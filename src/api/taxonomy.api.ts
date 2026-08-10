@@ -11,6 +11,7 @@ import type {
 } from '@/types/taxonomy'
 
 export type { TaxonomyNodeType, TaxonomyItemStatus, TaxonomyCreatePayload, TaxonomyRenamePayload, OtherQueuePayload }
+import { unwrapData } from '@/utils/apiHelpers'
 
 const TAXONOMY_CACHE_KEY = 'nep_taxonomy_categories_cache_v1'
 const TAXONOMY_CACHE_TTL_MS = 24 * 60 * 60 * 1000
@@ -21,10 +22,6 @@ interface CachePayload<T> {
   data: T
 }
 
-function unwrapData<T>(response: { data: T | { data: T } }): T {
-  const body = response.data as T | { data: T }
-  return typeof body === 'object' && body !== null && 'data' in body ? body.data : (body as T)
-}
 
 function readTaxonomyCache(): Category[] | null {
   try {
