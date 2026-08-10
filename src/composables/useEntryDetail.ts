@@ -60,13 +60,13 @@ export function useEntryDetail(id: Ref<string | undefined>) {
 
   const relatedEntries = computed(() => {
     if (!entry.value) return []
-    const myProvinces = new Set((entry.value as any)?.provinces || [])
+    const myProvinces = new Set(entry.value.locations.map((l) => l.provinceName))
     const myCategories = new Set(entry.value.activities.map((a) => a.code.split('.')[0]))
     return entries.items
-      .filter((e: any) => e.id !== entry.value!.id)
-      .filter((e: any) => (
-        (e.provinces ?? []).some((p: any) => myProvinces.has(p))
-        && (e.activities ?? []).some((a: any) => myCategories.has(a.code.split('.')[0]))
+      .filter((e) => String(e.id) !== String(entry.value!.id))
+      .filter((e) => (
+        (e.provinces ?? []).some((p) => myProvinces.has(p))
+        && (e.activities ?? []).some((a) => myCategories.has(a.code.split('.')[0]))
       ))
       .slice(0, 3)
   })
@@ -82,7 +82,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
 
   async function analyseInAdviser() {
     if (!entry.value || analysing.value) return
-    const entryId = (entry.value as any).id
+    const entryId = entry.value.id
     const isMember = auth.userRole === 'member_org'
     analysing.value = true
     try {
@@ -103,14 +103,12 @@ export function useEntryDetail(id: Ref<string | undefined>) {
         } else {
           // Staff: auto-create an advisory note linked to this programme entry
           try {
-            const orgName = (entry.value as any).organisationName
-              ?? (entry.value as any).organisation?.name
-              ?? 'Unknown Organisation'
+            const orgName = entry.value.organisationName || 'Unknown Organisation'
             const createRes = await adviserApi.submit({
               submitting_party: orgName,
-              document_name: (entry.value as any).name ?? (entry.value as any).programme_name ?? `Programme Entry #${entryId}`,
+              document_name: entry.value.name || `Programme Entry #${entryId}`,
               analysis_scope: 'full map',
-              programme_entry_id: entryId,
+              programme_entry_id: Number(entryId),
             })
             const created = (createRes.data as any)?.data ?? createRes.data
             router.push({ name: 'adviser-detail', params: { id: String(created.id) } })
