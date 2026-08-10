@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { adviserApi } from '@/api/adviser.api'
+import { unwrapData } from '@/utils/apiHelpers'
 import { useAdviserStore } from '@/stores/adviser'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import type { Submission } from '@/types/adviser'
@@ -21,8 +22,7 @@ const error = ref<string | null>(null)
 onMounted(async () => {
   try {
     const res = await adviserApi.getById(props.id)
-    const responseData = res.data as any
-    submission.value = responseData?.data ?? responseData
+    submission.value = unwrapData(res.data)
   } catch (err: any) {
     error.value = err?.response?.data?.message ?? 'Failed to load submission.'
   } finally {

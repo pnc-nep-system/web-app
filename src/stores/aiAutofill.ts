@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { memberApi } from '@/api/member.api'
+import { unwrapData } from '@/utils/apiHelpers'
 import { useProgrammeActivitiesStore } from './programmeActivities'
 import { useProgrammeGeographyStore } from './programmeGeography'
 import { useProgrammeAgreementsStore } from './programmeAgreements'
@@ -71,7 +72,7 @@ export const useAiAutofillStore = defineStore('aiAutofill', () => {
       }
 
       const res = await memberApi.aiAutofill(payload)
-      const data = res.data as any
+      const data = unwrapData(res.data)
 
       // Apply identity — only fill fields that are currently empty
       const identityStore = useProgrammeIdentityStore()

@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/utils/toast'
 import { adviserApi } from '@/api/adviser.api'
 import type { EntryDetail, ActivityRow } from '@/types/entryDetail'
+import { unwrapData } from '@/utils/apiHelpers'
 
 export function useEntryDetail(id: Ref<string | undefined>) {
   const router = useRouter()
@@ -33,7 +34,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
       if (auth.userRole === 'member_org' && activeId === newId) {
         try {
           const res = await adviserApi.getByProgrammeEntry(Number(newId))
-          const note = (res.data as any)?.data ?? res.data
+          const note = unwrapData(res.data)
           advisoryNoteStatus.value = note?.status ?? null
         } catch {
           advisoryNoteStatus.value = null
@@ -83,7 +84,7 @@ export function useEntryDetail(id: Ref<string | undefined>) {
     analysing.value = true
     try {
       const res = await adviserApi.getByProgrammeEntry(entryId)
-      const note = (res.data as any)?.data ?? res.data
+      const note = unwrapData(res.data)
       if (note?.id) {
         const dest = isMember
           ? { name: 'adviser-entry-detail', params: { entryId: String(entryId) }, state: { note } }

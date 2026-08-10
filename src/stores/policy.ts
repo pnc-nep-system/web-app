@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { policyApi } from '@/api/policy.api'
 import { useToast } from '@/utils/toast'
+import { unwrapData } from '@/utils/apiHelpers'
 import type { PolicyDocument, PolicyFormPayload } from '@/types/policy'
 
 export const usePolicyStore = defineStore('policy', () => {
@@ -20,7 +21,7 @@ export const usePolicyStore = defineStore('policy', () => {
     error.value = ''
     try {
       const res = await policyApi.getPolicies()
-      const rawData = res.data as any
+      const rawData = unwrapData(res.data)
       const list = Array.isArray(rawData) ? rawData : (Array.isArray(rawData?.data) ? rawData.data : [])
       items.value = list
     } catch (err: any) {

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { organisationService } from '@/services/organisation.service'
 import { memberApi } from '@/api/member.api'
+import { unwrapData } from '@/utils/apiHelpers'
 import type { OrganisationForm } from '@/types/organisations'
 
 export const useOrganisationsStore = defineStore('organisations', () => {
@@ -70,7 +71,7 @@ export const useOrganisationsStore = defineStore('organisations', () => {
         member_since: data.member_since,
       }
       const res = await organisationService.createOrganisation(payload)
-      let created = (res.data as any)?.organisation ?? res.data
+      let created = unwrapData(res.data)
       if (data.logoFile) {
         try {
           const logoRes = await organisationService.uploadLogo(created.id, data.logoFile)
