@@ -7,6 +7,7 @@ import { useAdviserStore } from '@/stores/adviser'
 import { adviserApi } from '@/api/adviser.api'
 import { memberApi } from '@/api/member.api'
 import type { Submission } from '@/types/adviser'
+import { unwrapData } from '@/utils/apiHelpers'
 
 interface RecommendationForm { org: string; type: string; linked: string; text: string }
 interface GapForm { text: string }
@@ -51,7 +52,7 @@ export function useAdviserDetailController() {
     if (!draftOrganisations.value.length) {
       try {
         const res = await memberApi.listAllOrganisations()
-        const data = (res.data as any)?.data ?? res.data
+        const data = unwrapData(res.data)
         draftOrganisations.value = Array.isArray(data) ? data : data?.data ?? []
       } catch { pushToast('Failed to load organisations') }
     }
@@ -64,7 +65,7 @@ export function useAdviserDetailController() {
     try {
       const profile = await buildProgrammeProfileFromSubmission()
       const aiRes = await adviserApi.generateAdvisoryNote(submissionId.value, profile)
-      const aiData = (aiRes.data as any)?.data ?? {}
+      const aiData = unwrapData(aiRes.data) || {}
       const payload = {
         organisation_id: selectedOrgId.value,
         programme_name: programmeName.value.trim(),
@@ -117,14 +118,14 @@ export function useAdviserDetailController() {
     if (!submissionId.value && route.params.entryId) {
       try {
         const res = await adviserApi.getByProgrammeEntry(Number(route.params.entryId))
-        const note = (res.data as any)?.data ?? res.data
+        const note = unwrapData(res.data)
         if (note?.id) { submissionId.value = note.id; applySubmission(note) }
       } finally { loading.value = false }
       return
     }
     try {
       const res = await adviserApi.getById(submissionId.value)
-      const data = (res.data as any)?.data ?? res.data
+      const data = unwrapData(res.data)
       if (data) { applySubmission(data); await autoParseDocumentIfNeeded() }
     } finally { loading.value = false }
   })
@@ -136,7 +137,7 @@ export function useAdviserDetailController() {
     form.value.sectionA = data.section_profile || ''
     if (data.section_gaps) form.value.sectionC = [{ text: data.section_gaps }]
     if (data.section_coordinators_notes) form.value.sectionD = data.section_coordinators_notes
-    const recs = (data as any).recommendations
+    const recs = data.recommendations
     if (Array.isArray(recs) && recs.length > 0) {
       form.value.sectionB = recs.map((r: any) => ({
         org: r.organisation_name || '',
@@ -171,7 +172,7 @@ export function useAdviserDetailController() {
     if (entryId && (!entry?.activities?.length && !entry?.locations?.length)) {
       try {
         const res = await adviserApi.getProgrammeEntry(entryId)
-        const fetched = (res.data as any)?.data ?? res.data
+        const fetched = unwrapData(res.data)
         if (fetched) { entry = fetched; if (submission.value) submission.value.programme_entry = fetched }
       } catch { /* use whatever we have */ }
     }
@@ -190,7 +191,7 @@ export function useAdviserDetailController() {
   }
 
   function handleViewDocument() {
-    const docUrl = (submission.value as any)?.document_url || (submission.value as any)?.document_path
+    const docUrl = (submission.value as { document_url?: string; document_path?: string })?.document_url || (submission.value as { document_url?: string; document_path?: string })?.document_path
     if (docUrl) window.open(docUrl, '_blank')
     else pushToast(`Document: ${submission.value?.document_name || 'Uploaded File'} (read for prototype review)`)
   }
@@ -227,7 +228,7 @@ export function useAdviserDetailController() {
     try {
       await saveSections()
       const res = await adviserApi.markDelivered(submissionId.value)
-      const data = (res.data as any)?.data ?? res.data
+      const data = unwrapData(res.data)
       const newStatus = data?.status ?? 'advice_delivered'
       currentStatus.value = newStatus
       if (submission.value) submission.value.delivered_at = data?.delivered_at ?? new Date().toISOString()
@@ -284,7 +285,7 @@ export function useAdviserDetailController() {
       const profile = isNonMember ? emptyProfile() : await buildProgrammeProfileFromSubmission()
 
       const res = await adviserApi.generateAdvisoryNote(submissionId.value, profile)
-      const aiData = (res.data as any)?.data ?? {}
+      const aiData = unwrapData(res.data) || {}
       const matches: any[] = Array.isArray(aiData.map_overlap_entries) ? aiData.map_overlap_entries : []
 
       lastOverlapMatches.value = matches
@@ -358,7 +359,7 @@ export function useAdviserDetailController() {
     parsingFile.value = true
     try {
       const res = await adviserApi.parsePdf(submissionId.value, file)
-      const text = (res.data as any)?.text
+      const text = (res.data as { text?: string })?.text
       if (text) {
         adviserStore.storeParsedText(submissionId.value, text)
         pushToast('Document parsed — click AI Analysis to generate')
@@ -376,7 +377,7 @@ export function useAdviserDetailController() {
     if (submission.value?.programme_entry_id) return
     if (adviserStore.getParsedText(submissionId.value)) return
     // Check if document_text already on the submission (returned from backend)
-    const existingText = (submission.value as any)?.document_text
+    const existingText = (submission.value as { document_text?: string })?.document_text
     if (existingText) {
       adviserStore.storeParsedText(submissionId.value, existingText)
       return
@@ -384,7 +385,7 @@ export function useAdviserDetailController() {
     // Auto-parse from stored file — no user action needed
     try {
       const res = await adviserApi.parseDocument(submissionId.value)
-      const text = (res.data as any)?.text
+      const text = (res.data as { text?: string })?.text
       if (text) adviserStore.storeParsedText(submissionId.value, text)
     } catch {
       // no stored file — showReupload will appear as fallback
