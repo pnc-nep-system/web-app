@@ -7,7 +7,7 @@ import { storeToRefs } from 'pinia'
  */
 export function useAuth() {
   const authStore = useAuthStore()
-  const { currentUser, currentUserId, userRole, isAuthenticated, authError, fieldErrors, loading } =
+  const { currentUser, currentUserId, userRole, roles, permissions, isAuthenticated, authError, fieldErrors, loading } =
     storeToRefs(authStore)
 
   return {
@@ -15,6 +15,8 @@ export function useAuth() {
     currentUser,
     currentUserId,
     userRole,
+    roles,
+    permissions,
     isAuthenticated,
     authError,
     fieldErrors,
@@ -23,5 +25,7 @@ export function useAuth() {
     login: authStore.login,
     logout: authStore.logout,
     fetchCurrentUser: authStore.fetchCurrentUser,
+    hasPermission: authStore.hasPermission,
+    hasAnyPermission: authStore.hasAnyPermission,
   }
 }

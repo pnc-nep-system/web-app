@@ -4,6 +4,8 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import type { User, UserRole, CreateUserPayload, UpdateUserPayload } from '@/types/user'
 import type { OrganisationOption } from '@/types/user'
+import { LEGACY_ROLES } from '@/types/user'
+import type { Role } from '@/types/role'
 
 // ─── Props / Emits ────────────────────────────────────────────────────────────
 
@@ -12,6 +14,8 @@ const props = defineProps<{
   editUser?: User | null
   isSaving: boolean
   organisations: OrganisationOption[]
+  /** Every role that exists (system + custom) — populates the Role select dynamically. */
+  roles: Role[]
   backendErrors?: Record<string, string[]> | null
 }>()
 
@@ -20,23 +24,20 @@ const emit = defineEmits<{
   submit: [payload: CreateUserPayload | UpdateUserPayload]
 }>()
 
-// ─── Role options ─────────────────────────────────────────────────────────────
-
-const ROLE_OPTIONS: { value: UserRole; label: string; desc: string }[] = [
-  { value: 'nep_admin', label: 'NEP Admin', desc: 'Full system access' },
-  { value: 'nep_coordinator', label: 'Coordinator', desc: 'Programme oversight' },
-  { value: 'member_org', label: 'Member Organisation', desc: 'Organisation-level access' },
-]
-
 // ─── Form state ───────────────────────────────────────────────────────────────
 
 const name = ref('')
 const email = ref('')
-const role = ref<UserRole>('member_org')
+const role = ref<UserRole>('')
 const status = ref<'active' | 'inactive'>('active')
 const organisationId = ref<number | null>(null)
 const password = ref('')
 const showPassword = ref(false)
+
+/** member_org, if it still exists, is the sensible default for a brand-new account; otherwise fall back to whatever role comes first. */
+function defaultRole(): UserRole {
+  return props.roles.find((r) => r.name === LEGACY_ROLES.MEMBER)?.name ?? props.roles[0]?.name ?? ''
+}
 
 const clientErrors = ref<Partial<Record<'name' | 'email' | 'role' | 'status' | 'password' | 'organisation_id', string>>>({})
 
@@ -89,7 +90,7 @@ watch(
 function resetForm() {
   name.value = ''
   email.value = ''
-  role.value = 'member_org'
+  role.value = defaultRole()
   status.value = 'active'
   organisationId.value = null
   password.value = ''
@@ -111,7 +112,7 @@ function validate(): boolean {
   if (!role.value) clientErrors.value.role = 'Role is required.'
   if (!status.value) clientErrors.value.status = 'Status is required.'
 
-  if (role.value === 'member_org' && !organisationId.value) {
+  if (role.value === LEGACY_ROLES.MEMBER && !organisationId.value) {
     clientErrors.value.organisation_id = 'Organisation is required for member users.'
   }
 
@@ -133,7 +134,7 @@ function handleSubmit() {
       email: email.value.trim(),
       role: role.value,
       status: status.value,
-      organisation_id: role.value === 'member_org' || role.value === 'nep_coordinator' ? organisationId.value : null,
+      organisation_id: organisationId.value,
     }
     emit('submit', payload)
   } else {
@@ -142,7 +143,7 @@ function handleSubmit() {
       email: email.value.trim(),
       role: role.value,
       password: password.value,
-      organisation_id: role.value === 'member_org' || role.value === 'nep_coordinator' ? organisationId.value : null,
+      organisation_id: organisationId.value,
     }
     emit('submit', payload)
   }
@@ -225,8 +226,9 @@ function handleSubmit() {
             class="w-full border border-[var(--line)] rounded-[9px] px-3 py-2.5 text-[13.5px] font-inherit text-[var(--ink-900)] bg-white transition-all duration-150 focus:outline-none focus:border-[var(--teal-600)] focus:shadow-[0_0_0_3px_var(--teal-100)]"
             :class="{ '!border-red-600': errors.role }"
           >
-            <option v-for="opt in ROLE_OPTIONS" :key="opt.value" :value="opt.value">
-              {{ opt.label }}
+            <option v-if="roles.length === 0" value="" disabled>No roles available — create one first</option>
+            <option v-for="r in roles" :key="r.id" :value="r.name">
+              {{ r.display_name }}
             </option>
           </select>
           <p v-if="errors.role" class="flex items-center gap-1 mt-1.5 text-[11.5px] text-red-600">
@@ -255,15 +257,15 @@ function handleSubmit() {
           </div>
         </Transition>
 
-        <!-- Organisation (Only visible/relevant for Coordinator and Member Org) -->
+        <!-- Organisation (required for Member Org, optional for every other role) -->
         <Transition name="slide">
-          <div v-if="role === 'member_org' || role === 'nep_coordinator'">
+          <div v-if="role">
             <label for="um-organisation" class="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--ink-700)] mb-1.5">
               Organisation
               <span
                 class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-teal-100 text-teal-700 uppercase tracking-wider"
               >
-                {{ role === 'member_org' ? 'Required' : 'Optional' }}
+                {{ role === LEGACY_ROLES.MEMBER ? 'Required' : 'Optional' }}
               </span>
             </label>
             <select

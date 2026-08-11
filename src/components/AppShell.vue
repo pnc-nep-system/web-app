@@ -15,6 +15,8 @@ interface NavItem {
   to: string
   label: string
   icon: string
+  /** Permission required to see this item. Omit for items available to every authenticated user. */
+  permission?: string
   badge?: number
 }
 
@@ -23,56 +25,52 @@ interface NavSection {
   items: NavItem[]
 }
 
-const navItems = computed<any>(() => {
-  if (auth.userRole === 'nep_admin') {
-    return [
-      {
-        section: 'COORDINATION',
-        items: [
-          { to: '/admin/dashboard', label: 'Overview', icon: 'home' },
-          { to: '/map', label: 'The Map', icon: 'map' },
-          { to: '/adviser', label: 'The Adviser', icon: 'bolt' },
-          { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
-        ],
-      },
-      {
-        section: 'ADMINISTRATION',
-        items: [
-          { to: '/admin/taxonomy', label: 'Taxonomy data', icon: 'list' },
-          { to: '/admin/organization', label: 'Organization', icon: 'building' },
-          { to: '/admin/users', label: 'User Management', icon: 'users' },
-          { to: '/policy', label: 'Policy library', icon: 'book' },
-        ],
-      },
-    ]
-  }
+/** Filter out items the user's permissions don't cover — dynamic, not role-name-based. */
+function visible(items: NavItem[]): NavItem[] {
+  return items.filter((item) => !item.permission || auth.hasPermission(item.permission))
+}
 
-  if (auth.userRole === 'nep_coordinator') {
-    return [
-      {
-        section: 'COORDINATION',
-        items: [
-          { to: '/manager/dashboard', label: 'Overview', icon: 'home' },
-          { to: '/map', label: 'The Map', icon: 'map' },
-          { to: '/adviser', label: 'The Adviser', icon: 'bolt' },
-          { to: '/admin/programmes', label: 'Programme entries', icon: 'file' },
-        ],
-      },
-      {
-        section: 'REFERENCE',
-        items: [
-        { to: '/policy', label: 'Policy library', icon: 'book' },
-        ],
-      },
-    ]
-  }
+// The old "admin-dashboard" vs "manager-dashboard" routes are both gated by
+// the same dashboard.view permission now — this only decides which of the two
+// (visually different) dashboard components to link to, not who can see it.
+const dashboardRoute = computed(() => (auth.userRole === 'nep_coordinator' ? '/manager/dashboard' : '/admin/dashboard'))
 
-  return [
-    { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { to: '/policy', label: 'Policy library', icon: 'book' },
-    { to: '/account', label: 'Organisation Profile', icon: 'building' },
-  ]
-})
+// Two nav layouts are kept (grouped sections for staff-style access, a flat
+// workspace list for everyone else) to preserve the existing look — which
+// layout applies is decided by whether the user holds dashboard.view (today
+// held only by nep_admin/nep_coordinator), not by comparing role names. Any
+// future custom role with dashboard.view automatically gets the staff layout.
+const isStaffNav = computed(() => auth.hasPermission('dashboard.view'))
+
+const staffNavSections = computed<NavSection[]>(() => [
+  {
+    section: 'COORDINATION',
+    items: visible([
+      { to: dashboardRoute.value, label: 'Overview', icon: 'home', permission: 'dashboard.view' },
+      { to: '/map', label: 'The Map', icon: 'map', permission: 'map.view' },
+      { to: '/adviser', label: 'The Adviser', icon: 'bolt', permission: 'advisory.manage' },
+      { to: '/admin/programmes', label: 'Programme entries', icon: 'file', permission: 'dashboard.view' },
+    ]),
+  },
+  {
+    section: 'ADMINISTRATION',
+    items: visible([
+      { to: '/admin/taxonomy', label: 'Taxonomy data', icon: 'list', permission: 'taxonomy.create' },
+      { to: '/admin/organization', label: 'Organization', icon: 'building', permission: 'organisations.create' },
+      { to: '/admin/users', label: 'User Management', icon: 'users', permission: 'users.view' },
+      { to: '/admin/roles', label: 'Role Management', icon: 'shield', permission: 'roles.view' },
+      { to: '/admin/permissions', label: 'Permission Management', icon: 'lock', permission: 'permissions.view' },
+      { to: '/admin/mail-test', label: 'Mail Test', icon: 'mail', permission: 'system.test-email' },
+      { to: '/policy', label: 'Policy library', icon: 'book', permission: 'policy.view' },
+    ]),
+  },
+].filter((section) => section.items.length > 0))
+
+const workspaceNavItems = computed<NavItem[]>(() => visible([
+  { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/policy', label: 'Policy library', icon: 'book', permission: 'policy.view' },
+  { to: '/account', label: 'Organisation Profile', icon: 'building' },
+]))
 
 // Derive a human-friendly title from the stored role
 const portalTitle = computed(() => {
@@ -138,30 +136,28 @@ function logout() {
       </div>
 
       <nav class="flex-1 overflow-y-auto p-3.5 space-y-0.5">
-        <template v-if="auth.userRole === 'nep_coordinator' || auth.userRole === 'nep_admin'">
-          <div v-for="(section, sIndex) in navItems" :key="sIndex" class="mb-4">
-            <template v-if="'section' in section">
-              <div class="text-[10.5px] uppercase tracking-widest text-white/35 px-3 mb-2 mt-1 font-semibold">
-                {{ section.section }}
-              </div>
-              <RouterLink
-                v-for="item in section.items"
-                :key="item.to"
-                :to="item.to"
-                @click="isSidebarOpen = false"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-teal-200/80 text-sm font-semibold hover:bg-white/8 hover:text-white transition-colors mb-0.5"
-                active-class="!bg-white/15 !text-white"
+        <template v-if="isStaffNav">
+          <div v-for="section in staffNavSections" :key="section.section" class="mb-4">
+            <div class="text-[10.5px] uppercase tracking-widest text-white/35 px-3 mb-2 mt-1 font-semibold">
+              {{ section.section }}
+            </div>
+            <RouterLink
+              v-for="item in section.items"
+              :key="item.to"
+              :to="item.to"
+              @click="isSidebarOpen = false"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-teal-200/80 text-sm font-semibold hover:bg-white/8 hover:text-white transition-colors mb-0.5"
+              active-class="!bg-white/15 !text-white"
+            >
+              <BaseIcon :name="item.icon" size="18" />
+              <span class="flex-1">{{ item.label }}</span>
+              <span
+                v-if="item.badge"
+                class="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
               >
-                <BaseIcon :name="item.icon" size="18" />
-                <span class="flex-1">{{ item.label }}</span>
-                <span
-                  v-if="item.badge"
-                  class="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-                >
-                  {{ item.badge }}
-                </span>
-              </RouterLink>
-            </template>
+                {{ item.badge }}
+              </span>
+            </RouterLink>
           </div>
         </template>
 
@@ -170,7 +166,7 @@ function logout() {
             WORKSPACE
           </div>
           <RouterLink
-            v-for="item in navItems as NavItem[]"
+            v-for="item in workspaceNavItems"
             :key="item.to"
             :to="item.to"
             @click="isSidebarOpen = false"

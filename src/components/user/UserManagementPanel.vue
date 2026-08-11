@@ -7,9 +7,11 @@ import UserViewModal from '@/components/user/UserViewModal.vue'
 import ConfirmDeactivateModal from '@/components/user/ConfirmDeactivateModal.vue'
 import ToastHost from '@/components/ToastHost.vue'
 import { useUsersAdminStore } from '@/stores/usersAdmin'
+import { usePermission } from '@/composables/usePermission'
 
 const store = useUsersAdminStore()
 const usersComposable = store.usersComposable
+const { can } = usePermission()
 </script>
 
 <template>
@@ -18,7 +20,7 @@ const usersComposable = store.usersComposable
     title="User Management"
     subtitle="Manage system accounts, roles and organisation access."
   >
-    <button id="create-user-btn" class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] text-white text-xs font-bold rounded-xl hover:bg-[#0c483d] transition-all shadow-2xs cursor-pointer self-start sm:self-auto" @click="store.openCreateModal">
+    <button v-if="can('users.create')" id="create-user-btn" class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 bg-[#0F5A4D] text-white text-xs font-bold rounded-xl hover:bg-[#0c483d] transition-all shadow-2xs cursor-pointer self-start sm:self-auto" @click="store.openCreateModal">
       <BaseIcon name="plus" :size="15" />
       Create User
     </button>
@@ -54,9 +56,7 @@ const usersComposable = store.usersComposable
     <div class="flex gap-2.5 flex-wrap w-full md:w-auto">
       <select id="user-role-filter" v-model="usersComposable.roleFilter" class="flex-1 sm:flex-initial min-w-0 sm:min-w-[140px] border border-[var(--line)] rounded-xl bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--ink-700)]">
         <option value="">All roles</option>
-        <option value="nep_admin">NEP Admin</option>
-        <option value="nep_coordinator">Coordinator</option>
-        <option value="member_org">Member Organisation</option>
+        <option v-for="role in usersComposable.roles" :key="role.id" :value="role.name">{{ role.display_name }}</option>
       </select>
 
       <select id="user-status-filter" v-model="usersComposable.statusFilter" class="flex-1 sm:flex-initial min-w-0 sm:min-w-[140px] border border-[var(--line)] rounded-xl bg-[var(--card)] px-3 py-2.5 text-xs text-[var(--ink-700)]">
@@ -130,6 +130,7 @@ const usersComposable = store.usersComposable
     :edit-user="store.editTarget"
     :is-saving="usersComposable.isSaving"
     :organisations="usersComposable.organisations"
+    :roles="usersComposable.roles"
     :backend-errors="usersComposable.fieldErrors"
     @close="store.showFormModal = false"
     @submit="store.handleFormSubmit"

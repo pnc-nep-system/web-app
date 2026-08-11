@@ -2,6 +2,7 @@
 import BaseIcon from '@/components/common/BaseIcon.vue'
 import UserStatusBadge from './UserStatusBadge.vue'
 import EmptyState from '@/components/shared/EmptyState.vue'
+import { usePermission } from '@/composables/usePermission'
 import type { User } from '@/types/user'
 
 defineProps<{
@@ -16,6 +17,8 @@ const emit = defineEmits<{
   reactivate: [user: User]
   resetCredentials: [user: User]
 }>()
+
+const { can } = usePermission()
 
 /** Human-readable role labels */
 const ROLE_LABELS: Record<string, string> = {
@@ -46,6 +49,15 @@ function initials(name: string): string {
     .map((w) => w[0])
     .join('')
     .toUpperCase()
+}
+
+/** Any roles assigned beyond the one implied by the legacy `role` column (custom roles granted via Role Management). */
+function extraRoles(user: User): string {
+  if (!user.roles?.length) return ''
+  return user.roles
+    .filter((r) => r.name !== user.role)
+    .map((r) => r.display_name)
+    .join(', ')
 }
 
 function formatDate(iso: string): string {
@@ -130,6 +142,13 @@ function formatDate(iso: string): string {
                 />
                 {{ roleLabel(user.role) }}
               </span>
+              <span
+                v-if="extraRoles(user)"
+                class="ml-1 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold text-[var(--ink-500)] bg-[var(--bg)] border border-[var(--line)]"
+                :title="`Additional roles: ${extraRoles(user)}`"
+              >
+                +{{ user.roles!.filter((r) => r.name !== user.role).length }}
+              </span>
             </td>
 
             <!-- Status -->
@@ -156,11 +175,11 @@ function formatDate(iso: string): string {
                 <button class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] hover:bg-[var(--teal-50)] hover:shadow-[0_1px_4px_rgba(20,107,99,0.1)]" title="View details" @click="emit('view', user)">
                   <BaseIcon name="eye" :size="14" />
                 </button>
-                <button class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] hover:bg-[var(--teal-50)] hover:shadow-[0_1px_4px_rgba(20,107,99,0.1)]" title="Edit user" @click="emit('edit', user)">
+                <button v-if="can('users.update')" class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] hover:bg-[var(--teal-50)] hover:shadow-[0_1px_4px_rgba(20,107,99,0.1)]" title="Edit user" @click="emit('edit', user)">
                   <BaseIcon name="edit" :size="14" />
                 </button>
                 <button
-                  v-if="user.status === 'active'"
+                  v-if="can('users.update') && user.status === 'active'"
                   class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-red-600 hover:text-red-600 hover:bg-red-50 hover:shadow-[0_1px_4px_rgba(220,38,38,0.1)]"
                   title="Deactivate account"
                   @click="emit('deactivate', user)"
@@ -168,7 +187,7 @@ function formatDate(iso: string): string {
                   <BaseIcon name="ban" :size="14" />
                 </button>
                 <button
-                  v-else
+                  v-else-if="can('users.update')"
                   class="w-[34px] h-[34px] rounded-lg border border-[var(--line)] bg-white inline-flex items-center justify-center text-[var(--ink-500)] cursor-pointer transition-all duration-150 hover:border-[var(--teal-600)] hover:text-[var(--teal-700)] hover:bg-[var(--teal-50)] hover:shadow-[0_1px_4px_rgba(20,107,99,0.1)]"
                   title="Reactivate account"
                   @click="emit('reactivate', user)"
@@ -210,18 +229,18 @@ function formatDate(iso: string): string {
             <button class="btn btn-secondary btn-sm" @click="emit('view', user)">
               <BaseIcon name="eye" :size="13" /> View
             </button>
-            <button class="btn btn-secondary btn-sm" @click="emit('edit', user)">
+            <button v-if="can('users.update')" class="btn btn-secondary btn-sm" @click="emit('edit', user)">
               <BaseIcon name="edit" :size="13" /> Edit
             </button>
             <button
-              v-if="user.status === 'active'"
+              v-if="can('users.update') && user.status === 'active'"
               class="btn btn-danger-ghost btn-sm"
               @click="emit('deactivate', user)"
             >
               <BaseIcon name="ban" :size="13" /> Deactivate
             </button>
             <button
-              v-else
+              v-else-if="can('users.update')"
               class="btn btn-secondary btn-sm"
               @click="emit('reactivate', user)"
             >

@@ -155,6 +155,37 @@ function formatDate(iso?: string): string {
             </div>
           </div>
         </div>
+
+        <!-- Roles & Effective Permissions -->
+        <div v-if="user.roles?.length || user.effective_permissions?.length" class="rounded-xl bg-white border border-[var(--line-soft)] shadow-sm overflow-hidden">
+          <div class="px-5 py-3 border-b border-[var(--line-soft)]">
+            <h4 class="text-[11px] font-bold uppercase tracking-wider text-[var(--ink-400)]">Roles &amp; Effective Permissions</h4>
+          </div>
+          <div class="p-5 space-y-3.5">
+            <div v-if="user.roles?.length" class="flex flex-wrap gap-1.5">
+              <span
+                v-for="r in user.roles"
+                :key="r.id"
+                class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold bg-[var(--teal-50)] text-[var(--teal-700)]"
+              >
+                <BaseIcon name="shield" :size="11" />
+                {{ r.display_name }}
+              </span>
+            </div>
+            <div v-if="user.effective_permissions?.length">
+              <p class="text-[11px] font-semibold text-[var(--ink-400)] mb-1.5">{{ user.effective_permissions.length }} effective permission(s)</p>
+              <div class="flex flex-wrap gap-1 max-h-[120px] overflow-y-auto">
+                <span
+                  v-for="p in user.effective_permissions"
+                  :key="p"
+                  class="inline-flex items-center px-1.5 py-0.5 rounded text-[10.5px] font-mono text-[var(--ink-500)] bg-[var(--bg)] border border-[var(--line)]"
+                >
+                  {{ p }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Footer -->

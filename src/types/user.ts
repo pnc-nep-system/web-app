@@ -1,8 +1,20 @@
 import type { Organisation } from './organisations'
+import type { Role } from './role'
 
 export type OrganisationOption = Pick<Organisation, 'id' | 'name'>
 
-export type UserRole = 'nep_admin' | 'nep_coordinator' | 'member_org'
+// `role` used to be a fixed 3-value enum; it's now any role name that exists
+// in the `roles` table (Role Management can create custom roles), so this is
+// deliberately widened to `string` rather than a fixed union. The three
+// well-known names are still useful as constants for UI-only branching (e.g.
+// which dashboard layout to link to) — see `LEGACY_ROLES` below.
+export type UserRole = string
+
+export const LEGACY_ROLES = {
+  ADMIN: 'nep_admin',
+  COORDINATOR: 'nep_coordinator',
+  MEMBER: 'member_org',
+} as const
 
 export type UserStatus = 'active' | 'inactive'
 
@@ -19,6 +31,10 @@ export interface User {
   } | null
   created_at: string
   updated_at: string
+  /** Granular roles assigned via Role Management — kept in sync with `role` plus any extra custom roles. */
+  roles?: Role[]
+  /** Only present on the single-user GET /admin/users/{id} response. */
+  effective_permissions?: string[]
 }
 
 export interface CreateUserPayload {

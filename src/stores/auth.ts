@@ -16,9 +16,27 @@ export const useAuthStore = defineStore('auth', () => {
   const loggingOut = ref(false)
   const userRole = ref<string>(sessionStorage.getItem('userRole') ?? '')
 
+  // Dynamic RBAC: the backend now sends the authenticated user's roles and
+  // effective permissions (derived from all assigned roles) on login/session/
+  // fetchCurrentUser. Everything access-related should be driven off
+  // `permissions`, not `userRole` — role-name checks (isAdmin, etc.) are kept
+  // below only as thin backward-compatible wrappers for existing call sites.
+  const roles = ref<{ id: number; name: string; display_name: string }[]>([])
+  const permissions = ref<string[]>([])
+
   const isAuthenticated = computed(() => isLoggedIn.value)
   const isAdmin = computed(() => userRole.value === 'nep_admin')
   const isCoordinatorOrAdmin = computed(() => ['nep_admin', 'nep_coordinator'].includes(userRole.value))
+
+  /** The single source of truth for "can this user do X?" — never check userRole directly for access control. */
+  function hasPermission(permission: string): boolean {
+    return permissions.value.includes(permission)
+  }
+
+  /** True if the user holds at least one of the given permissions. */
+  function hasAnyPermission(perms: string[]): boolean {
+    return perms.some((p) => permissions.value.includes(p))
+  }
 
   function clearErrors() {
     authError.value = ''
@@ -31,6 +49,8 @@ export const useAuthStore = defineStore('auth', () => {
     userRole.value = typeof user?.role === 'string' ? user.role : ''
     currentUserId.value = user?.id ? String(user.id) : null
     isLoggedIn.value = Boolean(user)
+    roles.value = Array.isArray(user?.roles) ? (user.roles as typeof roles.value) : []
+    permissions.value = Array.isArray(user?.permissions) ? (user.permissions as string[]) : []
 
     if (user) {
       sessionStorage.setItem('isLoggedIn', 'true')
@@ -179,6 +199,10 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     isCoordinatorOrAdmin,
     userRole,
+    roles,
+    permissions,
+    hasPermission,
+    hasAnyPermission,
     login,
     logout,
     clearAuthState,

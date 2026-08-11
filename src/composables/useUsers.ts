@@ -1,8 +1,10 @@
 import { ref } from 'vue'
 import { userService } from '@/services/user.service'
+import { roleService } from '@/services/role.service'
 import type { OrganisationOption } from '@/types/user'
 import { useToast } from '@/utils/toast'
 import type { User, CreateUserPayload, UpdateUserPayload } from '@/types/user'
+import type { Role } from '@/types/role'
 
 /**
  * Composable that manages users API requests, pagination, search, and validation.
@@ -12,6 +14,8 @@ export function useUsers() {
 
   const users = ref<User[]>([])
   const organisations = ref<OrganisationOption[]>([])
+  /** Every role that exists (system + custom) — feeds the Create/Edit User role dropdown. */
+  const roles = ref<Role[]>([])
   const isLoading = ref(false)
   const isSaving = ref(false)
 
@@ -48,6 +52,24 @@ export function useUsers() {
       }
     })()
     return _fetchOrgsPromise
+  }
+
+  let _fetchRolesPromise: Promise<void> | null = null
+
+  /** Fetch every role (system + custom) for the role select in the user form. */
+  async function fetchRoles(): Promise<void> {
+    if (_fetchRolesPromise) return _fetchRolesPromise
+    _fetchRolesPromise = (async () => {
+      try {
+        const res = await roleService.getRoles()
+        roles.value = res.data ?? []
+      } catch (err) {
+        console.error('Failed to load roles:', err)
+      } finally {
+        _fetchRolesPromise = null
+      }
+    })()
+    return _fetchRolesPromise
   }
 
   let _fetchUsersPromise: Promise<void> | null = null
@@ -200,6 +222,7 @@ export function useUsers() {
   return {
     users,
     organisations,
+    roles,
     isLoading,
     isSaving,
     searchQuery,
@@ -212,6 +235,7 @@ export function useUsers() {
     fieldErrors,
     clearErrors,
     fetchOrganisations,
+    fetchRoles,
     fetchUsers,
     createUser,
     updateUser,
