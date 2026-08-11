@@ -26,6 +26,16 @@ function getData() {
   return store.getData()
 }
 
+function normaliseActivityItem(item: any, subCode: string, index: number) {
+  const code = item.code || `${subCode}.${String(index + 1).padStart(2, '0')}`
+  return {
+    ...item,
+    code: String(code),
+    label: item.label || item.name || 'Untitled activity',
+    is_active: item.is_active ?? item.status !== 'deprecated',
+  }
+}
+
 defineExpose({ validate, getData })
 </script>
 
@@ -70,6 +80,22 @@ defineExpose({ validate, getData })
     </div>
 
     <!-- B1–B9 Accordions -->
+    <div
+      v-else-if="accordion.error || accordion.categories.length === 0"
+      class="flex flex-col items-center justify-center gap-3 py-12 bg-white rounded-xl border border-gray-100 shadow-sm text-center"
+    >
+      <span class="text-sm font-medium text-gray-700">
+        {{ accordion.error || 'No activity taxonomy is available.' }}
+      </span>
+      <button
+        type="button"
+        class="px-4 py-2 text-sm font-medium text-teal-800 bg-teal-50 border border-teal-100 rounded-lg hover:bg-teal-100 transition-colors"
+        @click="accordion.loadCategories(true)"
+      >
+        Retry
+      </button>
+    </div>
+
     <div v-else class="space-y-3">
       <div
         v-for="cat in accordion.categories"
@@ -132,7 +158,9 @@ defineExpose({ validate, getData })
 
             <div v-if="accordion.openSubcategories.has(sub.code)" class="border-t border-slate-100 px-4 py-4 space-y-3 bg-slate-50/10 animate-fade-in">
               <ActivityItemCard
-                v-for="item in sub.items.filter((i: any) => i.is_active !== false)"
+                v-for="(item, itemIndex) in sub.items
+                  .map((i: any, index: number) => normaliseActivityItem(i, sub.code, index))
+                  .filter((i: any) => i.is_active !== false)"
                 :key="item.code"
                 :item="item"
               />

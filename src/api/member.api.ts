@@ -94,8 +94,8 @@ export const memberApi = {
   saveKeywords(id: number | string, keywords: string[]) {
     return api.put(`/programme-entries/${id}/keywords`, { keywords });
   },
-  getTaxonomyCategories() {
-    return taxonomyApi.list();
+  getTaxonomyCategories(options: { force?: boolean } = {}) {
+    return taxonomyApi.list(options);
   },
   getMyOrganisation() {
     return api.get('/organisations/me');

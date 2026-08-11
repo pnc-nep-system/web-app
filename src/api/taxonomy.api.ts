@@ -31,10 +31,10 @@ function readTaxonomyCache(): Category[] | null {
     const parsed = JSON.parse(raw) as CachePayload<Category[]> | Category[]
 
     if (Array.isArray(parsed)) {
-      return parsed
+      return parsed.length ? parsed : null
     }
 
-    if (!Array.isArray(parsed.data)) return null
+    if (!Array.isArray(parsed.data) || parsed.data.length === 0) return null
 
     const isFresh = Date.now() - parsed.savedAt < TAXONOMY_CACHE_TTL_MS
     return isFresh ? parsed.data : null
@@ -44,6 +44,11 @@ function readTaxonomyCache(): Category[] | null {
 }
 
 function writeTaxonomyCache(data: Category[]) {
+  if (data.length === 0) {
+    localStorage.removeItem(TAXONOMY_CACHE_KEY)
+    return
+  }
+
   localStorage.setItem(
     TAXONOMY_CACHE_KEY,
     JSON.stringify({

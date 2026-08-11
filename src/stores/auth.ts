@@ -5,6 +5,9 @@ import { connectRealtimeForRole, disconnectRealtime } from '@/realtime'
 import { useNotificationStore } from '@/stores/notification'
 
 export const useAuthStore = defineStore('auth', () => {
+  // Remove credentials left by the previous personal-access-token login flow.
+  localStorage.removeItem('token')
+
   const isLoggedIn = ref<boolean>(sessionStorage.getItem('isLoggedIn') === 'true')
   const currentUserId = ref<string | null>(sessionStorage.getItem('currentUserId'))
   const currentUser = ref<Record<string, unknown> | null>(null)
@@ -80,8 +83,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await authApi.getCsrfCookie()
       const response = await authApi.login({ email, password })
-      const token = response.data.token
-      if (token) localStorage.setItem('token', token)
       rememberUser(response.data.user ?? null)
       return true
     } catch (error) {
@@ -187,4 +188,3 @@ export const useAuthStore = defineStore('auth', () => {
     changePassword,
   }
 })
-

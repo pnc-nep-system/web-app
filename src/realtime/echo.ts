@@ -38,13 +38,18 @@ export async function getEcho() {
 
     authorizer: (channel: { name: string }) => ({
       authorize: (socketId: string, callback: (error: boolean, data: any) => void) => {
-        const token = localStorage.getItem("token");
+        const xsrf = document.cookie
+          .split("; ")
+          .find((row) => row.startsWith("XSRF-TOKEN="))
+          ?.split("=")[1];
+
         fetch(`${apiBaseUrl}/broadcasting/auth`, {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
-            Authorization: `Bearer ${token}`,
+            ...(xsrf ? { "X-XSRF-TOKEN": decodeURIComponent(xsrf) } : {}),
           },
           body: JSON.stringify({
             socket_id: socketId,

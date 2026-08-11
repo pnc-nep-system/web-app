@@ -2,20 +2,47 @@ import { defineStore } from 'pinia'
 import { ref, shallowRef } from 'vue'
 import { memberApi } from '@/api/member.api'
 import { useProgrammeActivitiesStore } from './programmeActivities'
+import { normaliseCategories, readCache, writeCache } from './taxonomyNormalise'
 
 export const useCategoriesStore = defineStore('categories', () => {
   const categories = shallowRef<any[]>([])
   const isLoading = ref(false)
+  const error = ref('')
+  const debugSummary = ref('')
   const openCategories = ref<Set<string>>(new Set())
   const openSubcategories = ref<Set<string>>(new Set())
 
-  async function loadCategories() {
+  async function loadCategories(force = false) {
+    if (categories.value.length && !force) return
     isLoading.value = true
+    error.value = ''
     try {
-      const response = await memberApi.getTaxonomyCategories()
-      categories.value = response || []
+      const cached = readCache()
+      if (cached.length && !force) {
+        categories.value = cached
+        debugSummary.value = `Loaded ${cached.length} taxonomy categories from cache.`
+        return
+      }
+
+      const response = await memberApi.getTaxonomyCategories({ force })
+      const rawCategories = Array.isArray(response)
+        ? response
+        : Array.isArray((response as any)?.data)
+          ? (response as any).data
+          : []
+      const normalised = normaliseCategories(rawCategories)
+      categories.value = normalised
+      if (normalised.length) writeCache(normalised)
+      else error.value = 'No activity taxonomy is available.'
+      debugSummary.value = `Loaded ${normalised.length} taxonomy categories from API.`
     } catch (err) {
       console.error('Failed to load taxonomy categories:', err)
+      const cached = readCache()
+      categories.value = cached
+      error.value = cached.length ? '' : 'Failed to load activity taxonomy.'
+      debugSummary.value = cached.length
+        ? `Loaded ${cached.length} taxonomy categories from cache after API failure.`
+        : 'No cached taxonomy categories found after API failure.'
     } finally {
       isLoading.value = false
     }
@@ -95,6 +122,8 @@ export const useCategoriesStore = defineStore('categories', () => {
   return {
     categories,
     isLoading,
+    error,
+    debugSummary,
     openCategories,
     openSubcategories,
     loadCategories,
