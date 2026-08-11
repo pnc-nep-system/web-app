@@ -115,10 +115,14 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     if (loggingOut.value) return
     loggingOut.value = true
-    authApi.logout().catch((err) => {
+    try {
+      await authApi.logout()
+    } catch (err) {
       console.error('Failed to notify backend on logout:', err)
-    })
-    clearAuthState(true)
+    } finally {
+      clearAuthState(true)
+      loggingOut.value = false
+    }
   }
 
   async function fetchCurrentUser() {
