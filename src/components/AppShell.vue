@@ -226,8 +226,8 @@ function logout() {
       <!-- PN Footer -->
       <footer class="flex h-16 border-t border-gray-200 bg-white px-6 items-center">
         <div class="max-w-[1400px] w-full mx-auto flex items-center justify-center gap-3">
-          <img src="@/assets/images/logoes/PN-logo.png" alt="Passerelles Numériques Cambodia" class="w-8 h-8 object-contain"/>
           <span class="text-xs text-gray-500">Developed by Passerelles Numériques Cambodia</span>
+          <img src="@/assets/images/logoes/PN-logo.png" alt="Passerelles Numériques Cambodia" class="w-8 h-8 object-contain"/>
         </div>
       </footer>
     </main>

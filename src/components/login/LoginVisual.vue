@@ -30,8 +30,8 @@
 
     <!-- PN Footer -->
     <div class="absolute bottom-8 left-32 flex items-center gap-3">
-      <img src="@/assets/images/logoes/PN-logo.png" alt="Passerelles Numériques Cambodia" class="w-10 h-10 object-contain"/>
       <span class="text-xs text-white/60">Developed by Passerelles Numériques Cambodia</span>
+      <img src="@/assets/images/logoes/PN-logo.png" alt="Passerelles Numériques Cambodia" class="w-10 h-10 object-contain"/>
     </div>
   </div>
 </template>
