@@ -58,23 +58,27 @@ const filteredRows = computed(() => {
           class="bg-slate-50/60 border border-slate-200/80 hover:border-teal-300 hover:bg-teal-50/30 transition-all rounded-xl p-3.5 group flex flex-col justify-between"
         >
           <div>
-            <div class="flex items-start justify-between gap-2 mb-1.5">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="mono text-xs font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded shadow-2xs border border-amber-300/60">
-                  {{ row.code }}
-                </span>
-                <span class="mono text-xs font-bold text-teal-800 bg-teal-100 px-2 py-0.5 rounded shadow-2xs border border-teal-300/60">
-                  {{ row.primary ? 'Core' : 'Supporting' }}
-                </span>
-              </div>
+            <div class="flex items-start gap-2.5 mb-2.5">
+              <span class="mono text-xs font-bold text-amber-900 bg-amber-100/90 border border-amber-300/70 px-2 py-0.5 rounded-md shrink-0 shadow-2xs">
+                {{ row.code }}
+              </span>
+              <h4 class="text-sm font-bold text-slate-900 group-hover:text-teal-800 transition-colors leading-snug pt-0.5">
+                {{ row.item?.label || (row as any).label || (row as any).name || (row as any).subCategory?.name || (row as any).category?.name || row.code }}
+              </h4>
             </div>
-
-            <b class="text-sm font-semibold text-slate-800 group-hover:text-teal-800 transition-colors block leading-snug mb-2">
-              {{ row.item?.label || (row as any).label || (row as any).name || (row as any).subCategory?.name || (row as any).category?.name || row.code }}
-            </b>
           </div>
 
-          <div class="flex flex-col gap-1 text-[12px] text-slate-500 font-medium pt-2 border-t border-slate-200/50 mt-1">
+          <div class="flex flex-col gap-1.5 text-[12px] text-slate-500 font-medium pt-2.5 border-t border-slate-200/60 mt-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-slate-400 font-semibold">Activity level:</span>
+              <span
+                class="text-[11px] font-bold px-3 py-0.5 rounded-full border shadow-2xs transition-all"
+                :class="row.primary ? 'text-teal-800 bg-teal-100/90 border-teal-300/70' : 'text-slate-700 bg-slate-100 border-slate-300/70'"
+              >
+                {{ row.primary ? 'Core' : 'Supporting' }}
+              </span>
+            </div>
+
             <div v-if="row.inclusion" class="flex items-center gap-1.5 flex-wrap">
               <span class="text-slate-400 font-semibold">Audience:</span>
               <span class="bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-700 text-[11px]">
