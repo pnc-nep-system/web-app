@@ -60,7 +60,6 @@ const staffNavSections = computed<NavSection[]>(() => [
       { to: '/admin/users', label: 'User Management', icon: 'users', permission: 'users.view' },
       { to: '/admin/roles', label: 'Role Management', icon: 'shield', permission: 'roles.view' },
       { to: '/admin/permissions', label: 'Permission Management', icon: 'lock', permission: 'permissions.view' },
-      { to: '/admin/mail-test', label: 'Mail Test', icon: 'mail', permission: 'system.test-email' },
       { to: '/policy', label: 'Policy library', icon: 'book', permission: 'policy.view' },
     ]),
   },
